@@ -1,0 +1,128 @@
+---
+title: MaW Media Schema ERD
+---
+erDiagram
+    %% create another table to represent the external user, and simplify this to link those same external users
+    %% to one logical user for our system (i.e. i should have 1 user acct, regardless if i login via google/github/etc)
+    %% external_id = nameidentifier
+    user {
+        UUID id PK
+        TIMESTAMPTZ created
+        TIMESTAMPTZ modified
+        TEXT external_id UK
+        TEXT name
+        TEXT given_name
+        TEXT surname
+        TEXT nickname
+        TEXT email
+        BOOLEAN email_verified
+        TEXT picture
+    }
+
+    role {
+        UUID id PK
+        TEXT name UK
+    }
+
+    user_role {
+        UUID user_id PK, FK
+        UUID role_id PK, FK
+    }
+
+    category {
+        UUID id PK
+        TEXT NAME
+        DATE effective_date
+        TIMESTAMPTZ created
+        UUID created_by FK
+        TIMESTAMPTZ modified
+        UUID modified_by FK
+    }
+
+    media_role {
+        UUID media_id PK, FK
+        UUID role_id PK, FK
+    }
+
+    %% primarily used to give consumers an easy way to identify the type of media
+    media_type {
+        UUID id PK
+        TEXT name UK
+    }
+
+    media {
+        UUID id PK
+        UUID category_id FK
+        UUID media_type_id FK
+        UUID location_id FK
+        UUID location_override_id FK
+        JSONB metadata
+        TIMESTAMPTZ created
+        UUID created_by FK
+        TIMESTAMPTZ modified
+        UUID modified_by FK
+    }
+
+    location {
+        UUID id PK
+        NUMERIC(8_6) latitude
+        NUMERIC(9_6) longitude
+        TIMESTAMPTZ lookup_date
+        TEXT formatted_address
+        TEXT administrative_area_level_1
+        TEXT administrative_area_level_2
+        TEXT administrative_area_level_3
+        TEXT country
+        TEXT locality
+        TEXT neighborhood
+        TEXT sub_locality_level_1
+        TEXT sub_locality_level_2
+        TEXT postal_code
+        TEXT postal_code_suffix
+        TEXT premise
+        TEXT route
+        TEXT street_number
+        TEXT sub_premise
+    }
+
+    point_of_interest {
+        UUID location_id PK, FK
+        TEXT type PK
+        TEXT name
+    }
+
+    photo {
+        UUID id PK,FK
+    }
+
+    video {
+        UUID id PK,FK
+    }
+
+    comment {
+        UUID id PK
+        TIMESTAMPTZ created
+        UUID user_id FK
+        TIMESTAMPTZ modified
+        TEXT body
+    }
+
+    user ||--o{ user_role : ""
+    role ||--o{ user_role : ""
+
+    category }o--|| user : ""
+
+    %% assign perms here to allow flexibility of showing/hiding media on a per role basis
+    media_role }o--|| role : ""
+
+    media }o--|| category : ""
+    media }o--|| media_type : ""
+    media ||--o{ media_role : ""
+    media ||--|| photo : ""
+    media ||--|| video : ""
+    media ||--o{ comment: ""
+    media }o--o| location : ""
+
+    location }o--|| point_of_interest : ""
+
+    comment }o--|| user : ""

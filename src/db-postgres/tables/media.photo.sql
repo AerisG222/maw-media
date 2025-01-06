@@ -46,18 +46,6 @@ CREATE TABLE IF NOT EXISTS media.photo (
     k4_path TEXT,
     k4_bytes SMALLINT,
 
-    -- 5k (5120x2880)
-    k5_height SMALLINT,
-    k5_width SMALLINT,
-    k5_path TEXT,
-    k5_bytes SMALLINT,
-
-    -- 8k (7680×4320)
-    k8_height SMALLINT,
-    k8_width SMALLINT,
-    k8_path TEXT,
-    k8_bytes SMALLINT,
-
     -- src
     src_height SMALLINT NOT NULL,
     src_width SMALLINT NOT NULL,
