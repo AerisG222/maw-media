@@ -1,27 +1,27 @@
 CREATE TABLE IF NOT EXISTS media.category (
     id UUID NOT NULL,
     name TEXT NOT NULL,
-    category_date DATE NOT NULL,
-    published TIMESTAMPTZ NOT NULL,
+    teaser_media_id UUID,
+    effective_date DATE NOT NULL,
+    created TIMESTAMPTZ NOT NULL,
+    created_by UUID NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
-
-    -- qqvg (160x120)
-    teaser_qqvg_height SMALLINT NOT NULL,
-    teaser_qqvg_width SMALLINT NOT NULL,
-    teaser_qqvg_path TEXT NOT NULL,
-    teaser_qqvg_bytes SMALLINT NOT NULL,
-
-    -- qvg (320x240)
-    teaser_qvg_height SMALLINT NOT NULL,
-    teaser_qvg_width SMALLINT NOT NULL,
-    teaser_qvg_path TEXT NOT NULL,
-    teaser_qvg_bytes SMALLINT NOT NULL,
-
-    -- add video / mjpeg teasers?
-    -- add tags?
+    modified_by UUID NOT NULL,
 
     CONSTRAINT pk_media_category
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+
+    CONSTRAINT fk_media_category$media_media
+    FOREIGN KEY (teaser_media_id)
+    REFERENCES media.media(id),
+
+    CONSTRAINT fk_media_category$media_user$created
+    FOREIGN KEY (created_by)
+    REFERENCES media.user(id),
+
+    CONSTRAINT fk_media_category$media_user$modified
+    FOREIGN KEY (modifed_by)
+    REFERENCES media.user(id),
 );
 
 DO
