@@ -56,11 +56,11 @@ erDiagram
         UUID media_type_id FK
         UUID location_id FK
         UUID location_override_id FK
-        JSONB metadata
         TIMESTAMPTZ created
         UUID created_by FK
         TIMESTAMPTZ modified
         UUID modified_by FK
+        JSONB metadata
     }
 
     location {
@@ -92,19 +92,65 @@ erDiagram
     }
 
     photo {
-        UUID id PK,FK
+        UUID media_id PK, FK
     }
 
     video {
-        UUID id PK,FK
+        UUID media_id PK, FK
+        NUMERIC(7_2) duration_seconds
+    }
+
+    %% qqvg    ( 160 x  120)
+    %% qvg     ( 320 x  240)
+    %% nhd     ( 640 x  360)
+    %% hd      (1280 x  720)
+    %% full_hd (1920 x 1080)
+    %% qhd     (2560 x 1440)
+    %% 4k      (3840 x 2160)
+    %% 5k      (5120 x 2880)  - skip for now
+    %% 8k      (7680 × 4320)  - skip for now
+    %% src     ?
+    media_scale {
+        UUID id PK
+        TEXT abbreviation UK
+        TEXT name UK
+        INTEGER max_width
+        INTEGER max_height
+        BOOLEAN is_square_cropped
+    }
+
+    scaled_photo {
+        UUID media_id PK, FK
+        UUID media_scale_id PK, FK
+        INTEGER height
+        INTEGER width
+        INTEGER bytes
+        TEXT path
+    }
+
+    scaled_video {
+        UUID media_id PK, FK
+        UUID media_scale_id PK, FK
+        INTEGER height
+        INTEGER width
+        INTEGER bytes
+        TEXT path
     }
 
     comment {
         UUID id PK
         TIMESTAMPTZ created
-        UUID user_id FK
+        UUID created_by FK
         TIMESTAMPTZ modified
         TEXT body
+    }
+
+    rating {
+        UUID id PK
+        TIMESTAMPTZ created
+        UUID user_id FK
+        TIMESTAMPTZ modified
+        SMALLINT rating
     }
 
     user ||--o{ user_role : ""
@@ -121,8 +167,15 @@ erDiagram
     media ||--|| photo : ""
     media ||--|| video : ""
     media ||--o{ comment: ""
+    media ||--o{ rating: ""
     media }o--o| location : ""
 
-    location }o--|| point_of_interest : ""
-
+    location ||--o{ point_of_interest : ""
     comment }o--|| user : ""
+    rating }o--|| user : ""
+
+    scaled_photo }o--|| media_scale : ""
+    scaled_photo ||--o{ photo : ""
+
+    scaled_video }o--|| media_scale : ""
+    scaled_video ||--o{ video : ""
