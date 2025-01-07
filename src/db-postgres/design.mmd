@@ -11,11 +11,10 @@ erDiagram
         TIMESTAMPTZ modified
         TEXT external_id UK
         TEXT name
-        TEXT given_name
-        TEXT surname
-        TEXT nickname
         TEXT email
         BOOLEAN email_verified
+        TEXT given_name
+        TEXT surname
         TEXT picture
     }
 
@@ -32,6 +31,7 @@ erDiagram
     category {
         UUID id PK
         TEXT NAME
+        UUID teaser_media_id FK
         DATE effective_date
         TIMESTAMPTZ created
         UUID created_by FK
@@ -61,6 +61,7 @@ erDiagram
         TIMESTAMPTZ modified
         UUID modified_by FK
         JSONB metadata
+        NUMERIC(7_2) duration_seconds
     }
 
     location {
@@ -91,15 +92,6 @@ erDiagram
         TEXT name
     }
 
-    photo {
-        UUID media_id PK, FK
-    }
-
-    video {
-        UUID media_id PK, FK
-        NUMERIC(7_2) duration_seconds
-    }
-
     %% qqvg    ( 160 x  120)
     %% qvg     ( 320 x  240)
     %% nhd     ( 640 x  360)
@@ -119,18 +111,16 @@ erDiagram
         BOOLEAN is_square_cropped
     }
 
-    scaled_photo {
-        UUID media_id PK, FK
-        UUID media_scale_id PK, FK
-        INTEGER height
-        INTEGER width
-        INTEGER bytes
-        TEXT path
+    %% video / image
+    media_format {
+        UUID id PK
+        TEXT name
     }
 
-    scaled_video {
+    scaled_media {
         UUID media_id PK, FK
         UUID media_scale_id PK, FK
+        UUID media_format_id PK, FK
         INTEGER height
         INTEGER width
         INTEGER bytes
@@ -157,6 +147,7 @@ erDiagram
     role ||--o{ user_role : ""
 
     category }o--|| user : ""
+    category }o--o| media : ""
 
     %% assign perms here to allow flexibility of showing/hiding media on a per role basis
     media_role }o--|| role : ""
@@ -164,8 +155,6 @@ erDiagram
     media }o--|| category : ""
     media }o--|| media_type : ""
     media ||--o{ media_role : ""
-    media ||--|| photo : ""
-    media ||--|| video : ""
     media ||--o{ comment: ""
     media ||--o{ rating: ""
     media }o--o| location : ""
@@ -174,8 +163,6 @@ erDiagram
     comment }o--|| user : ""
     rating }o--|| user : ""
 
-    scaled_photo }o--|| media_scale : ""
-    scaled_photo ||--o{ photo : ""
-
-    scaled_video }o--|| media_scale : ""
-    scaled_video ||--o{ video : ""
+    scaled_media ||--o{ media : ""
+    scaled_media }o--|| media_scale : ""
+    scaled_media }o--|| media_format : ""
