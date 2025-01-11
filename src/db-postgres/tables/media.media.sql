@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS media.media (
     created_by UUID NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
     modified_by UUID NOT NULL,
-    metadata JSONB
+    metadata JSONB,
 
     CONSTRAINT pk_media_media
     PRIMARY KEY (id),
@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS media.media (
     REFERENCES media.user(id),
 
     CONSTRAINT fk_media_media$media_user$modified
-    FOREIGN KEY (modifed_by)
-    REFERENCES media.user(id),
+    FOREIGN KEY (modified_by)
+    REFERENCES media.user(id)
 );
 
 DO
