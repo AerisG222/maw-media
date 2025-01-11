@@ -73,6 +73,8 @@ function main() {
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.rating.sql"
 
+    run_psql_script "tables/media.category2.sql"
+
     header "seed"
 
     header "functions"

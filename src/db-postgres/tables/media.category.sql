@@ -11,10 +11,6 @@ CREATE TABLE IF NOT EXISTS media.category (
     CONSTRAINT pk_media_category
     PRIMARY KEY (id),
 
-    -- CONSTRAINT fk_media_category$media_media
-    -- FOREIGN KEY (teaser_media_id)
-    -- REFERENCES media.media(id),
-
     CONSTRAINT fk_media_category$media_user$created
     FOREIGN KEY (created_by)
     REFERENCES media.user(id),
@@ -24,25 +20,25 @@ CREATE TABLE IF NOT EXISTS media.category (
     REFERENCES media.user(id)
 );
 
--- DO
--- $$
--- BEGIN
---     IF NOT EXISTS
---     (
---         SELECT 1
---         FROM pg_catalog.pg_indexes
---         WHERE schemaname = 'media'
---             AND tablename = 'category'
---             AND indexname = 'ix_media_category_effective_date'
---     )
---     THEN
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'category'
+            AND indexname = 'ix_media_category_effective_date'
+    )
+    THEN
 
---         CREATE INDEX ix_media_category_effective_date
---         ON media.category(effective_date);
+        CREATE INDEX ix_media_category_effective_date
+        ON media.category(effective_date);
 
---     END IF;
--- END
--- $$;
+    END IF;
+END
+$$;
 
 GRANT SELECT
 ON media.category
