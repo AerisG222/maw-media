@@ -2,14 +2,24 @@
 title: MaW Media Schema ERD
 ---
 erDiagram
-    %% create another table to represent the external user, and simplify this to link those same external users
-    %% to one logical user for our system (i.e. i should have 1 user acct, regardless if i login via google/github/etc)
     %% external_id = nameidentifier
+    external_identity {
+        TEXT external_id PK
+        UUID user_id FK
+        TIMESTAMPTZ created
+        TIMESTAMPTZ modified
+        TEXT name
+        TEXT email
+        BOOLEAN email_verified
+        TEXT given_name
+        TEXT surname
+        TEXT picture
+    }
+
     user {
         UUID id PK
         TIMESTAMPTZ created
         TIMESTAMPTZ modified
-        TEXT external_id UK
         TEXT name
         TEXT email
         BOOLEAN email_verified
@@ -136,6 +146,7 @@ erDiagram
         SMALLINT rating
     }
 
+    external_identity }o--|| user : ""
     user ||--o{ user_role : ""
     role ||--o{ user_role : ""
 
