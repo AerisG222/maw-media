@@ -18,6 +18,26 @@ CREATE TABLE IF NOT EXISTS media.external_identity (
     REFERENCES media.user(id)
 );
 
-GRANT SELECT, INSERT, DELETE
-ON media.role
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'external_identity'
+            AND indexname = 'ix_media_external_identity$user_id'
+    )
+    THEN
+
+        CREATE INDEX ix_media_external_identity$user_id
+        ON media.external_identity(user_id);
+
+    END IF;
+END
+$$;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON media.external_identity
 TO maw_api;
