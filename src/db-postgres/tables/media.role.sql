@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS media.role (
     UNIQUE (name)
 );
 
-GRANT SELECT, INSERT, DELETE
+GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.role
 TO maw_api;

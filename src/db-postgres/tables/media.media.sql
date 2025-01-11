@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS media.media (
     created_by UUID NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
     modified_by UUID NOT NULL,
-    metadata JSONB,
-    duration_seconds NUMERIC(7.2)
+    metadata JSONB
 
     CONSTRAINT pk_media_media
     PRIMARY KEY (id),
@@ -38,6 +37,26 @@ CREATE TABLE IF NOT EXISTS media.media (
     FOREIGN KEY (modifed_by)
     REFERENCES media.user(id),
 );
+
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'media'
+            AND indexname = 'ix_media_media$category_id'
+    )
+    THEN
+
+        CREATE INDEX ix_media_media$category_id
+        ON media.media(category_id);
+
+    END IF;
+END
+$$;
 
 GRANT SELECT
 ON media.media

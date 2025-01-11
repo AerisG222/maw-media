@@ -27,16 +27,18 @@ CREATE TABLE IF NOT EXISTS media.category (
 DO
 $$
 BEGIN
-    IF NOT EXISTS (
+    IF NOT EXISTS
+    (
         SELECT 1
         FROM pg_catalog.pg_indexes
         WHERE schemaname = 'media'
             AND tablename = 'category'
-            AND indexname = 'ix_media_category_published'
-    ) THEN
+            AND indexname = 'ix_media_category_effective_date'
+    )
+    THEN
 
-        CREATE INDEX ix_media_category_published
-        ON media.category(published);
+        CREATE INDEX ix_media_category_effective_date
+        ON media.category(effective_date);
 
     END IF;
 END
