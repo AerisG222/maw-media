@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS media.user (
     email_verified BOOLEAN,
     given_name TEXT,
     surname TEXT,
-    picture TEXT,
+    picture_url TEXT,
 
     CONSTRAINT pk_media_user
     PRIMARY KEY (id)
