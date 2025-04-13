@@ -72,6 +72,7 @@ function main() {
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.rating.sql"
+    run_psql_script "tables/media.favorite_category.sql"
 
     run_psql_script "tables/media.category2.sql"
 
