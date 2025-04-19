@@ -67,14 +67,13 @@ function main() {
     run_psql_script "tables/media.external_identity.sql"
     run_psql_script "tables/media.user_role.sql"
     run_psql_script "tables/media.category.sql"
+    run_psql_script "tables/media.category_favorite.sql"
     run_psql_script "tables/media.media.sql"
-    run_psql_script "tables/media.scaled_media.sql"
+    run_psql_script "tables/media.category_media.sql"
+    run_psql_script "tables/media.media_scaled.sql"
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.rating.sql"
-    run_psql_script "tables/media.favorite_category.sql"
-
-    run_psql_script "tables/media.category2.sql"
 
     header "seed"
 

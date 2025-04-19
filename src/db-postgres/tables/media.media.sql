@@ -1,6 +1,5 @@
 CREATE TABLE IF NOT EXISTS media.media (
     id UUID NOT NULL,
-    category_id UUID NOT NULL,
     media_type_id UUID NOT NULL,
     location_id UUID,
     location_override_id UUID,
@@ -12,10 +11,6 @@ CREATE TABLE IF NOT EXISTS media.media (
 
     CONSTRAINT pk_media_media
     PRIMARY KEY (id),
-
-    CONSTRAINT fk_media_media$media_category
-    FOREIGN KEY (category_id)
-    REFERENCES media.category(id),
 
     CONSTRAINT fk_media_media$media_media_type
     FOREIGN KEY (media_type_id)
@@ -37,26 +32,6 @@ CREATE TABLE IF NOT EXISTS media.media (
     FOREIGN KEY (modified_by)
     REFERENCES media.user(id)
 );
-
-DO
-$$
-BEGIN
-    IF NOT EXISTS
-    (
-        SELECT 1
-        FROM pg_catalog.pg_indexes
-        WHERE schemaname = 'media'
-            AND tablename = 'media'
-            AND indexname = 'ix_media_media$category_id'
-    )
-    THEN
-
-        CREATE INDEX ix_media_media$category_id
-        ON media.media(category_id);
-
-    END IF;
-END
-$$;
 
 GRANT SELECT
 ON media.media

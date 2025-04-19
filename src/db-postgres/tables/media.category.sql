@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS media.category (
     id UUID NOT NULL,
     name TEXT NOT NULL,
-    teaser_media_id UUID,
     effective_date DATE NOT NULL,
     created TIMESTAMPTZ NOT NULL,
     created_by UUID NOT NULL,
