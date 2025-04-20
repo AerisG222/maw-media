@@ -58,7 +58,7 @@ function main() {
     run_psql_script "schemas/media.sql"
 
     header "tables"
-    run_psql_script "tables/media.dimension.sql"
+    run_psql_script "tables/media.scale.sql"
     run_psql_script "tables/media.location.sql"
     run_psql_script "tables/media.point_of_interest.sql"
     run_psql_script "tables/media.media_type.sql"
@@ -70,12 +70,14 @@ function main() {
     run_psql_script "tables/media.category_favorite.sql"
     run_psql_script "tables/media.media.sql"
     run_psql_script "tables/media.category_media.sql"
-    run_psql_script "tables/media.media_scaled.sql"
+    run_psql_script "tables/media.media_file.sql"
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.rating.sql"
 
     header "seed"
+    run_psql_script "seed/media.media_type.sql"
+    run_psql_script "seed/media.scale.sql"
 
     header "functions"
 
