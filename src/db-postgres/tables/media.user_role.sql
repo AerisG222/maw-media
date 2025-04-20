@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS media.user_role (
     user_id UUID NOT NULL,
     role_id UUID NOT NULL,
+    created TIMESTAMPTZ NOT NULL,
+    created_by UUID NOT NULL,
 
     CONSTRAINT pk_media_user_role
     PRIMARY KEY (user_id, role_id),
@@ -11,7 +13,11 @@ CREATE TABLE IF NOT EXISTS media.user_role (
 
     CONSTRAINT fk_media_user_role$media_role
     FOREIGN KEY (role_id)
-    REFERENCES media.role(id)
+    REFERENCES media.role(id),
+
+    CONSTRAINT fk_media_user_role$media_user$created_by
+    FOREIGN KEY (created_by)
+    REFERENCES media.user(id)
 );
 
 GRANT SELECT, INSERT, DELETE
