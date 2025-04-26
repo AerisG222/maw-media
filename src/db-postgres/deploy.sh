@@ -5,7 +5,7 @@ PODNAME=$1
 PWDFILEDIR=$2
 
 function showUsage() {
-    echo "deploy.sh <podname> <pwdfile>"
+    echo "deploy.sh <podname> <pwddir>"
 }
 
 function header() {
