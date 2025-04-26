@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS media.media_file (
     scale_id UUID NOT NULL,
     width INTEGER,
     height INTEGER,
-    bytes INTEGER,
+    bytes BIGINT,
     path TEXT,
 
     CONSTRAINT pk_media_media_file
