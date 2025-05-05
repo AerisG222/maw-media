@@ -96,7 +96,7 @@ BEGIN
             fills_dimensions
         ) VALUES (
             '01965306-9387-7cb7-8945-1d626de296fa',
-            'full_hd',
+            'full-hd',
             1920,
             1080,
             false
