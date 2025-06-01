@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Caching.Hybrid;
 using NodaTime;
-using MawApi.Extensions;
+using MawMedia.Extensions;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Configuration
-    .AddEnvironmentVariables("MAW_API_");
+    .AddEnvironmentVariables("MAW_MEDIA_");
 
 #pragma warning disable EXTEXP0018 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 builder.Services

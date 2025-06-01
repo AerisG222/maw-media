@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.StaticFiles;
 
-namespace MawApi.Extensions;
+namespace MawMedia.Extensions;
 
 public static class StaticFilesExtensions
 {

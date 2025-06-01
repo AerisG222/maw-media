@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{15D1EE25-A89C-4CE3-A17B-982D91D62705}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MawApi", "src\MawApi\MawApi.csproj", "{CA0C8F87-A5CA-4CCE-AEC6-44AAD670721D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MawMedia", "src\MawMedia\MawMedia.csproj", "{CA0C8F87-A5CA-4CCE-AEC6-44AAD670721D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

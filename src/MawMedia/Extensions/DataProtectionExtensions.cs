@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 
-namespace MawApi.Extensions;
+namespace MawMedia.Extensions;
 
 public static class DataProtectionExtensions
 {

@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/MawApi/bin/Debug/net9.0/MawApi.dll",
+            "program": "${workspaceFolder}/src/MawApi/bin/Debug/net9.0/MawMedia.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/MawApi",
             "stopAtEntry": false,

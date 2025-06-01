@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace MawApi.Extensions;
+namespace MawMedia.Extensions;
 
 public static class NpgsqlExtensions
 {
