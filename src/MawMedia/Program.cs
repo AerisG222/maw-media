@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Caching.Hybrid;
 using NodaTime;
+using ZiggyCreatures.Caching.Fusion;
 using MawMedia.Extensions;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -14,14 +14,8 @@ builder.Services
     .AddSystemd()
     //.AddNpgsql(builder.Configuration)
     .AddSingleton<IClock>(services => SystemClock.Instance)
-    .AddHybridCache(opts =>
-        {
-            // current version does not remove cache items by tag, so keep the expiration short for now
-            opts.DefaultEntryOptions = new HybridCacheEntryOptions() {
-                Expiration  = TimeSpan.FromMinutes(1),
-                LocalCacheExpiration  = TimeSpan.FromMinutes(1)
-            };
-        })
+    .AddFusionCache()
+        .AsHybridCache()
         .Services
     .AddOpenApi()
     .AddRouting();
