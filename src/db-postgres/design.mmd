@@ -1,5 +1,5 @@
 ---
-title: MaW Media Schema ERD (outdated)
+title: MaW Media Schema ERD
 ---
 erDiagram
     %% external_id = nameidentifier
@@ -25,7 +25,7 @@ erDiagram
         BOOLEAN email_verified
         TEXT given_name
         TEXT surname
-        TEXT picture
+        TEXT picture_url
     }
 
     role {
@@ -36,12 +36,13 @@ erDiagram
     user_role {
         UUID user_id PK, FK
         UUID role_id PK, FK
+        TIMESTAMPTZ created
+        UUID created_by FK
     }
 
     category {
         UUID id PK
-        TEXT NAME
-        UUID teaser_media_id FK
+        TEXT name
         DATE effective_date
         TIMESTAMPTZ created
         UUID created_by FK
@@ -52,6 +53,14 @@ erDiagram
     category_role {
         UUID category_id PK, FK
         UUID role_id PK, FK
+        TIMESTAMPTZ created
+        UUID created_by FK
+    }
+
+    category_favorite {
+        UUID user_id PK, FK
+        UUID category_id PK, FK
+        TIMESTAMPTZ created
     }
 
     media_type {
@@ -59,17 +68,22 @@ erDiagram
         TEXT name UK
     }
 
-    media {
+    %% qqvg    ( 160 x  120)
+    %% qvg     ( 320 x  240)
+    %% nhd     ( 640 x  360)
+    %% hd      (1280 x  720)
+    %% full_hd (1920 x 1080)
+    %% qhd     (2560 x 1440)
+    %% 4k      (3840 x 2160)
+    %% 5k      (5120 x 2880)  - skip for now
+    %% 8k      (7680 × 4320)  - skip for now
+    %% src     ?
+    scale {
         UUID id PK
-        UUID category_id FK
-        UUID media_type_id FK
-        UUID location_id FK
-        UUID location_override_id FK
-        TIMESTAMPTZ created
-        UUID created_by FK
-        TIMESTAMPTZ modified
-        UUID modified_by FK
-        JSONB metadata
+        TEXT code UK
+        INTEGER width
+        INTEGER height
+        BOOLEAN fills_dimensions
     }
 
     location {
@@ -100,33 +114,36 @@ erDiagram
         TEXT name
     }
 
-    %% qqvg    ( 160 x  120)
-    %% qvg     ( 320 x  240)
-    %% nhd     ( 640 x  360)
-    %% hd      (1280 x  720)
-    %% full_hd (1920 x 1080)
-    %% qhd     (2560 x 1440)
-    %% 4k      (3840 x 2160)
-    %% 5k      (5120 x 2880)  - skip for now
-    %% 8k      (7680 × 4320)  - skip for now
-    %% src     ?
-    dimension {
+    media {
         UUID id PK
-        TEXT abbreviation UK
-        TEXT name UK
-        INTEGER max_width
-        INTEGER max_height
-        BOOLEAN is_square_cropped
+        UUID media_type_id FK
+        UUID location_id FK
+        UUID location_override_id FK
+        TIMESTAMPTZ created
+        UUID created_by FK
+        TIMESTAMPTZ modified
+        UUID modified_by FK
+        JSONB metadata
     }
 
-    scaled_media {
+    media_file {
         UUID media_id PK, FK
-        UUID dimension_id PK, FK
         UUID media_type_id PK, FK
-        INTEGER height
+        UUID scale_id PK, FK
         INTEGER width
-        INTEGER bytes
+        INTEGER height
+        BIGINT bytes
         TEXT path
+    }
+
+    category_media {
+        UUID category_id PK, FK
+        UUID media_id PK, FK
+        BOOLEAN is_teaser
+        TIMESTAMPTZ created
+        UUID created_by FK
+        TIMESTAMPTZ modified
+        UUID modified_by FK
     }
 
     comment {
@@ -146,25 +163,31 @@ erDiagram
         SMALLINT rating
     }
 
-    external_identity }o--|| user : ""
+    %% Relationships
     user ||--o{ user_role : ""
     role ||--o{ user_role : ""
-
-    category }o--|| user : ""
-    category }o--o| media : ""
+    user ||--o{ category : "created_by"
+    user ||--o{ category : "modified_by"
     category ||--o{ category_role : ""
-    category_role }o--|| role : ""
-
-    media }o--|| category : ""
-    media }o--|| media_type : ""
-    media ||--o{ comment: ""
-    media ||--o{ rating: ""
-    media }o--o| location : ""
-
+    role ||--o{ category_role : ""
+    user ||--o{ category_role : "created_by"
+    user ||--o{ category_favorite : ""
+    category ||--o{ category_favorite : ""
+    category ||--o{ category_media : ""
+    media ||--o{ category_media : ""
+    user ||--o{ category_media : "created_by"
+    user ||--o{ category_media : "modified_by"
+    media_type ||--o{ media : ""
+    location ||--o{ media : "location_id"
+    location ||--o{ media : "location_override_id"
+    user ||--o{ media : "created_by"
+    user ||--o{ media : "modified_by"
+    media ||--o{ media_file : ""
+    media_type ||--o{ media_file : ""
+    scale ||--o{ media_file : ""
+    user ||--o{ external_identity : ""
+    media ||--o{ comment : ""
+    user ||--o{ comment : "created_by"
+    media ||--o{ rating : ""
+    user ||--o{ rating : "created_by"
     location ||--o{ point_of_interest : ""
-    comment }o--|| user : ""
-    rating }o--|| user : ""
-
-    scaled_media ||--o{ media : ""
-    scaled_media }o--|| dimension : ""
-    scaled_media }o--|| media_type : ""
