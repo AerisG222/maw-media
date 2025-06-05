@@ -1,6 +1,6 @@
 #!/bin/bash
-PODNAME="dev-api-pod"
-PWDFILEDIR="/home/mmorano/maw-api-dev/data/pgpwd"
+PODNAME="dev-media-pod"
+PWDFILEDIR="/home/mmorano/maw/dev/media/data/pgpwd"
 DBNAME="maw_media"
 IMAGE="docker.io/library/postgres:17"
 
