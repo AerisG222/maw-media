@@ -73,7 +73,7 @@ function main() {
     run_psql_script "tables/media.media_file.sql"
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
-    run_psql_script "tables/media.rating.sql"
+    run_psql_script "tables/media.favorite.sql"
 
     header "seed"
     run_psql_script "seed/media.media_type.sql"
