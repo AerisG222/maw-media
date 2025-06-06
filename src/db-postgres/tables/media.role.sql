@@ -17,4 +17,4 @@ CREATE TABLE IF NOT EXISTS media.role (
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.role
-TO maw_api;
+TO maw_media;

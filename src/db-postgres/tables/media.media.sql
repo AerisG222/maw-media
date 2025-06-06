@@ -35,4 +35,4 @@ CREATE TABLE IF NOT EXISTS media.media (
 
 GRANT SELECT
 ON media.media
-TO maw_api;
+TO maw_media;

@@ -33,4 +33,4 @@ $$;
 
 GRANT SELECT, INSERT, DELETE
 ON media.point_of_interest
-TO maw_api;
+TO maw_media;

@@ -40,4 +40,4 @@ $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.external_identity
-TO maw_api;
+TO maw_media;

@@ -41,4 +41,4 @@ $$;
 
 GRANT SELECT
 ON media.category
-TO maw_api;
+TO maw_media;

@@ -17,4 +17,4 @@ CREATE TABLE IF NOT EXISTS media.category_favorite (
 
 GRANT SELECT
 ON media.category_favorite
-TO maw_api;
+TO maw_media;

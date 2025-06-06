@@ -22,4 +22,4 @@ CREATE TABLE IF NOT EXISTS media.user_role (
 
 GRANT SELECT, INSERT, DELETE
 ON media.user_role
-TO maw_api;
+TO maw_media;

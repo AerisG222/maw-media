@@ -25,4 +25,4 @@ CREATE TABLE IF NOT EXISTS media.location (
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.location
-TO maw_api;
+TO maw_media;

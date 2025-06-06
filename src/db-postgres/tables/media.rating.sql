@@ -39,4 +39,4 @@ $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.rating
-TO maw_api;
+TO maw_media;

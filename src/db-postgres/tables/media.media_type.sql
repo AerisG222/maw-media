@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS media.media_type (
 
 GRANT SELECT, INSERT, DELETE
 ON media.media_type
-TO maw_api;
+TO maw_media;

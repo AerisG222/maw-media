@@ -22,4 +22,4 @@ CREATE TABLE IF NOT EXISTS media.category_role (
 
 GRANT SELECT, INSERT, DELETE
 ON media.category_role
-TO maw_api;
+TO maw_media;

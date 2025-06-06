@@ -14,4 +14,4 @@ CREATE TABLE IF NOT EXISTS media.scale (
 
 GRANT SELECT, INSERT, UPDATE
 ON media.scale
-TO maw_api;
+TO maw_media;

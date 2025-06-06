@@ -29,4 +29,4 @@ CREATE TABLE IF NOT EXISTS media.category_media (
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.category_media
-TO maw_api;
+TO maw_media;

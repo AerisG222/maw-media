@@ -49,10 +49,10 @@ function main() {
     run_psql_script "database/maw_media.sql" "postgres" &> /dev/null
 
     header "roles"
-    run_psql_script "roles/maw_api.sql"
+    run_psql_script "roles/maw_media.sql"
 
     header "users"
-    run_psql_script "users/svc_maw_api.sql"
+    run_psql_script "users/svc_maw_media.sql"
 
     header "schemas"
     run_psql_script "schemas/media.sql"

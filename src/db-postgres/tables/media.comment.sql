@@ -40,4 +40,4 @@ $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.comment
-TO maw_api;
+TO maw_media;
