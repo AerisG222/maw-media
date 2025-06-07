@@ -33,6 +33,6 @@ CREATE TABLE IF NOT EXISTS media.media (
     REFERENCES media.user(id)
 );
 
-GRANT SELECT
+GRANT INSERT, UPDATE, SELECT
 ON media.media
 TO maw_media;
