@@ -1,6 +1,6 @@
 #!/bin/bash
-PSQLUSER=$1
-DB=$2
+PSQLUSER=svc_maw_media
+DB=maw_media
 
 podman run -it --rm \
     --pod dev-media-pod \
