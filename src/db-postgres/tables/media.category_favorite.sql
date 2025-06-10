@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS media.category_favorite (
-    user_id UUID NOT NULL,
+    created_by UUID NOT NULL,
     category_id UUID NOT NULL,
     created TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT pk_media_category_favorite
-    PRIMARY KEY (user_id, category_id),
+    PRIMARY KEY (created_by, category_id),
 
     CONSTRAINT fk_media_category_favorite$media_user
-    FOREIGN KEY (user_id)
+    FOREIGN KEY (created_by)
     REFERENCES media.user(id),
 
     CONSTRAINT fk_media_category_favorite$media_category

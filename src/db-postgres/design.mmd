@@ -58,7 +58,7 @@ erDiagram
     }
 
     category_favorite {
-        UUID user_id PK, FK
+        UUID created_by PK, FK
         UUID category_id PK, FK
         TIMESTAMPTZ created
     }
