@@ -155,12 +155,10 @@ erDiagram
         TEXT body
     }
 
-    rating {
+    favorite {
         UUID media_id PK, FK
         UUID created_by PK, FK
         TIMESTAMPTZ created
-        TIMESTAMPTZ modified
-        SMALLINT rating
     }
 
     %% Relationships
@@ -188,6 +186,6 @@ erDiagram
     user ||--o{ external_identity : ""
     media ||--o{ comment : ""
     user ||--o{ comment : "created_by"
-    media ||--o{ rating : ""
-    user ||--o{ rating : "created_by"
+    media ||--o{ favorite : ""
+    user ||--o{ favorite : "created_by"
     location ||--o{ point_of_interest : ""
