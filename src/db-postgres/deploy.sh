@@ -80,6 +80,7 @@ function main() {
     run_psql_script "seed/media.scale.sql"
 
     header "functions"
+    run_psql_script "funcs/media.get_categories.sql"
 
     header "completed ${DBNAME}"
 }
