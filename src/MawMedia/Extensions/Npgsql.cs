@@ -13,8 +13,9 @@ public static class NpgsqlExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(connString);
 
         services
-            .AddSingleton(services =>
-                new NpgsqlDataSourceBuilder(connString)
+            .AddNpgsqlDataSource(
+                connString,
+                builder => builder
                     .UseNodaTime()
                     .Build()
             );

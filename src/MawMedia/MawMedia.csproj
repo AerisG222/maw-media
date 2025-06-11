@@ -13,9 +13,14 @@
         <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="9.0.6" />
         <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="1.1.0" />
         <PackageReference Include="Npgsql" Version="9.0.3" />
+        <PackageReference Include="Npgsql.DependencyInjection" Version="9.0.3" />
         <PackageReference Include="Npgsql.NodaTime" Version="9.0.3" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.4.13" />
         <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\MawMedia.Services\MawMedia.Services.csproj" />
     </ItemGroup>
 
 </Project>

@@ -3,6 +3,7 @@ using ZiggyCreatures.Caching.Fusion;
 using Scalar.AspNetCore;
 using MawMedia.Extensions;
 using MawMedia.Routes;
+using MawMedia.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -18,13 +19,15 @@ builder.Services
     .AddFusionCache()
         .AsHybridCache()
         .Services
-    .When(builder.Environment.IsDevelopment(), services => {
+    .When(builder.Environment.IsDevelopment(), services =>
+    {
         services.AddCustomOpenApi(
             "MaW Media API",
             "An API to access photos and videos from media.mikeandwan.us."
         );
     })
-    .AddSingleton<IClock>(services => SystemClock.Instance);
+    .AddSingleton<IClock>(services => SystemClock.Instance)
+    .AddMediaServices();
 
 var app = builder.Build();
 
