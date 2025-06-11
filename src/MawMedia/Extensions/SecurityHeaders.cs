@@ -2,15 +2,12 @@ namespace MawMedia.Extensions;
 
 public static class SecurityHeadersExtensions
 {
-    public static IApplicationBuilder UseDefaultSecurityHeaders(this IApplicationBuilder app)
+    public static IApplicationBuilder UseCustomSecurityHeaders(this IApplicationBuilder app)
     {
         app
             .UseSecurityHeaders(policies => {
                 policies
-                    .AddDefaultSecurityHeaders()
-                    .AddContentSecurityPolicy(builder => {
-                        builder.AddFrameAncestors().Self();
-                    });
+                    .AddDefaultSecurityHeaders();
             });
 
         return app;

@@ -4,7 +4,7 @@ namespace MawMedia.Extensions;
 
 public static class DataProtectionExtensions
 {
-    public static IServiceCollection ConfigureDataProtection(
+    public static IServiceCollection AddCustomDataProtection(
         this IServiceCollection services,
         IConfiguration config
     ) {

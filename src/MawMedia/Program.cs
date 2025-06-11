@@ -1,36 +1,49 @@
 using NodaTime;
 using ZiggyCreatures.Caching.Fusion;
+using Scalar.AspNetCore;
 using MawMedia.Extensions;
+using MawMedia.Routes;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Configuration
     .AddEnvironmentVariables("MAW_MEDIA_");
 
-#pragma warning disable EXTEXP0018 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 builder.Services
-    .ConfigureDataProtection(builder.Configuration)
-    .ConfigureForwardedHeaders()
     .AddSystemd()
-    //.AddNpgsql(builder.Configuration)
-    .AddSingleton<IClock>(services => SystemClock.Instance)
+    .AddCustomCorsPolicy(builder.Configuration)
+    .AddCustomDataProtection(builder.Configuration)
+    .AddCustomForwardedHeaders(builder.Configuration)
+    .AddNpgsql(builder.Configuration)
     .AddFusionCache()
         .AsHybridCache()
         .Services
-    .AddOpenApi()
-    .AddRouting();
-#pragma warning restore EXTEXP0018 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    .When(builder.Environment.IsDevelopment(), services => {
+        services.AddCustomOpenApi(
+            "MaW Media API",
+            "An API to access photos and videos from media.mikeandwan.us."
+        );
+    })
+    .AddSingleton<IClock>(services => SystemClock.Instance);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app
-    .UseDefaultSecurityHeaders()
     .UseForwardedHeaders()
-    .UseHttpsRedirection();
+    .UseHttpsRedirection()
+    .UseRouting()
+    .UseCustomSecurityHeaders()
+    .UseCors()
+    // .UseAuthentication()
+    // .UseAuthorization()
+    .When(app.Environment.IsDevelopment(), app => {
+        app.MapOpenApi();
+        app.MapScalarApiReference(opts => {
+            opts.AddAuthorizationCodeFlow("OAuth2", flow => { });
+        });
+    });
 
-app.Run();
+app.MapGroup("/categories").MapCategoryRoutes();
+app.MapGroup("/media").MapMediaRoutes();
+
+await app.RunAsync();
