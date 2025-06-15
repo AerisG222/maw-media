@@ -76,6 +76,7 @@ function main() {
     run_psql_script "tables/media.favorite.sql"
 
     header "views"
+    run_psql_script "views/media.file_detail.sql"
     run_psql_script "views/media.user_category.sql"
     run_psql_script "views/media.user_media.sql"
 
