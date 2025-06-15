@@ -126,7 +126,7 @@ erDiagram
         JSONB metadata
     }
 
-    media_file {
+    file {
         UUID media_id PK, FK
         UUID type_id PK, FK
         UUID scale_id PK, FK
@@ -180,9 +180,9 @@ erDiagram
     location ||--o{ media : "location_override_id"
     user ||--o{ media : "created_by"
     user ||--o{ media : "modified_by"
-    media ||--o{ media_file : ""
-    type ||--o{ media_file : ""
-    scale ||--o{ media_file : ""
+    media ||--o{ file : ""
+    type ||--o{ file : ""
+    scale ||--o{ file : ""
     user ||--o{ external_identity : ""
     media ||--o{ comment : ""
     user ||--o{ comment : "created_by"

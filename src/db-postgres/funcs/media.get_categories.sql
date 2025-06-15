@@ -34,7 +34,7 @@ BEGIN
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
-    INNER JOIN media.media_file qqvg
+    INNER JOIN media.file qqvg
         ON cm.media_id = qqvg.media_id
         AND qqvg.scale_id = (
             SELECT s.id
@@ -46,7 +46,7 @@ BEGIN
             FROM media.type t
             WHERE t.name IN ('photo', 'video-poster')
         )
-    LEFT OUTER JOIN media.media_file qvg
+    LEFT OUTER JOIN media.file qvg
         ON cm.media_id = qvg.media_id
         AND qvg.scale_id = (
             SELECT s.id

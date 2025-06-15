@@ -70,7 +70,7 @@ function main() {
     run_psql_script "tables/media.category_favorite.sql"
     run_psql_script "tables/media.media.sql"
     run_psql_script "tables/media.category_media.sql"
-    run_psql_script "tables/media.media_file.sql"
+    run_psql_script "tables/media.file.sql"
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.favorite.sql"
