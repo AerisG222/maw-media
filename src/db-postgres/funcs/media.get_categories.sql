@@ -28,15 +28,9 @@ BEGIN
             ELSE false
             END AS is_favorite
     FROM media.category c
-    INNER JOIN media.category_role cr
-        ON c.id = cr.category_id
-    INNER JOIN media.role r
-        ON cr.role_id = r.id
-    INNER JOIN media.user_role ur
-        ON r.id = ur.role_id
-    INNER JOIN media.user u
-        ON ur.user_id = u.id
-        AND u.id = _user_id
+    INNER JOIN media.user_category uc
+        ON c.id = uc.category_id
+        AND uc.user_id = _user_id
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
