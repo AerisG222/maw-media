@@ -34,30 +34,14 @@ BEGIN
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
-    INNER JOIN media.file qqvg
+    INNER JOIN media.file_detail qqvg
         ON cm.media_id = qqvg.media_id
-        AND qqvg.scale_id = (
-            SELECT s.id
-            FROM media.scale s
-            WHERE s.code = 'qqvg-fill'
-        )
-        AND qqvg.type_id IN (
-            SELECT t.id
-            FROM media.type t
-            WHERE t.name IN ('photo', 'video-poster')
-        )
-    LEFT OUTER JOIN media.file qvg
+        AND qqvg.scale = 'qqvg-fill'
+        AND qqvg.type IN ('photo', 'video-poster')
+    LEFT OUTER JOIN media.file_detail qvg
         ON cm.media_id = qvg.media_id
-        AND qvg.scale_id = (
-            SELECT s.id
-            FROM media.scale s
-            WHERE s.code = 'qvg-fill'
-        )
-        AND qvg.type_id IN (
-            SELECT t.id
-            FROM media.type t
-            WHERE t.name IN ('photo', 'video-poster')
-        )
+        AND qvg.scale = 'qvg-fill'
+        AND qvg.type IN ('photo', 'video-poster')
     LEFT OUTER JOIN media.category_favorite cf
         ON c.id = cf.category_id
         AND cf.created_by = _user_id
