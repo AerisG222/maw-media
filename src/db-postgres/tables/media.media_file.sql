@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS media.media_file (
     media_id UUID NOT NULL,
-    media_type_id UUID NOT NULL,
+    type_id UUID NOT NULL,
     scale_id UUID NOT NULL,
     width INTEGER,
     height INTEGER,
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS media.media_file (
     path TEXT,
 
     CONSTRAINT pk_media_media_file
-    PRIMARY KEY (media_id, media_type_id, scale_id),
+    PRIMARY KEY (media_id, type_id, scale_id),
 
     CONSTRAINT fk_media_media_file$media_media
     FOREIGN KEY (media_id)
@@ -18,9 +18,9 @@ CREATE TABLE IF NOT EXISTS media.media_file (
     FOREIGN KEY (scale_id)
     REFERENCES media.scale(id),
 
-    CONSTRAINT fk_media_media_file$media_media_type
-    FOREIGN KEY (media_type_id)
-    REFERENCES media.media_type(id)
+    CONSTRAINT fk_media_media_file$media_type
+    FOREIGN KEY (type_id)
+    REFERENCES media.type(id)
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE

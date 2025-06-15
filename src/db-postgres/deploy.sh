@@ -61,7 +61,7 @@ function main() {
     run_psql_script "tables/media.scale.sql"
     run_psql_script "tables/media.location.sql"
     run_psql_script "tables/media.point_of_interest.sql"
-    run_psql_script "tables/media.media_type.sql"
+    run_psql_script "tables/media.type.sql"
     run_psql_script "tables/media.user.sql"
     run_psql_script "tables/media.role.sql"
     run_psql_script "tables/media.external_identity.sql"
@@ -80,7 +80,7 @@ function main() {
     run_psql_script "views/media.user_media.sql"
 
     header "seed"
-    run_psql_script "seed/media.media_type.sql"
+    run_psql_script "seed/media.type.sql"
     run_psql_script "seed/media.scale.sql"
 
     header "functions"

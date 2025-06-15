@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS media.media (
     id UUID NOT NULL,
-    media_type_id UUID NOT NULL,
+    type_id UUID NOT NULL,
     location_id UUID,
     location_override_id UUID,
     created TIMESTAMPTZ NOT NULL,
@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS media.media (
     CONSTRAINT pk_media_media
     PRIMARY KEY (id),
 
-    CONSTRAINT fk_media_media$media_media_type
-    FOREIGN KEY (media_type_id)
-    REFERENCES media.media_type(id),
+    CONSTRAINT fk_media_media$media_type
+    FOREIGN KEY (type_id)
+    REFERENCES media.type(id),
 
     CONSTRAINT fk_media_media$media_location
     FOREIGN KEY (location_id)

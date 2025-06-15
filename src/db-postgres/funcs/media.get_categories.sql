@@ -41,9 +41,9 @@ BEGIN
             FROM media.scale s
             WHERE s.code = 'qqvg-fill'
         )
-        AND qqvg.media_type_id IN (
+        AND qqvg.type_id IN (
             SELECT t.id
-            FROM media.media_type t
+            FROM media.type t
             WHERE t.name IN ('photo', 'video-poster')
         )
     LEFT OUTER JOIN media.media_file qvg
@@ -53,9 +53,9 @@ BEGIN
             FROM media.scale s
             WHERE s.code = 'qvg-fill'
         )
-        AND qvg.media_type_id IN (
+        AND qvg.type_id IN (
             SELECT t.id
-            FROM media.media_type t
+            FROM media.type t
             WHERE t.name IN ('photo', 'video-poster')
         )
     LEFT OUTER JOIN media.category_favorite cf
