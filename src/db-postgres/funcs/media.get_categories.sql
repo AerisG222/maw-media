@@ -49,7 +49,7 @@ BEGIN
         (_id IS NULL OR c.id = _id)
         AND (_year IS NULL OR EXTRACT(YEAR FROM c.effective_date) = _year)
         AND (_since_id IS NULL OR c.id > _since_id)
-    ORDER BY c.id;
+    ORDER BY c.effective_date DESC;
 END
 
 $$ LANGUAGE plpgsql;
