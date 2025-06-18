@@ -39,6 +39,26 @@ BEGIN
 END
 $$;
 
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'category'
+            AND indexname = 'ix_media_category_modified'
+    )
+    THEN
+
+        CREATE INDEX ix_media_category_modified
+        ON media.category(modified);
+
+    END IF;
+END
+$$;
+
 GRANT SELECT
 ON media.category
 TO maw_media;

@@ -3,13 +3,14 @@ CREATE OR REPLACE FUNCTION media.get_categories
     _user_id UUID,
     _id UUID DEFAULT NULL,
     _year SMALLINT DEFAULT NULL,
-    _since_id UUID DEFAULT NULL
+    _modified_after TIMESTAMPTZ DEFAULT NULL
 )
 RETURNS TABLE
 (
     id UUID,
     name TEXT,
     effective_date DATE,
+    modified TIMESTAMPTZ,
     qqvg_fill_path TEXT,
     qvg_fill_path TEXT,
     is_favorite BOOLEAN
@@ -21,6 +22,7 @@ BEGIN
         c.id,
         c.name,
         c.effective_date,
+        c.modified,
         qqvg.path AS qqvg_fill_path,
         qvg.path AS qvg_fill_path,
         CASE WHEN cf.category_id
@@ -48,7 +50,7 @@ BEGIN
     WHERE
         (_id IS NULL OR c.id = _id)
         AND (_year IS NULL OR EXTRACT(YEAR FROM c.effective_date) = _year)
-        AND (_since_id IS NULL OR c.id > _since_id)
+        AND (_modified_after IS NULL OR c.modified > _modified_after)
     ORDER BY c.effective_date DESC;
 END
 
