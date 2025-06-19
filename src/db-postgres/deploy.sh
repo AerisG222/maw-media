@@ -42,8 +42,8 @@ function run_psql_script() {
 }
 
 function main() {
-    header "pull latest postgres image"
-    podman pull "${IMAGE}"
+    # header "pull latest postgres image"
+    # podman pull "${IMAGE}"
 
     header "database ${DBNAME}"
     run_psql_script "database/maw_media.sql" "postgres" &> /dev/null
@@ -86,6 +86,7 @@ function main() {
 
     header "functions"
     run_psql_script "funcs/media.get_categories.sql"
+    run_psql_script "funcs/media.get_category_media.sql"
 
     header "completed ${DBNAME}"
 }
