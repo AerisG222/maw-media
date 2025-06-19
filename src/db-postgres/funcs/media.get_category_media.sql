@@ -8,9 +8,9 @@ RETURNS TABLE
 (
     id UUID,
     type TEXT,
+    file_path TEXT,
     file_type TEXT,
-    file_scale TEXT,
-    file_path TEXT
+    file_scale TEXT
 )
 AS $$
 BEGIN
