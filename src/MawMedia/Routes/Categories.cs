@@ -6,6 +6,8 @@ namespace MawMedia.Routes;
 
 public static class Categories
 {
+    static readonly Guid DUMMYUSER = Guid.Parse("01977b3a-6db0-7384-87ad-8e56aad783ef");
+
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
     {
         group
@@ -13,11 +15,11 @@ public static class Categories
             .WithName("categories")
             .WithSummary("Categories")
             .WithDescription("Lists categories");
-            // .RequireAuthorization(AuthorizationPolicies.Reader);
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         return group;
     }
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(ICategoryRepository repo, HttpRequest request) =>
-        TypedResults.Ok(await repo.GetCategories(Guid.Parse("0197505a-d103-70e7-8bc2-e7657d20d520")));
+        TypedResults.Ok(await repo.GetCategories(DUMMYUSER));
 }
