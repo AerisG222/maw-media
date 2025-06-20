@@ -60,42 +60,17 @@ public class CategoryRepository
             }
         );
 
-        MediaAndFile? lastResult = null;
-        List<MediaFile> currFiles = [];
-
-        foreach (var result in results)
-        {
-            if (result.Id != lastResult?.Id)
-            {
-                if (lastResult != null)
-                {
-                    mediaList.Add(new Media(
-                        lastResult.Id,
-                        lastResult.Type,
-                        currFiles
-                    ));
-                }
-
-                lastResult = result;
-                currFiles = [];
-            }
-
-            currFiles.Add(new MediaFile(
-                result.FileScale,
-                result.FileType,
-                result.FilePath
-            ));
-        }
-
-        if (lastResult != null)
-        {
-            mediaList.Add(new Media(
-                lastResult.Id,
-                lastResult.Type,
-                currFiles
-            ));
-        }
-
-        return mediaList;
+        return results
+            .GroupBy(x => x.Id)
+            .Select(g => new Media(
+                g.Key,
+                g.First().Type,
+                g.Select(x => new MediaFile(
+                    x.FileScale,
+                    x.FileType,
+                    x.FilePath
+                )).ToList()
+            ))
+            .ToList();
     }
 }
