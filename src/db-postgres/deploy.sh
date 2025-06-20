@@ -87,6 +87,7 @@ function main() {
     header "functions"
     run_psql_script "funcs/media.get_categories.sql"
     run_psql_script "funcs/media.get_category_media.sql"
+    run_psql_script "funcs/media.get_category_years.sql"
 
     header "completed ${DBNAME}"
 }

@@ -12,11 +12,26 @@ public static class Categories
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
     {
+        // TODO: consider removing to force calling by year to effectively implement paging, or add some logic for paging/limiting results
         group
             .MapGet("/", GetCategories)
             .WithName("categories")
             .WithSummary("Categories")
             .WithDescription("Lists categories");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapGet("/years", GetCategoryYears)
+            .WithName("category-years")
+            .WithSummary("Category Years")
+            .WithDescription("Lists category years");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapGet("/years/{year}", GetCategoriesForYear)
+            .WithName("categories-for-years")
+            .WithSummary("Categories for Year")
+            .WithDescription("Lists categories for a specific year");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
@@ -43,8 +58,14 @@ public static class Categories
         return group;
     }
 
+    static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(ICategoryRepository repo, HttpRequest request) =>
+        TypedResults.Ok(await repo.GetCategoryYears(DUMMYUSER));
+
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(ICategoryRepository repo, HttpRequest request) =>
         TypedResults.Ok(await repo.GetCategories(DUMMYUSER));
+
+    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoriesForYear(ICategoryRepository repo, HttpRequest request, [FromRoute] short year) =>
+        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, year));
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
         TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));

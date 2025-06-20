@@ -17,7 +17,18 @@ public class CategoryRepository
 
     }
 
-    public async Task<IEnumerable<Category>> GetCategories(Guid userId) => await InternalGetCategories(userId);
+    public async Task<IEnumerable<short>> GetCategoryYears(Guid userId)
+    {
+        return await Query<short>(
+            "SELECT * FROM media.get_category_years(@userId);",
+            new
+            {
+                userId
+            }
+        );
+    }
+
+    public async Task<IEnumerable<Category>> GetCategories(Guid userId, short? year = null) => await InternalGetCategories(userId, year: year);
     public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date) => await InternalGetCategories(userId, modifiedAfter: date);
     public async Task<Category?> GetCategory(Guid userId, Guid categoryId) =>
         (await InternalGetCategories(userId, categoryId))
@@ -32,7 +43,7 @@ public class CategoryRepository
         Instant? modifiedAfter = null
     )
     {
-        return await Query<Category>(
+        var results = await Query<CategoryAndTeaser>(
             "SELECT * FROM media.get_categories(@userId, @categoryId, @year, @modifiedAfter);",
             new
             {
@@ -42,6 +53,26 @@ public class CategoryRepository
                 modifiedAfter
             }
         );
+
+        return results
+            .GroupBy(x => x.Id)
+            .Select(g => new Category(
+                g.Key,
+                g.First().Name,
+                g.First().EffectiveDate,
+                g.First().Modified,
+                g.First().IsFavorite,
+                new Media(
+                    g.First().MediaId,
+                    g.First().MediaType,
+                    g.Select(x => new MediaFile(
+                        x.FileScale,
+                        x.FileType,
+                        x.FilePath
+                    )).ToList()
+                )
+            ))
+            .ToList();
     }
 
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(

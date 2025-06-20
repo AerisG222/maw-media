@@ -11,8 +11,11 @@ RETURNS TABLE
     name TEXT,
     effective_date DATE,
     modified TIMESTAMPTZ,
-    qqvg_fill_path TEXT,
-    qvg_fill_path TEXT,
+    media_id UUID,
+    media_type TEXT,
+    file_path TEXT,
+    file_type TEXT,
+    file_scale TEXT,
     is_favorite BOOLEAN
 )
 AS $$
@@ -23,8 +26,11 @@ BEGIN
         c.name,
         c.effective_date,
         c.modified,
-        qqvg.path AS qqvg_fill_path,
-        qvg.path AS qvg_fill_path,
+        cm.media_id,
+        mt.code AS media_type,
+        fd.path AS file_path,
+        fd.type AS file_type,
+        fd.scale AS file_scale,
         CASE WHEN cf.category_id
             IS NOT NULL THEN true
             ELSE false
@@ -36,14 +42,12 @@ BEGIN
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
-    INNER JOIN media.file_detail qqvg
-        ON cm.media_id = qqvg.media_id
-        AND qqvg.scale = 'qqvg-fill'
-        AND qqvg.type IN ('photo', 'video-poster')
-    LEFT OUTER JOIN media.file_detail qvg
-        ON cm.media_id = qvg.media_id
-        AND qvg.scale = 'qvg-fill'
-        AND qvg.type IN ('photo', 'video-poster')
+    INNER JOIN media.media m
+        ON cm.media_id = m.id
+    INNER JOIN media.type mt
+        ON m.type_id = mt.id
+    INNER JOIN media.file_detail fd
+        ON cm.media_id = fd.media_id
     LEFT OUTER JOIN media.category_favorite cf
         ON c.id = cf.category_id
         AND cf.created_by = _user_id

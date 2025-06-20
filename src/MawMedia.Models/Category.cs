@@ -7,7 +7,6 @@ public record Category(
     string Name,
     LocalDate EffectiveDate,
     Instant Modified,
-    string QqvgFillPath,
-    string? QvgFillPath,
-    bool IsFavorite
+    bool IsFavorite,
+    Media Teaser
 );
