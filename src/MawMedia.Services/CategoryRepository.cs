@@ -28,13 +28,18 @@ public class CategoryRepository
         );
     }
 
-    public async Task<IEnumerable<Category>> GetCategories(Guid userId, short? year = null) => await InternalGetCategories(userId, year: year);
-    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date) => await InternalGetCategories(userId, modifiedAfter: date);
+    public async Task<IEnumerable<Category>> GetCategories(Guid userId, short? year = null) =>
+        await InternalGetCategories(userId, year: year);
+
+    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date) =>
+        await InternalGetCategories(userId, modifiedAfter: date);
+
     public async Task<Category?> GetCategory(Guid userId, Guid categoryId) =>
         (await InternalGetCategories(userId, categoryId))
             .SingleOrDefault();
 
-    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) => await InternalGetCategoryMedia(userId, categoryId);
+    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>
+        await InternalGetCategoryMedia(userId, categoryId);
 
     async Task<IEnumerable<Category>> InternalGetCategories(
         Guid userId,
@@ -80,8 +85,6 @@ public class CategoryRepository
         Guid categoryId
     )
     {
-        var mediaList = new List<Media>();
-
         var results = await Query<MediaAndFile>(
             "SELECT * FROM media.get_category_media(@userId, @categoryId);",
             new
