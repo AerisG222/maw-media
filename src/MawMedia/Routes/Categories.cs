@@ -1,7 +1,8 @@
-using MawMedia.Models;
-using MawMedia.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using NodaTime;
+using MawMedia.Models;
+using MawMedia.Services;
 
 namespace MawMedia.Routes;
 
@@ -26,6 +27,13 @@ public static class Categories
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
+            .MapGet("/updates/{date}", GetCategoryUpdates)
+            .WithName("category-updates")
+            .WithSummary("Category Updates")
+            .WithDescription("Get category updates after a specified date/time");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
             .MapGet("/{id}/media", GetCategoryMedia)
             .WithName("category-media")
             .WithSummary("Category Media")
@@ -37,6 +45,9 @@ public static class Categories
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(ICategoryRepository repo, HttpRequest request) =>
         TypedResults.Ok(await repo.GetCategories(DUMMYUSER));
+
+    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
+        TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));
 
     static async Task<Results<Ok<Category>, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategory(DUMMYUSER, id));

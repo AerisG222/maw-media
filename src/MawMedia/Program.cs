@@ -1,4 +1,5 @@
 using NodaTime;
+using NodaTime.Serialization.SystemTextJson;
 using ZiggyCreatures.Caching.Fusion;
 using Scalar.AspNetCore;
 using MawMedia.Extensions;
@@ -16,6 +17,10 @@ builder.Services
     .AddCustomDataProtection(builder.Configuration)
     .AddCustomForwardedHeaders(builder.Configuration)
     .AddNpgsql(builder.Configuration)
+    .ConfigureHttpJsonOptions(opts =>
+    {
+        opts.SerializerOptions.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+    })
     .AddFusionCache()
         .AsHybridCache()
         .Services

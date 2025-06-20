@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using NodaTime;
 using Npgsql;
 using MawMedia.Models;
 using MawMedia.Services.Models;
@@ -17,6 +18,7 @@ public class CategoryRepository
     }
 
     public async Task<IEnumerable<Category>> GetCategories(Guid userId) => await InternalGetCategories(userId);
+    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date) => await InternalGetCategories(userId, modifiedAfter: date);
     public async Task<Category?> GetCategory(Guid userId, Guid categoryId) =>
         (await InternalGetCategories(userId, categoryId))
             .SingleOrDefault();
@@ -25,15 +27,19 @@ public class CategoryRepository
 
     async Task<IEnumerable<Category>> InternalGetCategories(
         Guid userId,
-        Guid? categoryId = null
+        Guid? categoryId = null,
+        short? year = null,
+        Instant? modifiedAfter = null
     )
     {
         return await Query<Category>(
-            "SELECT * FROM media.get_categories(@userId, @categoryId);",
+            "SELECT * FROM media.get_categories(@userId, @categoryId, @year, @modifiedAfter);",
             new
             {
                 userId,
-                categoryId
+                categoryId,
+                year,
+                modifiedAfter
             }
         );
     }

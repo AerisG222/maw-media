@@ -1,5 +1,7 @@
 http://localhost:5000/categories
 
 ###
+http://localhost:5000/categories/updates/2022-11-05
 
+###
 http://localhost:5000/categories/01977b3a-6db7-7eda-96c0-21c853957389/media
