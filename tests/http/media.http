@@ -22,3 +22,25 @@ Content-Type: application/json
 {
     "isFavorite": true
 }
+
+###
+http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+
+### (invalid media)
+http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+
+### (invalid media)
+POST http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+Content-Type: application/json
+
+{
+    "body": "abc"
+}
+
+###
+POST http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+Content-Type: application/json
+
+{
+    "body": "abc"
+}

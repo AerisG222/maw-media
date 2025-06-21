@@ -60,12 +60,48 @@ public class MediaRepository
             }
         );
 
-        if(result == 0)
+        if (result == 0)
         {
             return await GetMedia(userId, mediaId);
         }
 
         _log.LogWarning("Unable to set media favorite - user {USER} does not have access to media {MEDIA} - or media does not exist!", userId, mediaId);
+
+        return null;
+    }
+    public async Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId)
+    {
+        return await Query<Comment>(
+            "SELECT * FROM media.get_comments(@userId, @mediaId);",
+            new
+            {
+                userId,
+                mediaId
+            }
+        );
+    }
+
+    public async Task<Guid?> AddComment(Guid userId, Guid mediaId, string body)
+    {
+        var commentId = Guid.CreateVersion7();
+
+        var result = await ExecuteTransaction(
+            "SELECT * FROM media.add_comment(@commentId, @userId, @mediaId, @body);",
+            new
+            {
+                commentId,
+                userId,
+                mediaId,
+                body
+            }
+        );
+
+        if (result == 0)
+        {
+            return commentId;
+        }
+
+        _log.LogWarning("Unable to add comment - user {USER} does not have access to media {MEDIA} - or media does not exist!", userId, mediaId);
 
         return null;
     }

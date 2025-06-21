@@ -86,11 +86,13 @@ function main() {
     run_psql_script "seed/media.scale.sql"
 
     header "functions"
+    run_psql_script "funcs/media.add_comment.sql"
     run_psql_script "funcs/media.favorite_category.sql"
     run_psql_script "funcs/media.favorite_media.sql"
     run_psql_script "funcs/media.get_categories.sql"
     run_psql_script "funcs/media.get_category_media.sql"
     run_psql_script "funcs/media.get_category_years.sql"
+    run_psql_script "funcs/media.get_comments.sql"
     run_psql_script "funcs/media.get_media.sql"
     run_psql_script "funcs/media.get_random_media.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"

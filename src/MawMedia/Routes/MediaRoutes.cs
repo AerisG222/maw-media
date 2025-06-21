@@ -33,6 +33,20 @@ public static class MediaRoutes
             .WithDescription("Favorites media");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
+        group
+            .MapGet("/{id}/comments", GetComments)
+            .WithName("media-comments")
+            .WithSummary("Get Media Comments")
+            .WithDescription("Get media comments");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapPost("/{id}/comments", AddComment)
+            .WithName("add-media-comment")
+            .WithSummary("Add Media Comment")
+            .WithDescription("Add comment for media");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
         return group;
     }
 
@@ -61,5 +75,21 @@ public static class MediaRoutes
         }
 
         return TypedResults.Ok(media);
+    }
+
+    static async Task<Results<Ok<IEnumerable<Comment>>, ForbidHttpResult>> GetComments(IMediaRepository repo, [FromRoute] Guid id) =>
+        TypedResults.Ok(await repo.GetComments(DUMMYUSER, id));
+
+    static async Task<Results<Ok<string>, NotFound, ForbidHttpResult>> AddComment(IMediaRepository repo, [FromRoute] Guid id, [FromBody] AddCommentRequest request)
+    {
+        var commentId = await repo.AddComment(DUMMYUSER, id, request.Body);
+
+        if (commentId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // TODO: why can't we return guid?
+        return TypedResults.Ok(commentId.ToString());
     }
 }
