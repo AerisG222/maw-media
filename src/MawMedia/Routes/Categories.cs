@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NodaTime;
 using MawMedia.Models;
 using MawMedia.Services;
+using MawMedia.ViewModels;
 
 namespace MawMedia.Routes;
 
@@ -35,6 +36,13 @@ public static class Categories
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
+            .MapGet("/updates/{date}", GetCategoryUpdates)
+            .WithName("category-updates")
+            .WithSummary("Category Updates")
+            .WithDescription("Get category updates after a specified date/time");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
             .MapGet("/{id}", GetCategory)
             .WithName("category")
             .WithSummary("Category")
@@ -42,10 +50,17 @@ public static class Categories
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
-            .MapGet("/updates/{date}", GetCategoryUpdates)
-            .WithName("category-updates")
-            .WithSummary("Category Updates")
-            .WithDescription("Get category updates after a specified date/time");
+            .MapPost("/{id}/favorite", FavoriteCategory)
+            .WithName("category-favorite")
+            .WithSummary("Favorite Category")
+            .WithDescription("Favorite specified category");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapPost("/{id}/teaser", SetCategoryTeaser)
+            .WithName("category-set-teaser")
+            .WithSummary("Set Category Teaser")
+            .WithDescription("Set category teaser");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
@@ -72,6 +87,12 @@ public static class Categories
 
     static async Task<Results<Ok<Category>, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategory(DUMMYUSER, id));
+
+    static async Task<Results<Ok<Category>, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] FavoriteCategoryRequest request) =>
+        TypedResults.Ok(await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite));
+
+    static async Task<Results<Ok<Category>, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest request) =>
+        TypedResults.Ok(await repo.SetTeaserMedia(DUMMYUSER, id, request.MediaId));
 
     static async Task<Results<Ok<IEnumerable<Models.Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, id));

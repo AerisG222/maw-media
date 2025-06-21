@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS media.category_favorite (
     REFERENCES media.category(id)
 );
 
-GRANT SELECT
+GRANT SELECT, INSERT, DELETE
 ON media.category_favorite
 TO maw_media;

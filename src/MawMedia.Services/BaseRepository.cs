@@ -35,6 +35,20 @@ public class BaseRepository
         );
     }
 
+    protected async Task ExecuteTransaction(
+        string statement,
+        object? param = null
+    )
+    {
+        await RunTransaction(
+            conn =>
+                conn.ExecuteAsync(
+                    statement,
+                    param
+                )
+        );
+    }
+
     protected async Task<T?> ExecuteScalar<T>(
         string statement,
         object? param = null
@@ -87,6 +101,44 @@ public class BaseRepository
         }
         finally
         {
+            if (_conn != null)
+            {
+                await _conn.CloseAsync();
+            }
+        }
+    }
+
+    protected async Task<T> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command, bool runInTransaction = false)
+    {
+        NpgsqlTransaction? tran = null;
+
+        try
+        {
+            await _conn.OpenAsync();
+            tran = await _conn.BeginTransactionAsync();
+
+            var result = await command(_conn);
+
+            await tran.CommitAsync();
+
+            return result;
+        }
+        catch
+        {
+            if (tran != null)
+            {
+                await tran.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (tran != null)
+            {
+                await tran.DisposeAsync();
+            }
+
             if (_conn != null)
             {
                 await _conn.CloseAsync();

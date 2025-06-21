@@ -38,6 +38,36 @@ public class CategoryRepository
         (await InternalGetCategories(userId, categoryId))
             .SingleOrDefault();
 
+    public async Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
+    {
+        await ExecuteTransaction(
+            "SELECT * FROM media.favorite_category(@userId, @categoryId, @isFavorite);",
+            new
+            {
+                userId,
+                categoryId,
+                isFavorite
+            }
+        );
+
+        return await GetCategory(userId, categoryId);
+    }
+
+    public async Task<Category?> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
+    {
+        await ExecuteTransaction(
+            "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
+            new
+            {
+                userId,
+                categoryId,
+                mediaId
+            }
+        );
+
+        return await GetCategory(userId, categoryId);
+    }
+
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>
         await InternalGetCategoryMedia(userId, categoryId);
 
