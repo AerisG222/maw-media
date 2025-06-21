@@ -16,6 +16,7 @@ RETURNS TABLE
     file_path TEXT,
     file_type TEXT,
     file_scale TEXT,
+    media_is_favorite BOOLEAN,
     is_favorite BOOLEAN
 )
 AS $$
@@ -27,10 +28,14 @@ BEGIN
         c.effective_date,
         c.modified,
         cm.media_id,
-        mt.code AS media_type,
-        fd.path AS file_path,
-        fd.type AS file_type,
-        fd.scale AS file_scale,
+        md.type AS media_type,
+        md.file_path,
+        md.file_type,
+        md.file_scale,
+        CASE WHEN f.media_id
+            IS NOT NULL THEN true
+            ELSE false
+            END AS media_is_favorite,
         CASE WHEN cf.category_id
             IS NOT NULL THEN true
             ELSE false
@@ -42,12 +47,11 @@ BEGIN
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
-    INNER JOIN media.media m
-        ON cm.media_id = m.id
-    INNER JOIN media.type mt
-        ON m.type_id = mt.id
-    INNER JOIN media.file_detail fd
-        ON cm.media_id = fd.media_id
+    INNER JOIN media.media_detail md
+        ON cm.media_id = md.id
+    LEFT OUTER JOIN media.favorite f
+        ON cm.media_id = f.media_id
+        AND f.created_by = _user_id
     LEFT OUTER JOIN media.category_favorite cf
         ON c.id = cf.category_id
         AND cf.created_by = _user_id

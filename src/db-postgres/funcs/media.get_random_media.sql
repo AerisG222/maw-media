@@ -9,7 +9,8 @@ RETURNS TABLE
     type TEXT,
     file_path TEXT,
     file_type TEXT,
-    file_scale TEXT
+    file_scale TEXT,
+    media_is_favorite BOOLEAN
 )
 AS $$
 BEGIN
@@ -34,10 +35,17 @@ BEGIN
         md.type,
         md.file_path,
         md.file_type,
-        md.file_scale
+        md.file_scale,
+        CASE WHEN f.media_id
+            IS NOT NULL THEN true
+            ELSE false
+            END AS media_is_favorite
     FROM random r
     INNER JOIN media.media_detail md
-        ON r.media_id = md.id;
+        ON r.media_id = md.id
+    LEFT OUTER JOIN media.favorite f
+        ON r.media_id = f.media_id
+        AND f.created_by = _user_id;
 
 END;
 $$ LANGUAGE plpgsql;

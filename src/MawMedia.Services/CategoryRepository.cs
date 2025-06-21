@@ -100,6 +100,7 @@ public class CategoryRepository
                 new Media(
                     g.First().MediaId,
                     g.First().MediaType,
+                    g.First().MediaIsFavorite,
                     g.Select(x => new MediaFile(
                         x.FileScale,
                         x.FileType,
