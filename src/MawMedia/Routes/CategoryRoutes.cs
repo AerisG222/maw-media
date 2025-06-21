@@ -7,7 +7,7 @@ using MawMedia.ViewModels;
 
 namespace MawMedia.Routes;
 
-public static class Categories
+public static class CategoryRoutes
 {
     static readonly Guid DUMMYUSER = Guid.Parse("01977b3a-6db0-7384-87ad-8e56aad783ef");
 

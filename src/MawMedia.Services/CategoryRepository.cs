@@ -124,17 +124,6 @@ public class CategoryRepository
             }
         );
 
-        return results
-            .GroupBy(x => x.Id)
-            .Select(g => new Media(
-                g.Key,
-                g.First().Type,
-                g.Select(x => new MediaFile(
-                    x.FileScale,
-                    x.FileType,
-                    x.FilePath
-                )).ToList()
-            ))
-            .ToList();
+        return AssembleMedia(results);
     }
 }

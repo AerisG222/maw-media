@@ -14,7 +14,8 @@ public static class IServiceCollectionExtensions
         //SqlMapper.AddTypeMap(typeof(string), System.Data.DbType.AnsiString);
 
         services
-            .AddScoped<ICategoryRepository, CategoryRepository>();
+            .AddScoped<ICategoryRepository, CategoryRepository>()
+            .AddScoped<IMediaRepository, MediaRepository>();
 
         return services;
     }

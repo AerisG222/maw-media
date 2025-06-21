@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Dapper;
 using Npgsql;
+using MawMedia.Models;
+using MawMedia.Services.Models;
 
 namespace MawMedia.Services;
 
@@ -145,4 +147,18 @@ public class BaseRepository
             }
         }
     }
+
+    internal IEnumerable<Media> AssembleMedia(IEnumerable<MediaAndFile> mediaAndFiles) =>
+        mediaAndFiles
+            .GroupBy(x => x.Id)
+            .Select(g => new Media(
+                g.Key,
+                g.First().Type,
+                g.Select(x => new MediaFile(
+                    x.FileScale,
+                    x.FileType,
+                    x.FilePath
+                )).ToList()
+            ))
+            .ToList();
 }

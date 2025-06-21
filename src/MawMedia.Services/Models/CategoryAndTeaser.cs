@@ -2,7 +2,7 @@ using NodaTime;
 
 namespace MawMedia.Services.Models;
 
-public class CategoryAndTeaser
+class CategoryAndTeaser
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }

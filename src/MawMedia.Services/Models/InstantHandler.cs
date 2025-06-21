@@ -5,7 +5,8 @@ using NodaTime;
 namespace MawMedia.Services.Models;
 
 // https://github.com/mattjohnsonpint/Dapper-NodaTime/blob/master/src/Dapper.NodaTime/InstantHandler.cs
-public class InstantHandler : SqlMapper.TypeHandler<Instant>
+class InstantHandler
+    : SqlMapper.TypeHandler<Instant>
 {
     public static readonly InstantHandler Default = new();
 
