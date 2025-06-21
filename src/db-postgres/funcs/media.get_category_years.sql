@@ -22,8 +22,7 @@ BEGIN
         y.year
     FROM years y
     ORDER BY year DESC;
-END
-
+END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE

@@ -37,8 +37,7 @@ BEGIN
     WHERE
         (_modified_after IS NULL OR m.modified > _modified_after)
     ORDER BY created;  -- switch to metadata created
-END
-
+END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE

@@ -56,8 +56,7 @@ BEGIN
         AND (_year IS NULL OR EXTRACT(YEAR FROM c.effective_date) = _year)
         AND (_modified_after IS NULL OR c.modified > _modified_after)
     ORDER BY c.effective_date DESC;
-END
-
+END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE
