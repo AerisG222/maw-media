@@ -5,12 +5,12 @@ CREATE OR REPLACE FUNCTION media.get_random_media
 )
 RETURNS TABLE
 (
-    id UUID,
-    type TEXT,
+    media_id UUID,
+    media_type TEXT,
+    media_is_favorite BOOLEAN,
     file_path TEXT,
     file_type TEXT,
-    file_scale TEXT,
-    media_is_favorite BOOLEAN
+    file_scale TEXT
 )
 AS $$
 BEGIN
@@ -31,18 +31,18 @@ BEGIN
         LIMIT _count
     )
     SELECT
-        md.id,
-        md.type,
-        md.file_path,
-        md.file_type,
-        md.file_scale,
+        md.media_id,
+        md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true
             ELSE false
-            END AS media_is_favorite
+            END AS media_is_favorite,
+        md.file_path,
+        md.file_type,
+        md.file_scale
     FROM random r
     INNER JOIN media.media_detail md
-        ON r.media_id = md.id
+        ON r.media_id = md.media_id
     LEFT OUTER JOIN media.favorite f
         ON r.media_id = f.media_id
         AND f.created_by = _user_id;

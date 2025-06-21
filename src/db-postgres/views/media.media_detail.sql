@@ -1,10 +1,10 @@
 CREATE OR REPLACE VIEW media.media_detail AS
     SELECT
-        m.id,
-        t.code AS type,
-        fd.path AS file_path,
-        fd.scale AS file_scale,
-        fd.type AS file_type
+        m.id AS media_id,
+        t.code AS media_type,
+        fd.file_path,
+        fd.file_scale,
+        fd.file_type
     FROM media.media m
     INNER JOIN media.type t
         ON t.id = m.type_id

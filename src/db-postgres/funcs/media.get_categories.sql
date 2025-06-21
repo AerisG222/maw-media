@@ -11,13 +11,13 @@ RETURNS TABLE
     name TEXT,
     effective_date DATE,
     modified TIMESTAMPTZ,
+    is_favorite BOOLEAN,
     media_id UUID,
     media_type TEXT,
+    media_is_favorite BOOLEAN,
     file_path TEXT,
     file_type TEXT,
-    file_scale TEXT,
-    media_is_favorite BOOLEAN,
-    is_favorite BOOLEAN
+    file_scale TEXT
 )
 AS $$
 BEGIN
@@ -27,19 +27,19 @@ BEGIN
         c.name,
         c.effective_date,
         c.modified,
+        CASE WHEN cf.category_id
+            IS NOT NULL THEN true
+            ELSE false
+            END AS is_favorite,
         cm.media_id,
-        md.type AS media_type,
-        md.file_path,
-        md.file_type,
-        md.file_scale,
+        md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true
             ELSE false
             END AS media_is_favorite,
-        CASE WHEN cf.category_id
-            IS NOT NULL THEN true
-            ELSE false
-            END AS is_favorite
+        md.file_path,
+        md.file_type,
+        md.file_scale
     FROM media.category c
     INNER JOIN media.user_category uc
         ON c.id = uc.category_id
@@ -48,7 +48,7 @@ BEGIN
         ON c.id = cm.category_id
         AND cm.is_teaser = true
     INNER JOIN media.media_detail md
-        ON cm.media_id = md.id
+        ON cm.media_id = md.media_id
     LEFT OUTER JOIN media.favorite f
         ON cm.media_id = f.media_id
         AND f.created_by = _user_id

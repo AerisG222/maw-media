@@ -150,10 +150,10 @@ public class BaseRepository
 
     internal IEnumerable<Media> AssembleMedia(IEnumerable<MediaAndFile> mediaAndFiles) =>
         mediaAndFiles
-            .GroupBy(x => x.Id)
+            .GroupBy(x => x.MediaId)
             .Select(g => new Media(
                 g.Key,
-                g.First().Type,
+                g.First().MediaType,
                 g.First().MediaIsFavorite,
                 g.Select(x => new MediaFile(
                     x.FileScale,
