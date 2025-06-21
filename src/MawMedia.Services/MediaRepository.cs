@@ -32,4 +32,41 @@ public class MediaRepository
 
         return AssembleMedia(results);
     }
+
+    public async Task<Media?> GetMedia(Guid userId, Guid mediaId)
+    {
+        var results = await Query<MediaAndFile>(
+            "SELECT * FROM media.get_media(@userId, @mediaId);",
+            new
+            {
+                userId,
+                mediaId
+            }
+        );
+
+        return AssembleMedia(results)
+            .SingleOrDefault();
+    }
+
+    public async Task<Media?> SetIsFavorite(Guid userId, Guid mediaId, bool isFavorite)
+    {
+        var result = await ExecuteTransaction(
+            "SELECT * FROM media.favorite_media(@userId, @mediaId, @isFavorite);",
+            new
+            {
+                userId,
+                mediaId,
+                isFavorite
+            }
+        );
+
+        if(result == 0)
+        {
+            return await GetMedia(userId, mediaId);
+        }
+
+        _log.LogWarning("Unable to set media favorite - user {USER} does not have access to media {MEDIA} - or media does not exist!", userId, mediaId);
+
+        return null;
+    }
 }

@@ -1,5 +1,5 @@
 namespace MawMedia.ViewModels;
 
-public record class FavoriteCategoryRequest(
+public record class FavoriteRequest(
     bool IsFavorite
 );

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MawMedia.Models;
 using MawMedia.Services;
+using MawMedia.ViewModels;
 
 namespace MawMedia.Routes;
 
@@ -11,10 +12,25 @@ public static class MediaRoutes
 
     public static RouteGroupBuilder MapMediaRoutes(this RouteGroupBuilder group)
     {
-        group.MapGet("/random/{count}", GetRandomMedia)
-        .WithName("random-media")
-        .WithSummary("Random Media")
-        .WithDescription("Lists random media");
+        group
+            .MapGet("/random/{count}", GetRandomMedia)
+            .WithName("random-media")
+            .WithSummary("Random Media")
+            .WithDescription("Lists random media");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapGet("/{id}", GetMedia)
+            .WithName("media")
+            .WithSummary("Get Media")
+            .WithDescription("Get media");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapPost("/{id}/favorite", FavoriteMedia)
+            .WithName("favorite-media")
+            .WithSummary("Favorite Media")
+            .WithDescription("Favorites media");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         return group;
@@ -22,4 +38,28 @@ public static class MediaRoutes
 
     static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetRandomMedia(IMediaRepository repo, HttpRequest request, [FromRoute] byte count) =>
         TypedResults.Ok(await repo.GetRandomMedia(DUMMYUSER, count));
+
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> GetMedia(IMediaRepository repo, [FromRoute] Guid id)
+    {
+        var media = await repo.GetMedia(DUMMYUSER, id);
+
+        if (media == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(media);
+    }
+
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(IMediaRepository repo, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
+    {
+        var media = await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite);
+
+        if (media == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(media);
+    }
 }

@@ -1,2 +1,24 @@
 ###
 http://localhost:5000/media/random/5
+
+### (invalid media)
+http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc
+
+###
+http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc
+
+###
+POST http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
+Content-Type: application/json
+
+{
+    "isFavorite": true
+}
+
+### (invalid media)
+POST http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
+Content-Type: application/json
+
+{
+    "isFavorite": true
+}

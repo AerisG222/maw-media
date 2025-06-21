@@ -8,8 +8,8 @@ namespace MawMedia.Services;
 
 public class BaseRepository
 {
-    readonly ILogger _log;
     readonly NpgsqlConnection _conn;
+    protected readonly ILogger _log;
 
     public BaseRepository(
         ILogger log,
@@ -37,14 +37,14 @@ public class BaseRepository
         );
     }
 
-    protected async Task ExecuteTransaction(
+    protected async Task<int> ExecuteTransaction(
         string statement,
         object? param = null
     )
     {
-        await RunTransaction(
+        return await RunTransaction(
             conn =>
-                conn.ExecuteAsync(
+                conn.ExecuteScalarAsync<int>(
                     statement,
                     param
                 )

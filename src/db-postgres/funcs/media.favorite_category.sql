@@ -4,10 +4,8 @@ CREATE OR REPLACE FUNCTION media.favorite_category
     _category_id UUID,
     _is_favorite BOOLEAN
 )
-RETURNS BIGINT
+RETURNS INTEGER
 AS $$
-DECLARE
-    _rowcount BIGINT;
 BEGIN
 
     IF NOT EXISTS (
@@ -17,7 +15,8 @@ BEGIN
             uc.user_id = _user_id
             AND uc.category_id = _category_id
     ) THEN
-        RAISE 'not updating category favorite - user % does not have access to category %!', _user_id, _category_id;
+        RAISE NOTICE 'not updating category favorite - user % does not have access to category %!', _user_id, _category_id;
+        RETURN 1;
     END IF;
 
     IF _is_favorite THEN
@@ -48,9 +47,7 @@ BEGIN
             AND created_by = _user_id;
     END IF;
 
-    GET DIAGNOSTICS _rowcount = ROW_COUNT;
-
-    RETURN _rowcount;
+    RETURN 0;
 
 END;
 $$ LANGUAGE plpgsql;

@@ -4,10 +4,8 @@ CREATE OR REPLACE FUNCTION media.set_category_teaser
     _category_id UUID,
     _media_id UUID
 )
-RETURNS BIGINT
+RETURNS INTEGER
 AS $$
-DECLARE
-    _rowcount BIGINT;
 BEGIN
 
     -- currently not really necessary as the app will treat this as an admin only function
@@ -18,7 +16,8 @@ BEGIN
             uc.user_id = _user_id
             AND uc.category_id = _category_id
     ) THEN
-        RAISE 'not updating category teaser - user % does not have access to category %!', _user_id, _category_id;
+        RAISE NOTICE 'not updating category teaser - user % does not have access to category %!', _user_id, _category_id;
+        RETURN 1;
     END IF;
 
     -- only update the teaser if the media belongs to the specified category
@@ -43,12 +42,11 @@ BEGIN
             cm.category_id = _category_id
             AND cm.media_id = _media_id;
     ELSE
-        RAISE 'not updating category teaser - media % does not belong to category %!', _media_id, _category_id;
+        RAISE NOTICE 'not updating category teaser - media % does not belong to category %!', _media_id, _category_id;
+        RETURN 2;
     END IF;
 
-    GET DIAGNOSTICS _rowcount = ROW_COUNT;
-
-    RETURN _rowcount;
+    RETURN 0;
 
 END;
 $$ LANGUAGE plpgsql;

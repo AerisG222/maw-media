@@ -40,7 +40,7 @@ public class CategoryRepository
 
     public async Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
     {
-        await ExecuteTransaction(
+        var result = await ExecuteTransaction(
             "SELECT * FROM media.favorite_category(@userId, @categoryId, @isFavorite);",
             new
             {
@@ -50,12 +50,19 @@ public class CategoryRepository
             }
         );
 
-        return await GetCategory(userId, categoryId);
+        if (result == 0)
+        {
+            return await GetCategory(userId, categoryId);
+        }
+
+        _log.LogWarning("Unable to set favorite category - user {USER} does not have access to category {CATEGORY} or category does not exist!", userId, categoryId);
+
+        return null;
     }
 
     public async Task<Category?> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
     {
-        await ExecuteTransaction(
+        var result = await ExecuteTransaction(
             "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
             new
             {
@@ -65,7 +72,14 @@ public class CategoryRepository
             }
         );
 
-        return await GetCategory(userId, categoryId);
+        if (result == 0)
+        {
+            return await GetCategory(userId, categoryId);
+        }
+
+        _log.LogWarning("Unable to set category teaser - user {USER} does not have access to category {CATEGORY} or media {MEDIA} - or category/media does not exist!", userId, categoryId, mediaId);
+
+        return null;
     }
 
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>

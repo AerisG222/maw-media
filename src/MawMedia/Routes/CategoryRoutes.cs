@@ -85,15 +85,41 @@ public static class CategoryRoutes
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
         TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));
 
-    static async Task<Results<Ok<Category>, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id) =>
-        TypedResults.Ok(await repo.GetCategory(DUMMYUSER, id));
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id) {
+        var category = await repo.GetCategory(DUMMYUSER, id);
 
-    static async Task<Results<Ok<Category>, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] FavoriteCategoryRequest request) =>
-        TypedResults.Ok(await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite));
+        if (category == null)
+        {
+            return TypedResults.NotFound();
+        }
 
-    static async Task<Results<Ok<Category>, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest request) =>
-        TypedResults.Ok(await repo.SetTeaserMedia(DUMMYUSER, id, request.MediaId));
+        return TypedResults.Ok(category);
+    }
 
-    static async Task<Results<Ok<IEnumerable<Models.Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
+    {
+        var category = await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite);
+
+        if (category == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(category);
+    }
+
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest request)
+    {
+        var category = await repo.SetTeaserMedia(DUMMYUSER, id, request.MediaId);
+
+        if (category == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(category);
+    }
+
+    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, id));
 }

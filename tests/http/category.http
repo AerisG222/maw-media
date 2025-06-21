@@ -10,8 +10,25 @@ http://localhost:5000/categories
 ###
 http://localhost:5000/categories/updates/2022-11-05
 
+### (invalid category)
+http://localhost:5000/categories/21977b3a-6db7-7eda-96c0-21c853957389
+
+### (valid category)
+http://localhost:5000/categories/01977b3a-6db7-7eda-96c0-21c853957389
+
+### (invalid category - todo: return notfound)
+http://localhost:5000/categories/21977b3a-6db7-7eda-96c0-21c853957389/media
+
 ###
 http://localhost:5000/categories/01977b3a-6db7-7eda-96c0-21c853957389/media
+
+### (invalid category)
+POST http://localhost:5000/categories/21977b3a-6db7-7eda-96c0-21c853957389/favorite
+Content-Type: application/json
+
+{
+    "isFavorite": false
+}
 
 ###
 POST http://localhost:5000/categories/01977b3a-6db7-7eda-96c0-21c853957389/favorite
