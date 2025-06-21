@@ -30,22 +30,14 @@ BEGIN
         LIMIT _count
     )
     SELECT
-        m.id,
-        mt.code AS type,
-        f.path AS file_path,
-        ft.code AS file_type,
-        fs.code AS file_scale
+        md.id,
+        md.type,
+        md.file_path,
+        md.file_type,
+        md.file_scale
     FROM random r
-    INNER JOIN media.media m
-        ON r.media_id = m.id
-    INNER JOIN media.type mt
-        ON mt.id = m.type_id
-    INNER JOIN media.file f
-        ON f.media_id = m.id
-    INNER JOIN media.type ft
-        ON ft.id = f.type_id
-    INNER JOIN media.scale fs
-        ON fs.id = f.scale_id;
+    INNER JOIN media.media_detail md
+        ON r.media_id = md.id;
 
 END;
 $$ LANGUAGE plpgsql;
