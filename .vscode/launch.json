@@ -6,9 +6,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/MawApi/bin/Debug/net9.0/MawMedia.dll",
+            "program": "${workspaceFolder}/src/MawMedia/bin/Debug/net9.0/MawMedia.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/MawApi",
+            "cwd": "${workspaceFolder}/src/MawMedia",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
