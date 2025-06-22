@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MawMedia.Models;
 using MawMedia.Services;
 using MawMedia.ViewModels;
+using System.Text.Json;
 
 namespace MawMedia.Routes;
 
@@ -24,6 +25,13 @@ public static class MediaRoutes
             .WithName("media")
             .WithSummary("Get Media")
             .WithDescription("Get media");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapGet("/{id}/metadata", GetMetadata)
+            .WithName("media-metadata")
+            .WithSummary("Get Media Metadata")
+            .WithDescription("Get media metadata");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
@@ -63,6 +71,18 @@ public static class MediaRoutes
         }
 
         return TypedResults.Ok(media);
+    }
+
+    static async Task<IResult> GetMetadata(IMediaRepository repo, HttpRequest request, [FromRoute] Guid id)
+    {
+        var metadata = await repo.GetMetadata(DUMMYUSER, id);
+
+        if (metadata == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(metadata);
     }
 
     static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(IMediaRepository repo, [FromRoute] Guid id, [FromBody] FavoriteRequest request)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MawMedia.Models;
 using MawMedia.Services.Models;
 using Microsoft.Extensions.Logging;
@@ -48,6 +49,32 @@ public class MediaRepository
             .SingleOrDefault();
     }
 
+    public async Task<JsonDocument?> GetMetadata(Guid userId, Guid mediaId)
+    {
+        return await RunCommand(async conn =>
+        {
+            await using var cmd = new NpgsqlCommand("SELECT * FROM media.get_metadata($1, $2);", conn)
+            {
+                Parameters =
+                {
+                    new() { Value = userId },
+                    new() { Value = mediaId }
+                }
+            };
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return reader.IsDBNull(0)
+                    ? null
+                    : reader.GetFieldValue<JsonDocument>(0);
+            }
+
+            return null;
+        });
+    }
+
     public async Task<Media?> SetIsFavorite(Guid userId, Guid mediaId, bool isFavorite)
     {
         var result = await ExecuteTransaction(
@@ -69,6 +96,7 @@ public class MediaRepository
 
         return null;
     }
+
     public async Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId)
     {
         return await Query<Comment>(

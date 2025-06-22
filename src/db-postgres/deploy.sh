@@ -94,6 +94,7 @@ function main() {
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
     run_psql_script "funcs/media.get_media.sql"
+    run_psql_script "funcs/media.get_metadata.sql"
     run_psql_script "funcs/media.get_random_media.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"
 
