@@ -78,6 +78,7 @@ function main() {
     header "views"
     run_psql_script "views/media.file_detail.sql"
     run_psql_script "views/media.media_detail.sql"
+    run_psql_script "views/media.media_gps.sql"
     run_psql_script "views/media.user_category.sql"
     run_psql_script "views/media.user_media.sql"
 
@@ -94,6 +95,7 @@ function main() {
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
     run_psql_script "funcs/media.get_media.sql"
+    run_psql_script "funcs/media.get_media_gps.sql"
     run_psql_script "funcs/media.get_metadata.sql"
     run_psql_script "funcs/media.get_random_media.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"

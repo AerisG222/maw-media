@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS media.location (
     id UUID NOT NULL,
-    latitude NUMERIC(8_6) NOT NULL,
-    longitude NUMERIC(9_6) NOT NULL,
+    latitude NUMERIC(8, 6) NOT NULL,
+    longitude NUMERIC(9, 6) NOT NULL,
     lookup_date TIMESTAMPTZ,
     formatted_address TEXT,
     administrative_area_level_1 TEXT,

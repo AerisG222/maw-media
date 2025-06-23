@@ -49,6 +49,18 @@ public class MediaRepository
             .SingleOrDefault();
     }
 
+    public async Task<Gps?> GetGps(Guid userId, Guid mediaId)
+    {
+        return await QuerySingle<Gps>(
+            "SELECT * FROM media.get_media_gps(@userId, @mediaId, NULL);",
+            new
+            {
+                userId,
+                mediaId
+            }
+        );
+    }
+
     public async Task<JsonDocument?> GetMetadata(Guid userId, Guid mediaId)
     {
         return await RunCommand(async conn =>

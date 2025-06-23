@@ -70,6 +70,13 @@ public static class CategoryRoutes
             .WithDescription("Get media for single category");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
+        group
+            .MapGet("/{id}/gps", GetCategoryMediaGps)
+            .WithName("category-media-gps")
+            .WithSummary("Category Media GPS")
+            .WithDescription("Get GPS for media in a specific category");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
         return group;
     }
 
@@ -85,7 +92,8 @@ public static class CategoryRoutes
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
         TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id) {
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id)
+    {
         var category = await repo.GetCategory(DUMMYUSER, id);
 
         if (category == null)
@@ -122,4 +130,7 @@ public static class CategoryRoutes
 
     static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, id));
+
+    static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(ICategoryRepository repo, [FromRoute] Guid id) =>
+        TypedResults.Ok(await repo.GetCategoryMediaGps(DUMMYUSER, id));
 }

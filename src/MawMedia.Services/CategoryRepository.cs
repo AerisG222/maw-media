@@ -38,6 +38,18 @@ public class CategoryRepository
         (await InternalGetCategories(userId, categoryId))
             .SingleOrDefault();
 
+    public async Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId)
+    {
+        return await Query<Gps>(
+            "SELECT * FROM media.get_media_gps(@userId, NULL, @categoryId);",
+            new
+            {
+                userId,
+                categoryId
+            }
+        );
+    }
+
     public async Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
     {
         var result = await ExecuteTransaction(

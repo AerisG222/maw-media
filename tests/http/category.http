@@ -53,3 +53,9 @@ Content-Type: application/json
 {
     "mediaId": "01977b3a-79bd-74fb-ad5c-0abe0b51be92"
 }
+
+### (valid category - no gps)
+http://localhost:5000/categories/01977b3a-6db7-7eda-96c0-21c853957389/gps
+
+### (valid category - no gps)
+http://localhost:5000/categories/01977b3a-6db5-7888-b10e-aa51e147ecc7/gps
