@@ -41,6 +41,13 @@ BEGIN
         WHERE
             cm.category_id = _category_id
             AND cm.media_id = _media_id;
+
+        UPDATE media.category
+            SET
+                modified_by = _user_id,
+                modified = NOW()
+            WHERE
+                id = _category_id;
     ELSE
         RAISE NOTICE 'not updating category teaser - media % does not belong to category %!', _media_id, _category_id;
         RETURN 2;
