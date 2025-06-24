@@ -4,6 +4,7 @@ POD=integration-test-media-pod
 CON=integration-test-media-pgsql
 PWDDIR="$(pwd)/media-testing/pgpwd"
 PGPWD=$(gpg --gen-random --armor 1 24 | base64)
+MEDIAPWD=$(gpg --gen-random --armor 1 24 | base64)
 
 mkdir -p "${PWDDIR}"
 echo "${PGPWD}" > "${PWDDIR}/psql-postgres"
@@ -37,3 +38,15 @@ podman run \
 cd "${PROJ_ROOT}/src/db-postgres"
 ( "${PROJ_ROOT}/src/db-postgres/deploy.sh" "${POD}" "${PWDDIR}")
 cd -
+
+echo "${MEDIAPWD}" > "${PWDDIR}/psql-svc_maw_media"
+
+podman run \
+    --rm \
+    --pod "${POD}" \
+    --name "integration-test-media-passwd" \
+    docker.io/library/postgres:17 \
+        psql \
+            -h 127.0.0.1 \
+            -U postgres \
+            -c "ALTER USER svc_maw_media WITH PASSWORD '${MEDIAPWD}';"
