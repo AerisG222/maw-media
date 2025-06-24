@@ -1,6 +1,9 @@
 using System.Data;
+using System.Runtime.CompilerServices;
 using Dapper;
 using NodaTime;
+
+[assembly: InternalsVisibleToAttribute("MawMedia.Services.Tests")]
 
 namespace MawMedia.Services.Models;
 

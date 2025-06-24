@@ -1,4 +1,6 @@
-﻿namespace MawMedia.Services.Tests;
+﻿using Microsoft.Extensions.Logging.Testing;
+
+namespace MawMedia.Services.Tests;
 
 public class CategoryRepositoryTests
 {
@@ -12,8 +14,20 @@ public class CategoryRepositoryTests
     }
 
     [Fact]
-    public void Test1()
+    public async Task GetCategory_InvalidUserAndCategory_ReturnsNull()
     {
-        Assert.True(true);
+        var repo = GetRepo();
+
+        var cat = await repo.GetCategory(Guid.CreateVersion7(), Guid.CreateVersion7());
+
+        Assert.Null(cat);
+    }
+
+    CategoryRepository GetRepo()
+    {
+        return new CategoryRepository(
+            new FakeLogger<CategoryRepository>(),
+            _fixture.DataSource.CreateConnection()
+        );
     }
 }
