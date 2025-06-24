@@ -20,6 +20,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Content Include="test-down.sh" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="test-up.sh" CopyToOutputDirectory="PreserveNewest" />
         <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 

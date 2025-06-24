@@ -22,3 +22,5 @@ project.lock.json
 
 tools/*.log
 hosting/.~lock.architecture.odg#
+
+tests/MawMedia.Services.Tests/media-testing
