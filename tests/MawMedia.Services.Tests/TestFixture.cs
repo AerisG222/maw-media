@@ -11,6 +11,7 @@ public class TestFixture
     : IAsyncLifetime
 {
     const string DIRNAME_MEDIA_TESTING = "media-testing";
+    const string PGSQL_ADMIN_ACCT = "postgres";
     const string PGSQL_SVC_ACCT = "svc_maw_media";
     const int TEST_DB_PORT = 9876;
 
@@ -30,10 +31,15 @@ public class TestFixture
         Log("** BUILDING TEST ENVIRONMENT **");
 
         await BuildTestEnvironment();
+        var setupDataSource = PrepareDataSource(PGSQL_ADMIN_ACCT);
+
+        Log("** SEEDING TEST ENVIRONMENT **");
+
+        await SeedTestData(setupDataSource);
 
         Log("** STARTING TESTS **");
 
-        PrepareDataSource();
+        DataSource = PrepareDataSource(PGSQL_SVC_ACCT);
         ConfigureDapper();
     }
 
@@ -46,30 +52,37 @@ public class TestFixture
         Log("** DESTROYING TEST ENVIRONMENT **");
     }
 
+    async Task SeedTestData(NpgsqlDataSource dataSource)
+    {
+        var seeder = new DatabaseSeeder(dataSource);
+
+        await seeder.PopuplateDatabase();
+    }
+
     void ConfigureDapper()
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
         SqlMapper.AddTypeHandler(InstantHandler.Default);
     }
 
-    void PrepareDataSource()
+    NpgsqlDataSource PrepareDataSource(string username)
     {
-        var connStr = BuildConnString();
+        var connStr = BuildConnString(username);
 
         var builder = new NpgsqlDataSourceBuilder(connStr);
         builder.UseNodaTime();
 
-        DataSource = builder.Build();
+        return builder.Build();
     }
 
-    string BuildConnString()
+    string BuildConnString(string username)
     {
         var dir = GetPgsqlPwdDir();
-        var pwdFile = Path.Combine(dir.FullName, "pgpwd", $"psql-{PGSQL_SVC_ACCT}");
+        var pwdFile = Path.Combine(dir.FullName, "pgpwd", $"psql-{username}");
 
         var pwd = File.ReadAllText(pwdFile).Trim();
 
-        return $"Server=127.0.0.1;Port={TEST_DB_PORT};Database=maw_media;Max Auto Prepare=100;User Id={PGSQL_SVC_ACCT};Password={pwd}";
+        return $"Server=127.0.0.1;Port={TEST_DB_PORT};Database=maw_media;Max Auto Prepare=100;User Id={username};Password={pwd}";
     }
 
     DirectoryInfo GetPgsqlPwdDir()
