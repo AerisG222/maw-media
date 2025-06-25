@@ -30,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="CliWrap" Version="3.9.0" />
         <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.6.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
         <PackageReference Include="Npgsql" Version="9.0.3" />

@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using MawMedia.Services.Models;
+using CliWrap;
 
 namespace MawMedia.Services.Tests;
 
@@ -13,21 +14,25 @@ public class TestFixture
 
     public required NpgsqlDataSource DataSource { get; set; }
 
-    public ValueTask InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
-        Console.WriteLine("startup");
+        Console.WriteLine("** BUILDING TEST ENVIRONMENT **");
+
+        await BuildTestEnvironment();
+
+        Console.WriteLine("** STARTING TESTS **");
 
         PrepareDataSource();
         ConfigureDapper();
-
-        return ValueTask.CompletedTask;
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        Console.WriteLine("teardown");
+        Console.WriteLine("** TESTS COMPLETED **");
 
-        return ValueTask.CompletedTask;
+        await DestroyTestEnvironment();
+
+        Console.WriteLine("** DESTROYING TEST ENVIRONMENT **");
     }
 
     void ConfigureDapper()
@@ -73,5 +78,28 @@ public class TestFixture
         }
 
         throw new DirectoryNotFoundException("Could not find media testing dir");
+    }
+
+    async Task BuildTestEnvironment()
+    {
+        await RunBashScript("test-up.sh");
+    }
+
+    async Task DestroyTestEnvironment()
+    {
+        await RunBashScript("test-down.sh");
+    }
+
+    async Task RunBashScript(string script)
+    {
+        await Cli
+            .Wrap("bash")
+            .WithArguments(args => args
+                .Add(script)
+            )
+            .WithWorkingDirectory(".")
+            .WithStandardOutputPipe(PipeTarget.ToDelegate(Console.WriteLine))
+            .WithStandardErrorPipe(PipeTarget.ToDelegate(Console.WriteLine))
+            .ExecuteAsync();
     }
 }
