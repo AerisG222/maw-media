@@ -2,6 +2,8 @@ using Dapper;
 using Npgsql;
 using MawMedia.Services.Models;
 using CliWrap;
+using Xunit.Sdk;
+using Xunit.Runner.Common;
 
 namespace MawMedia.Services.Tests;
 
@@ -12,15 +14,24 @@ public class TestFixture
     const string PGSQL_SVC_ACCT = "svc_maw_media";
     const int TEST_DB_PORT = 9876;
 
+    readonly IMessageSink _diagnosticMessageSink;
+
     public required NpgsqlDataSource DataSource { get; set; }
+
+    public TestFixture(IMessageSink diagnosticMessageSink)
+    {
+        ArgumentNullException.ThrowIfNull(diagnosticMessageSink);
+
+        _diagnosticMessageSink = diagnosticMessageSink;
+    }
 
     public async ValueTask InitializeAsync()
     {
-        Console.WriteLine("** BUILDING TEST ENVIRONMENT **");
+        Log("** BUILDING TEST ENVIRONMENT **");
 
         await BuildTestEnvironment();
 
-        Console.WriteLine("** STARTING TESTS **");
+        Log("** STARTING TESTS **");
 
         PrepareDataSource();
         ConfigureDapper();
@@ -28,11 +39,11 @@ public class TestFixture
 
     public async ValueTask DisposeAsync()
     {
-        Console.WriteLine("** TESTS COMPLETED **");
+        Log("** TESTS COMPLETED **");
 
         await DestroyTestEnvironment();
 
-        Console.WriteLine("** DESTROYING TEST ENVIRONMENT **");
+        Log("** DESTROYING TEST ENVIRONMENT **");
     }
 
     void ConfigureDapper()
@@ -97,9 +108,13 @@ public class TestFixture
             .WithArguments(args => args
                 .Add(script)
             )
-            .WithWorkingDirectory(".")
             .WithStandardOutputPipe(PipeTarget.ToDelegate(Console.WriteLine))
             .WithStandardErrorPipe(PipeTarget.ToDelegate(Console.WriteLine))
             .ExecuteAsync();
+    }
+
+    void Log(string message)
+    {
+        _diagnosticMessageSink.OnMessage(new DiagnosticMessage(message));
     }
 }
