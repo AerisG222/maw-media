@@ -1,3 +1,4 @@
+using Dapper;
 using Npgsql;
 
 namespace MawMedia.Services.Tests;
@@ -52,8 +53,93 @@ public class DatabaseSeeder
         }
     }
 
-    Task PopulateData(NpgsqlConnection conn)
+    async Task PopulateData(NpgsqlConnection conn)
     {
-        return Task.CompletedTask;
+        await PopulateUsers(conn);
+        await PopulateRoles(conn);
+        await PopulateUserRoles(conn);
+    }
+
+    async Task PopulateRoles(NpgsqlConnection conn)
+    {
+        List<object> roles = [
+            new {
+                id = Constants.ROLE_ADMIN,
+                name = "admin",
+                created = DateTime.Now,
+                created_by = Constants.USER_ADMIN
+            },
+            new {
+                id = Constants.ROLE_FRIEND,
+                name = "friend",
+                created = DateTime.Now,
+                created_by = Constants.USER_ADMIN
+            },
+        ];
+
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.role (id, name, created, created_by)
+            VALUES
+            (@id, @name, @created, @created_by);
+            """,
+            roles
+        );
+    }
+
+    async Task PopulateUsers(NpgsqlConnection conn)
+    {
+        List<object> users = [
+            new {
+                id = Constants.USER_ADMIN,
+                created = DateTime.Now,
+                modified = DateTime.Now,
+                name = "Admin",
+                email = "admin@example.com",
+                email_verified = true,
+                given_name = "AdminGiven",
+                surname = "AdminSurname"
+            },
+            new {
+                id = Constants.USER_JOHNDOE,
+                created = DateTime.Now,
+                modified = DateTime.Now,
+                name = "jdoe",
+                email = "jdoe@example.com",
+                email_verified = true,
+                given_name = "John",
+                surname = "Doe"
+            }
+        ];
+
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.user (id, created, modified, name, email, email_verified, given_name, surname)
+            VALUES
+            (@id, @created, @modified, @name, @email, @email_verified, @given_name, @surname);
+            """,
+            users
+        );
+    }
+
+    async Task PopulateUserRoles(NpgsqlConnection conn)
+    {
+        var userRoles = Constants.UserRoles
+            .Select(role => new
+            {
+                user_id = role.user_id,
+                role_id = role.role_id,
+                created = DateTime.Now,
+                created_by = Constants.USER_ADMIN
+            });
+
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.user_role (user_id, role_id, created, created_by)
+            VALUES
+            (@user_id, @role_id, @created, @created_by)
+            """,
+            userRoles
+        );
     }
 }
