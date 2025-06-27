@@ -63,7 +63,9 @@ public class DatabaseSeeder
 
         await PopulateLocations(conn);
         await PopulateCategories(conn);
+        await PopulateCategoryRoles(conn);
         await PopulateMedia(conn);
+        await PopulateCategoryMedia(conn);
         await PopulateFiles(conn);
         await PopulateComments(conn);
         await PopulateFavorites(conn);
@@ -155,31 +157,15 @@ public class DatabaseSeeder
     async Task PopulateCategories(NpgsqlConnection conn)
     {
         List<object> categories = [
-            new {
-                id = Constants.CATEGORY_NATURE,
-                name = "Nature",
-                effective_date = DateTime.UtcNow.Date,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
-            },
-            new {
-                id = Constants.CATEGORY_TRAVEL,
-                name = "Travel",
-                effective_date = DateTime.UtcNow.Date,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
-            }
+            Constants.CATEGORY_NATURE,
+            Constants.CATEGORY_TRAVEL
         ];
 
         await conn.ExecuteAsync(
             """
             INSERT INTO media.category (id, name, effective_date, created, created_by, modified, modified_by)
             VALUES
-            (@id, @name, @effective_date, @created, @created_by, @modified, @modified_by);
+            (@id, @name, @effectiveDate, @created, @createdBy, @modified, @modifiedBy);
             """,
             categories
         );
@@ -189,7 +175,7 @@ public class DatabaseSeeder
     {
         List<object> categoryRoles = [
             new {
-                category_id = Constants.CATEGORY_NATURE,
+                category_id = Constants.CATEGORY_NATURE.Id,
                 role_id = Constants.ROLE_ADMIN,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN
@@ -273,7 +259,7 @@ public class DatabaseSeeder
     {
         List<object> categoryMedia = [
             new {
-                category_id = Constants.CATEGORY_NATURE,
+                category_id = Constants.CATEGORY_NATURE.Id,
                 media_id = Constants.MEDIA_NATURE_1,
                 is_teaser = true,
                 created = DateTime.UtcNow,

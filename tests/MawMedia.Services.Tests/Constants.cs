@@ -1,3 +1,7 @@
+using MawMedia.Models;
+using MawMedia.Services.Tests.Models;
+using NodaTime;
+
 namespace MawMedia.Services.Tests;
 
 public static class Constants
@@ -23,8 +27,25 @@ public static class Constants
         }
     ];
 
-    public static readonly Guid CATEGORY_NATURE = Guid.CreateVersion7();
-    public static readonly Guid CATEGORY_TRAVEL = Guid.CreateVersion7();
+    public static readonly DbCategory CATEGORY_NATURE = new(
+        Guid.CreateVersion7(),
+        "Nature",
+        LocalDate.FromDateTime(DateTime.UtcNow),
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN
+    );
+
+    public static readonly DbCategory CATEGORY_TRAVEL = new(
+        Guid.CreateVersion7(),
+        "Travel",
+        LocalDate.FromDateTime(DateTime.UtcNow),
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN
+    );
 
     public static readonly Guid MEDIA_NATURE_1 = Guid.CreateVersion7();
     public static readonly Guid MEDIA_TRAVEL_1 = Guid.CreateVersion7();

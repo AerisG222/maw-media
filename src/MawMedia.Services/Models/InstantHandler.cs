@@ -20,7 +20,7 @@ class InstantHandler
         parameter.Value = value;
     }
 
-    // This is not necessary since Npgsql alredy provide the correct typed value
+    // Npgsql already provides the correct typed value
     public override Instant Parse(object value)
     {
         return (Instant)value;

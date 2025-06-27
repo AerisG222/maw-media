@@ -28,9 +28,12 @@ public class TestFixture
 
     public async ValueTask InitializeAsync()
     {
+        ConfigureDapper();
+
         Log("** BUILDING TEST ENVIRONMENT **");
 
         await BuildTestEnvironment();
+
         var setupDataSource = PrepareDataSource(PGSQL_ADMIN_ACCT);
 
         Log("** SEEDING TEST ENVIRONMENT **");
@@ -40,7 +43,6 @@ public class TestFixture
         Log("** STARTING TESTS **");
 
         DataSource = PrepareDataSource(PGSQL_SVC_ACCT);
-        ConfigureDapper();
     }
 
     public async ValueTask DisposeAsync()
@@ -63,6 +65,7 @@ public class TestFixture
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
         SqlMapper.AddTypeHandler(InstantHandler.Default);
+        SqlMapper.AddTypeHandler(LocalDateHandler.Default);
     }
 
     NpgsqlDataSource PrepareDataSource(string username)
@@ -82,7 +85,7 @@ public class TestFixture
 
         var pwd = File.ReadAllText(pwdFile).Trim();
 
-        return $"Server=127.0.0.1;Port={TEST_DB_PORT};Database=maw_media;Max Auto Prepare=100;User Id={username};Password={pwd}";
+        return $"Server=127.0.0.1;Port={TEST_DB_PORT};Database=maw_media;Max Auto Prepare=100;Include Error Detail=true;User Id={username};Password={pwd}";
     }
 
     DirectoryInfo GetPgsqlPwdDir()
