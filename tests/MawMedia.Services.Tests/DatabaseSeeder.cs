@@ -158,7 +158,8 @@ public class DatabaseSeeder
     {
         List<object> categories = [
             Constants.CATEGORY_NATURE,
-            Constants.CATEGORY_TRAVEL
+            Constants.CATEGORY_TRAVEL,
+            Constants.CATEGORY_FOOD
         ];
 
         await conn.ExecuteAsync(
@@ -176,6 +177,24 @@ public class DatabaseSeeder
         List<object> categoryRoles = [
             new {
                 category_id = Constants.CATEGORY_NATURE.Id,
+                role_id = Constants.ROLE_ADMIN,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN
+            },
+            new {
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                role_id = Constants.ROLE_ADMIN,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN
+            },
+            new {
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                role_id = Constants.ROLE_FRIEND,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN
+            },
+            new {
+                category_id = Constants.CATEGORY_FOOD.Id,
                 role_id = Constants.ROLE_ADMIN,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN
@@ -225,6 +244,28 @@ public class DatabaseSeeder
                 modified = DateTime.UtcNow,
                 modified_by = Constants.USER_ADMIN,
                 metadata = JsonDocument.Parse("{}")
+            },
+            new {
+                id = Constants.MEDIA_TRAVEL_1,
+                type_id = Constants.TYPE_PHOTO,
+                location_id = Constants.LOCATION_NY,
+                location_override_id = DBNull.Value,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                metadata = JsonDocument.Parse("{}")
+            },
+            new {
+                id = Constants.MEDIA_FOOD_1,
+                type_id = Constants.TYPE_PHOTO,
+                location_id = Constants.LOCATION_NY,
+                location_override_id = DBNull.Value,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                metadata = JsonDocument.Parse("{}")
             }
         ];
 
@@ -266,6 +307,24 @@ public class DatabaseSeeder
                 created_by = Constants.USER_ADMIN,
                 modified = DateTime.UtcNow,
                 modified_by = Constants.USER_ADMIN
+            },
+            new {
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                media_id = Constants.MEDIA_TRAVEL_1,
+                is_teaser = true,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN
+            },
+            new {
+                category_id = Constants.CATEGORY_FOOD.Id,
+                media_id = Constants.MEDIA_FOOD_1,
+                is_teaser = true,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN
             }
         ];
 
@@ -290,7 +349,17 @@ public class DatabaseSeeder
                 height = 1080,
                 bytes = 123456L,
                 path = "/media/nature1.jpg"
+            },
+            new {
+                media_id = Constants.MEDIA_TRAVEL_1,
+                type_id = Constants.TYPE_PHOTO,
+                scale_id = Constants.SCALE_FULL_HD,
+                width = 1920,
+                height = 1080,
+                bytes = 123456L,
+                path = "/media/travel1.jpg"
             }
+            // NO files for FOOD category to demonstrate those will not get pulled back when querying categories
         ];
 
         await conn.ExecuteAsync(

@@ -30,7 +30,7 @@ public static class Constants
     public static readonly DbCategory CATEGORY_NATURE = new(
         Guid.CreateVersion7(),
         "Nature",
-        LocalDate.FromDateTime(DateTime.UtcNow),
+        new LocalDate(2022, 10, 20),
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
@@ -40,7 +40,17 @@ public static class Constants
     public static readonly DbCategory CATEGORY_TRAVEL = new(
         Guid.CreateVersion7(),
         "Travel",
-        LocalDate.FromDateTime(DateTime.UtcNow),
+        new LocalDate(2023, 06, 20),
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN
+    );
+
+    public static readonly DbCategory CATEGORY_FOOD = new(
+        Guid.CreateVersion7(),
+        "Food",
+        new LocalDate(2023, 06, 22),
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
@@ -49,6 +59,7 @@ public static class Constants
 
     public static readonly Guid MEDIA_NATURE_1 = Guid.CreateVersion7();
     public static readonly Guid MEDIA_TRAVEL_1 = Guid.CreateVersion7();
+    public static readonly Guid MEDIA_FOOD_1 = Guid.CreateVersion7();
 
     public static readonly Guid LOCATION_NY = Guid.CreateVersion7();
 
