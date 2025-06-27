@@ -60,13 +60,24 @@ public class CategoryRepositoryTests
     }
 
     [Fact]
-    public async Task GetCategory_WhenUserDoesNotHaveAccess_ReturnsNULL()
+    public async Task GetCategory_WhenUserDoesNotHaveAccess_ReturnsNull()
     {
         var repo = GetRepo();
 
         var cat = await repo.GetCategory(Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id);
 
         Assert.Null(cat);
+    }
+
+    [Fact]
+    public async Task GetCategories_ForInvalidUser_ReturnsEmpty()
+    {
+        var repo = GetRepo();
+
+        var cats = await repo.GetCategories(Guid.CreateVersion7());
+
+        Assert.NotNull(cats);
+        Assert.Empty(cats);
     }
 
     [Fact]
@@ -113,6 +124,61 @@ public class CategoryRepositoryTests
         Assert.NotNull(cats);
         Assert.Single(cats);
         Assert.Equal(Constants.CATEGORY_TRAVEL.EffectiveDate.Year, cats.First());
+    }
+
+    [Fact]
+    public async Task GetCategoryMedia_ForInvalidUserAndCategory_ReturnsEmpty()
+    {
+        var repo = GetRepo();
+
+        var media = await repo.GetCategoryMedia(Guid.CreateVersion7(), Guid.CreateVersion7());
+
+        Assert.NotNull(media);
+        Assert.Empty(media);
+    }
+
+    [Fact]
+    public async Task GetCategoryMedia_ForInvalidUserAndValidCategory_ReturnsEmpty()
+    {
+        var repo = GetRepo();
+
+        var media = await repo.GetCategoryMedia(Guid.CreateVersion7(), Constants.CATEGORY_NATURE.Id);
+
+        Assert.NotNull(media);
+        Assert.Empty(media);
+    }
+
+    [Fact]
+    public async Task GetCategoryMedia_ForValidUserAndInvalidCategory_ReturnsEmpty()
+    {
+        var repo = GetRepo();
+
+        var media = await repo.GetCategoryMedia(Constants.USER_ADMIN, Guid.CreateVersion7());
+
+        Assert.NotNull(media);
+        Assert.Empty(media);
+    }
+
+    [Fact]
+    public async Task GetCategoryMedia_WhenUserDoesNotHaveAccess_ReturnsEmpty()
+    {
+        var repo = GetRepo();
+
+        var cat = await repo.GetCategoryMedia(Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id);
+
+        Assert.NotNull(cat);
+        Assert.Empty(cat);
+    }
+
+    [Fact]
+    public async Task GetCategoryMedia_WhenUserHasAccess_ReturnsMedia()
+    {
+        var repo = GetRepo();
+
+        var cats = await repo.GetCategoryMedia(Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id);
+
+        Assert.NotNull(cats);
+        Assert.NotEmpty(cats);  // excludes FOOD category
     }
 
     CategoryRepository GetRepo()
