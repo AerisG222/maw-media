@@ -130,6 +130,8 @@ public class CategoryRepositoryTests
         Assert.Equal(expectedCount, media.Count());
     }
 
+    // todo: currently don't enforce who can update category at the db layer, but should we?
+
     [Fact]
     public async Task UpdateCategoryTeaser_Then_ObserveChategoryUpdated()
     {
@@ -147,6 +149,38 @@ public class CategoryRepositoryTests
         Assert.NotNull(updates);
         Assert.NotEmpty(updates);
         Assert.Contains(updates, x => x.Teaser.Id == Constants.MEDIA_NATURE_2);
+    }
+
+    public static TheoryData<Guid, Guid, bool, bool> FavoriteCategoryData => new()
+    {
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),        true,  true  },
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),        true,  false },
+        { Guid.CreateVersion7(), Constants.CATEGORY_NATURE.Id, true,  true  },
+        { Guid.CreateVersion7(), Constants.CATEGORY_NATURE.Id, true,  false },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),        true,  true  },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),        true,  false },
+        { Constants.USER_ADMIN,  Constants.CATEGORY_NATURE.Id, false, true  },
+        { Constants.USER_ADMIN,  Constants.CATEGORY_NATURE.Id, false, false }
+    };
+
+    [Theory]
+    [MemberData(nameof(FavoriteCategoryData))]
+    public async Task FavoriteCategory(Guid userId, Guid categoryId, bool shouldReturnNull, bool doFavorite)
+    {
+        var repo = GetRepo();
+
+        var updatedCategory = await repo.SetIsFavorite(userId, categoryId, doFavorite);
+
+        if (shouldReturnNull)
+        {
+            Assert.Null(updatedCategory);
+        }
+        else
+        {
+            Assert.NotNull(updatedCategory);
+            Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
+            Assert.Equal(doFavorite, updatedCategory.IsFavorite);
+        }
     }
 
     CategoryRepository GetRepo()
