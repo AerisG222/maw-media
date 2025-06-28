@@ -246,6 +246,17 @@ public class DatabaseSeeder
                 metadata = JsonDocument.Parse("{}")
             },
             new {
+                id = Constants.MEDIA_NATURE_2,
+                type_id = Constants.TYPE_VIDEO,
+                location_id = Constants.LOCATION_NY,
+                location_override_id = DBNull.Value,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                metadata = JsonDocument.Parse("{}")
+            },
+            new {
                 id = Constants.MEDIA_TRAVEL_1,
                 type_id = Constants.TYPE_PHOTO,
                 location_id = Constants.LOCATION_NY,
@@ -309,6 +320,15 @@ public class DatabaseSeeder
                 modified_by = Constants.USER_ADMIN
             },
             new {
+                category_id = Constants.CATEGORY_NATURE.Id,
+                media_id = Constants.MEDIA_NATURE_2,
+                is_teaser = false,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN
+            },
+            new {
                 category_id = Constants.CATEGORY_TRAVEL.Id,
                 media_id = Constants.MEDIA_TRAVEL_1,
                 is_teaser = true,
@@ -349,6 +369,15 @@ public class DatabaseSeeder
                 height = 1080,
                 bytes = 123456L,
                 path = "/media/nature1.jpg"
+            },
+            new {
+                media_id = Constants.MEDIA_NATURE_2,
+                type_id = Constants.TYPE_VIDEO,
+                scale_id = Constants.SCALE_FULL_HD,
+                width = 1920,
+                height = 1080,
+                bytes = 123456L,
+                path = "/media/nature2.jpg"
             },
             new {
                 media_id = Constants.MEDIA_TRAVEL_1,

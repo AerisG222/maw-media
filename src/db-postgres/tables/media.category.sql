@@ -59,6 +59,6 @@ BEGIN
 END
 $$;
 
-GRANT SELECT
+GRANT SELECT, UPDATE
 ON media.category
 TO maw_media;

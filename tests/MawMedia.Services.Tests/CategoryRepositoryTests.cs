@@ -1,5 +1,6 @@
 ﻿using MawMedia.Services.Tests.Models;
 using Microsoft.Extensions.Logging.Testing;
+using NodaTime;
 
 namespace MawMedia.Services.Tests;
 
@@ -53,6 +54,26 @@ public class CategoryRepositoryTests
         Assert.All(expectedIds, id => cats.Select(c => c.Id).Contains(id));
     }
 
+    public static TheoryData<Guid, short, int, IEnumerable<Guid>> GetCategoriesByYearData => new()
+    {
+        { Guid.CreateVersion7(),  2022, 0, [] },
+        { Constants.USER_ADMIN,   2022, 1, [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_JOHNDOE, 2022, 0, [] }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetCategoriesByYearData))]
+    public async Task GetCategoriesByYear(Guid userId, short year, int expectedCount, IEnumerable<Guid> expectedIds)
+    {
+        var repo = GetRepo();
+
+        var cats = await repo.GetCategories(userId, year);
+
+        Assert.NotNull(cats);
+        Assert.Equal(expectedCount, cats.Count());
+        Assert.All(expectedIds, id => cats.Select(c => c.Id).Contains(id));
+    }
+
     public static TheoryData<Guid, Guid, DbCategory?> GetCategoryData => new()
     {
         { Guid.CreateVersion7(),  Guid.CreateVersion7(),        null },
@@ -89,7 +110,7 @@ public class CategoryRepositoryTests
         { Guid.CreateVersion7(),  Guid.CreateVersion7(),        0 },
         { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, 0 },
         { Constants.USER_ADMIN,   Guid.CreateVersion7(),        0 },
-        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, 1 },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, 2 },
         { Constants.USER_ADMIN,   Constants.CATEGORY_TRAVEL.Id, 1 },
         { Constants.USER_ADMIN,   Constants.CATEGORY_FOOD.Id,   0 },  // no files, so not media not returned
         { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, 0 },
@@ -107,6 +128,25 @@ public class CategoryRepositoryTests
 
         Assert.NotNull(media);
         Assert.Equal(expectedCount, media.Count());
+    }
+
+    [Fact]
+    public async Task UpdateCategoryTeaser_Then_ObserveChategoryUpdated()
+    {
+        var repo = GetRepo();
+        var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow);
+
+        var updatedCategory = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2);
+
+        Assert.NotNull(updatedCategory);
+        Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
+        Assert.Equal(Constants.MEDIA_NATURE_2, updatedCategory.Teaser.Id);
+
+        var updates = await repo.GetCategoryUpdates(Constants.USER_ADMIN, startOfTest);
+
+        Assert.NotNull(updates);
+        Assert.NotEmpty(updates);
+        Assert.Contains(updates, x => x.Teaser.Id == Constants.MEDIA_NATURE_2);
     }
 
     CategoryRepository GetRepo()

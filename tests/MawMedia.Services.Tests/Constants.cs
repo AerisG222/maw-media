@@ -58,6 +58,7 @@ public static class Constants
     );
 
     public static readonly Guid MEDIA_NATURE_1 = Guid.CreateVersion7();
+    public static readonly Guid MEDIA_NATURE_2 = Guid.CreateVersion7();
     public static readonly Guid MEDIA_TRAVEL_1 = Guid.CreateVersion7();
     public static readonly Guid MEDIA_FOOD_1 = Guid.CreateVersion7();
 
