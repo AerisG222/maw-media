@@ -33,6 +33,26 @@ public class CategoryRepositoryTests
         Assert.Equal(expectedCount, years.Count());
     }
 
+    public static TheoryData<Guid, int, IEnumerable<Guid>> GetCategoriesData => new()
+    {
+        { Guid.CreateVersion7(),  0, [] },
+        { Constants.USER_ADMIN,   2, [Constants.CATEGORY_NATURE.Id, Constants.CATEGORY_TRAVEL.Id] },
+        { Constants.USER_JOHNDOE, 1, [Constants.CATEGORY_TRAVEL.Id] }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetCategoriesData))]
+    public async Task GetCategories(Guid userId, int expectedCount, IEnumerable<Guid> expectedIds)
+    {
+        var repo = GetRepo();
+
+        var cats = await repo.GetCategories(userId);
+
+        Assert.NotNull(cats);
+        Assert.Equal(expectedCount, cats.Count());
+        Assert.All(expectedIds, id => cats.Select(c => c.Id).Contains(id));
+    }
+
     public static TheoryData<Guid, Guid, DbCategory?> GetCategoryData => new()
     {
         { Guid.CreateVersion7(),  Guid.CreateVersion7(),        null },
@@ -64,93 +84,29 @@ public class CategoryRepositoryTests
         }
     }
 
-    [Fact]
-    public async Task GetCategories_ForInvalidUser_ReturnsEmpty()
+    public static TheoryData<Guid, Guid, int> GetCategoryMediaData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),        0 },
+        { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, 0 },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),        0 },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, 1 },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_TRAVEL.Id, 1 },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_FOOD.Id,   0 },  // no files, so not media not returned
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, 0 },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, 1 },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_FOOD.Id,   0 },
+    };
+
+    [Theory]
+    [MemberData(nameof(GetCategoryMediaData))]
+    public async Task GetCategoryMedia(Guid userId, Guid categoryId, int expectedCount)
     {
         var repo = GetRepo();
 
-        var cats = await repo.GetCategories(Guid.CreateVersion7());
-
-        Assert.NotNull(cats);
-        Assert.Empty(cats);
-    }
-
-    [Fact]
-    public async Task GetCategories_ForAdmin_ReturnsBoth()
-    {
-        var repo = GetRepo();
-
-        var cats = await repo.GetCategories(Constants.USER_ADMIN);
-
-        Assert.NotNull(cats);
-        Assert.Equal(2, cats.Count());  // excludes FOOD category
-    }
-
-    [Fact]
-    public async Task GetCategories_ForRestrictedUser_ReturnsOne()
-    {
-        var repo = GetRepo();
-
-        var cats = await repo.GetCategories(Constants.USER_JOHNDOE);
-
-        Assert.NotNull(cats);
-        Assert.Single(cats);
-        Assert.Equal(Constants.CATEGORY_TRAVEL.Id, cats.First().Id);
-    }
-
-    [Fact]
-    public async Task GetCategoryMedia_ForInvalidUserAndCategory_ReturnsEmpty()
-    {
-        var repo = GetRepo();
-
-        var media = await repo.GetCategoryMedia(Guid.CreateVersion7(), Guid.CreateVersion7());
+        var media = await repo.GetCategoryMedia(userId, categoryId);
 
         Assert.NotNull(media);
-        Assert.Empty(media);
-    }
-
-    [Fact]
-    public async Task GetCategoryMedia_ForInvalidUserAndValidCategory_ReturnsEmpty()
-    {
-        var repo = GetRepo();
-
-        var media = await repo.GetCategoryMedia(Guid.CreateVersion7(), Constants.CATEGORY_NATURE.Id);
-
-        Assert.NotNull(media);
-        Assert.Empty(media);
-    }
-
-    [Fact]
-    public async Task GetCategoryMedia_ForValidUserAndInvalidCategory_ReturnsEmpty()
-    {
-        var repo = GetRepo();
-
-        var media = await repo.GetCategoryMedia(Constants.USER_ADMIN, Guid.CreateVersion7());
-
-        Assert.NotNull(media);
-        Assert.Empty(media);
-    }
-
-    [Fact]
-    public async Task GetCategoryMedia_WhenUserDoesNotHaveAccess_ReturnsEmpty()
-    {
-        var repo = GetRepo();
-
-        var cat = await repo.GetCategoryMedia(Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id);
-
-        Assert.NotNull(cat);
-        Assert.Empty(cat);
-    }
-
-    [Fact]
-    public async Task GetCategoryMedia_WhenUserHasAccess_ReturnsMedia()
-    {
-        var repo = GetRepo();
-
-        var cats = await repo.GetCategoryMedia(Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id);
-
-        Assert.NotNull(cats);
-        Assert.NotEmpty(cats);  // excludes FOOD category
+        Assert.Equal(expectedCount, media.Count());
     }
 
     CategoryRepository GetRepo()
