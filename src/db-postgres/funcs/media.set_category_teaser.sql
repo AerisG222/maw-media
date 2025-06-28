@@ -8,15 +8,18 @@ RETURNS INTEGER
 AS $$
 BEGIN
 
-    -- currently not really necessary as the app will treat this as an admin only function
+    -- only category owners can update the teaser
     IF NOT EXISTS (
         SELECT 1
         FROM media.user_category uc
+        INNER JOIN media.category c
+            ON c.id = uc.category_id
         WHERE
             uc.user_id = _user_id
             AND uc.category_id = _category_id
+            AND c.created_by = _user_id
     ) THEN
-        RAISE NOTICE 'not updating category teaser - user % does not have access to category %!', _user_id, _category_id;
+        RAISE NOTICE 'not updating category teaser - user % does not have access and/or owns category %!', _user_id, _category_id;
         RETURN 1;
     END IF;
 

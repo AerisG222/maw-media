@@ -130,10 +130,38 @@ public class CategoryRepositoryTests
         Assert.Equal(expectedCount, media.Count());
     }
 
-    // todo: currently don't enforce who can update category at the db layer, but should we?
+    public static TheoryData<Guid, Guid, Guid, bool> UpdateCategoryTeaserData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2, true  },
+        { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, true  },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2, true  },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, false },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, true  }, // no access to category
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, Constants.MEDIA_TRAVEL_1, true  }, // not category owner
+    };
+
+    [Theory]
+    [MemberData(nameof(UpdateCategoryTeaserData))]
+    public async Task UpdateCategoryTeaser(Guid userId, Guid categoryId, Guid mediaId, bool shouldReturnNull)
+    {
+        var repo = GetRepo();
+
+        var updatedCategory = await repo.SetTeaserMedia(userId, categoryId, mediaId);
+
+        if (shouldReturnNull)
+        {
+            Assert.Null(updatedCategory);
+        }
+        else
+        {
+            Assert.NotNull(updatedCategory);
+            Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
+            Assert.Equal(Constants.MEDIA_NATURE_2, updatedCategory.Teaser.Id);
+        }
+    }
 
     [Fact]
-    public async Task UpdateCategoryTeaser_Then_ObserveChategoryUpdated()
+    public async Task UpdateCategoryTeaser_Then_ObserveChanges()
     {
         var repo = GetRepo();
         var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow);
