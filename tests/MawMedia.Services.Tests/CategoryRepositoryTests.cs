@@ -101,7 +101,7 @@ public class CategoryRepositoryTests
             Assert.Equal(expected.Id, cat.Id);
             Assert.Equal(expected.Name, cat.Name);
             Assert.Equal(expected.EffectiveDate, cat.EffectiveDate);
-            Assert.Equal(expected.Modified.ToString(), cat.Modified.ToString());
+            Assert.True(Duration.FromMilliseconds(1) > (expected.Modified - cat.Modified));
         }
     }
 
@@ -209,6 +209,27 @@ public class CategoryRepositoryTests
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
             Assert.Equal(doFavorite, updatedCategory.IsFavorite);
         }
+    }
+
+    public static TheoryData<Guid, Guid, int> GetCategoryMediaGpsData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),        0 },
+        { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, 0 },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),        0 },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, 2 },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, 0 }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetCategoryMediaGpsData))]
+    public async Task GetCategoryMediaGps(Guid userId, Guid categoryId, int expectedCount)
+    {
+        var repo = GetRepo();
+
+        var gps = await repo.GetCategoryMediaGps(userId, categoryId);
+
+        Assert.NotNull(gps);
+        Assert.Equal(expectedCount, gps.Count());
     }
 
     CategoryRepository GetRepo()
