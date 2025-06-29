@@ -132,12 +132,12 @@ public class CategoryRepositoryTests
 
     public static TheoryData<Guid, Guid, Guid, bool> UpdateCategoryTeaserData => new()
     {
-        { Guid.CreateVersion7(),  Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2, true  },
-        { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, true  },
-        { Constants.USER_ADMIN,   Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2, true  },
-        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, false },
-        { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2, true  }, // no access to category
-        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, Constants.MEDIA_TRAVEL_1, true  }, // not category owner
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2.Id, true  },
+        { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id, true  },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),        Constants.MEDIA_NATURE_2.Id, true  },
+        { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id, false },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id, true  }, // no access to category
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, Constants.MEDIA_TRAVEL_1.Id, true  }, // not category owner
     };
 
     [Theory]
@@ -156,7 +156,7 @@ public class CategoryRepositoryTests
         {
             Assert.NotNull(updatedCategory);
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
-            Assert.Equal(Constants.MEDIA_NATURE_2, updatedCategory.Teaser.Id);
+            Assert.Equal(Constants.MEDIA_NATURE_2.Id, updatedCategory.Teaser.Id);
         }
     }
 
@@ -166,17 +166,17 @@ public class CategoryRepositoryTests
         var repo = GetRepo();
         var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow);
 
-        var updatedCategory = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2);
+        var updatedCategory = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id);
 
         Assert.NotNull(updatedCategory);
         Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
-        Assert.Equal(Constants.MEDIA_NATURE_2, updatedCategory.Teaser.Id);
+        Assert.Equal(Constants.MEDIA_NATURE_2.Id, updatedCategory.Teaser.Id);
 
         var updates = await repo.GetCategoryUpdates(Constants.USER_ADMIN, startOfTest);
 
         Assert.NotNull(updates);
         Assert.NotEmpty(updates);
-        Assert.Contains(updates, x => x.Teaser.Id == Constants.MEDIA_NATURE_2);
+        Assert.Contains(updates, x => x.Teaser.Id == Constants.MEDIA_NATURE_2.Id);
     }
 
     public static TheoryData<Guid, Guid, bool, bool> FavoriteCategoryData => new()

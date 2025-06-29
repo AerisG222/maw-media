@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging.Testing;
+﻿using MawMedia.Services.Tests.Models;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace MawMedia.Services.Tests;
 
@@ -39,6 +40,37 @@ public class MediaRepositoryTests
         else
         {
             Assert.Equal(expectedCount, media.Count());
+        }
+    }
+
+    public static TheoryData<Guid, Guid, DbMedia?, int> GetMediaData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),       null, 0 },
+        { Guid.CreateVersion7(),  Constants.MEDIA_NATURE_1.Id, null, 0 },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),       null, 0 },
+        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_1.Id, Constants.MEDIA_NATURE_1, 1 },
+        { Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_1.Id, null, 0 }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetMediaData))]
+    public async Task GetMedia(Guid userId, Guid mediaId, DbMedia? expectedMedia, int expectedFileCount)
+    {
+        var repo = GetRepo();
+
+        var media = await repo.GetMedia(userId, mediaId);
+
+        if (expectedMedia == null)
+        {
+            Assert.Null(media);
+        }
+        else
+        {
+            Assert.NotNull(media);
+            Assert.Equal(expectedMedia.Id, media.Id);
+            Assert.Equal("photo", media.Type);  // may expand testing in future for more type testing...
+            Assert.NotNull(media.Files);
+            Assert.Equal(expectedFileCount, media.Files.Count());
         }
     }
 

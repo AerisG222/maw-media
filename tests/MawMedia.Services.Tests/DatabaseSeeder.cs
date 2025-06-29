@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using MawMedia.Services.Tests.Models;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -233,51 +234,11 @@ public class DatabaseSeeder
 
     async Task PopulateMedia(NpgsqlConnection conn)
     {
-        List<dynamic> media = [
-            new {
-                id = Constants.MEDIA_NATURE_1,
-                type_id = Constants.TYPE_PHOTO,
-                location_id = Constants.LOCATION_NY,
-                location_override_id = DBNull.Value,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN,
-                metadata = JsonDocument.Parse("{}")
-            },
-            new {
-                id = Constants.MEDIA_NATURE_2,
-                type_id = Constants.TYPE_VIDEO,
-                location_id = Constants.LOCATION_NY,
-                location_override_id = DBNull.Value,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN,
-                metadata = JsonDocument.Parse("{}")
-            },
-            new {
-                id = Constants.MEDIA_TRAVEL_1,
-                type_id = Constants.TYPE_PHOTO,
-                location_id = Constants.LOCATION_NY,
-                location_override_id = DBNull.Value,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN,
-                metadata = JsonDocument.Parse("{}")
-            },
-            new {
-                id = Constants.MEDIA_FOOD_1,
-                type_id = Constants.TYPE_PHOTO,
-                location_id = Constants.LOCATION_NY,
-                location_override_id = DBNull.Value,
-                created = DateTime.UtcNow,
-                created_by = Constants.USER_ADMIN,
-                modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN,
-                metadata = JsonDocument.Parse("{}")
-            }
+        List<DbMedia> media = [
+            Constants.MEDIA_NATURE_1,
+            Constants.MEDIA_NATURE_2,
+            Constants.MEDIA_TRAVEL_1,
+            Constants.MEDIA_FOOD_1,
         ];
 
         foreach (var m in media)
@@ -291,15 +252,15 @@ public class DatabaseSeeder
                 conn)
             {
                 Parameters = {
-                    new() { Value = m.id },
-                    new() { Value = m.type_id },
-                    new() { Value = m.location_id },
-                    new() { Value = m.location_override_id, NpgsqlDbType = NpgsqlDbType.Uuid },
-                    new() { Value = m.created },
-                    new() { Value = m.created_by },
-                    new() { Value = m.modified },
-                    new() { Value = m.modified_by },
-                    new() { Value = m.metadata }
+                    new() { Value = m.Id },
+                    new() { Value = m.TypeId },
+                    new() { Value = m.LocationId },
+                    new() { Value = (object?)m.LocationOverrideId ?? DBNull.Value, NpgsqlDbType = NpgsqlDbType.Uuid },
+                    new() { Value = m.Created },
+                    new() { Value = m.CreatedBy },
+                    new() { Value = m.Modified },
+                    new() { Value = m.ModifiedBy },
+                    new() { Value = m.Metadata }
                 }
             };
 
@@ -312,7 +273,7 @@ public class DatabaseSeeder
         List<object> categoryMedia = [
             new {
                 category_id = Constants.CATEGORY_NATURE.Id,
-                media_id = Constants.MEDIA_NATURE_1,
+                media_id = Constants.MEDIA_NATURE_1.Id,
                 is_teaser = true,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
@@ -321,7 +282,7 @@ public class DatabaseSeeder
             },
             new {
                 category_id = Constants.CATEGORY_NATURE.Id,
-                media_id = Constants.MEDIA_NATURE_2,
+                media_id = Constants.MEDIA_NATURE_2.Id,
                 is_teaser = false,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
@@ -330,7 +291,7 @@ public class DatabaseSeeder
             },
             new {
                 category_id = Constants.CATEGORY_TRAVEL.Id,
-                media_id = Constants.MEDIA_TRAVEL_1,
+                media_id = Constants.MEDIA_TRAVEL_1.Id,
                 is_teaser = true,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
@@ -339,7 +300,7 @@ public class DatabaseSeeder
             },
             new {
                 category_id = Constants.CATEGORY_FOOD.Id,
-                media_id = Constants.MEDIA_FOOD_1,
+                media_id = Constants.MEDIA_FOOD_1.Id,
                 is_teaser = true,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
@@ -362,7 +323,7 @@ public class DatabaseSeeder
     {
         List<object> files = [
             new {
-                media_id = Constants.MEDIA_NATURE_1,
+                media_id = Constants.MEDIA_NATURE_1.Id,
                 type_id = Constants.TYPE_PHOTO,
                 scale_id = Constants.SCALE_FULL_HD,
                 width = 1920,
@@ -371,7 +332,7 @@ public class DatabaseSeeder
                 path = "/media/nature1.jpg"
             },
             new {
-                media_id = Constants.MEDIA_NATURE_2,
+                media_id = Constants.MEDIA_NATURE_2.Id,
                 type_id = Constants.TYPE_VIDEO,
                 scale_id = Constants.SCALE_FULL_HD,
                 width = 1920,
@@ -380,7 +341,7 @@ public class DatabaseSeeder
                 path = "/media/nature2.jpg"
             },
             new {
-                media_id = Constants.MEDIA_TRAVEL_1,
+                media_id = Constants.MEDIA_TRAVEL_1.Id,
                 type_id = Constants.TYPE_PHOTO,
                 scale_id = Constants.SCALE_FULL_HD,
                 width = 1920,
@@ -406,7 +367,7 @@ public class DatabaseSeeder
         List<object> comments = [
             new {
                 id = Guid.NewGuid(),
-                media_id = Constants.MEDIA_NATURE_1,
+                media_id = Constants.MEDIA_NATURE_1.Id,
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_JOHNDOE,
                 modified = DateTime.UtcNow,
@@ -428,7 +389,7 @@ public class DatabaseSeeder
     {
         List<object> favorites = [
             new {
-                media_id = Constants.MEDIA_NATURE_1,
+                media_id = Constants.MEDIA_NATURE_1.Id,
                 created_by = Constants.USER_JOHNDOE,
                 created = DateTime.UtcNow
             }
