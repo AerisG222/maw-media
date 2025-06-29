@@ -165,6 +165,61 @@ public class MediaRepositoryTests
         }
     }
 
+    public static TheoryData<Guid, Guid, int> GetCommentsData => new()
+    {
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),         0 },
+        { Guid.CreateVersion7(), Constants.MEDIA_NATURE_1.Id,   0 },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),         0 },
+        { Constants.USER_ADMIN,  Constants.MEDIA_NATURE_1.Id,   1 },
+        { Constants.USER_JOHNDOE,  Constants.MEDIA_NATURE_1.Id, 0 }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetCommentsData))]
+    public async Task GetComments(Guid userId, Guid mediaId, int expectedCount)
+    {
+        var repo = GetRepo();
+
+        var comments = await repo.GetComments(userId, mediaId);
+
+        if (expectedCount == 0)
+        {
+            Assert.Empty(comments);
+        }
+        else
+        {
+            Assert.NotEmpty(comments);
+            Assert.Equal(expectedCount, comments.Count());
+        }
+    }
+
+    public static TheoryData<Guid, Guid, bool> AddCommentsData => new()
+    {
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),         false },
+        { Guid.CreateVersion7(), Constants.MEDIA_NATURE_2.Id,   false },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),         false },
+        { Constants.USER_JOHNDOE,  Constants.MEDIA_NATURE_2.Id, false },
+        { Constants.USER_ADMIN,  Constants.MEDIA_NATURE_2.Id,   true }
+    };
+
+    [Theory]
+    [MemberData(nameof(AddCommentsData))]
+    public async Task AddComments(Guid userId, Guid mediaId, bool shouldAdd)
+    {
+        var repo = GetRepo();
+
+        var newId = await repo.AddComment(userId, mediaId, "test comment");
+
+        if (shouldAdd)
+        {
+            Assert.NotNull(newId);
+        }
+        else
+        {
+            Assert.Null(newId);
+        }
+    }
+
     MediaRepository GetRepo()
     {
         return new MediaRepository(
