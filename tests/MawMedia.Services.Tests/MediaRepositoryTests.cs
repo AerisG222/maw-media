@@ -131,6 +131,38 @@ public class MediaRepositoryTests
         }
     }
 
+    public static TheoryData<Guid, Guid, bool, bool> FavoriteMediaData => new()
+    {
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),       true,  true  },
+        { Guid.CreateVersion7(), Guid.CreateVersion7(),       true,  false },
+        { Guid.CreateVersion7(), Constants.MEDIA_NATURE_1.Id, true,  true  },
+        { Guid.CreateVersion7(), Constants.MEDIA_NATURE_1.Id, true,  false },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),       true,  true  },
+        { Constants.USER_ADMIN,  Guid.CreateVersion7(),       true,  false },
+        { Constants.USER_ADMIN,  Constants.MEDIA_NATURE_1.Id, false, true  },
+        { Constants.USER_ADMIN,  Constants.MEDIA_NATURE_1.Id, false, false }
+    };
+
+    [Theory]
+    [MemberData(nameof(FavoriteMediaData))]
+    public async Task FavoriteMedia(Guid userId, Guid mediaId, bool shouldReturnNull, bool doFavorite)
+    {
+        var repo = GetRepo();
+
+        var updatedMedia = await repo.SetIsFavorite(userId, mediaId, doFavorite);
+
+        if (shouldReturnNull)
+        {
+            Assert.Null(updatedMedia);
+        }
+        else
+        {
+            Assert.NotNull(updatedMedia);
+            Assert.Equal(Constants.MEDIA_NATURE_1.Id, updatedMedia.Id);
+            Assert.Equal(doFavorite, updatedMedia.IsFavorite);
+        }
+    }
+
     MediaRepository GetRepo()
     {
         return new MediaRepository(
