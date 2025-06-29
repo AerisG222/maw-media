@@ -88,10 +88,10 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        JsonDocument.Parse("{}")
+        GetTestMetadata("media_nature_1")
     );
 
-    public static readonly DbMedia MEDIA_NATURE_2 = new (
+    public static readonly DbMedia MEDIA_NATURE_2 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
         LOCATION_NY,
@@ -100,10 +100,10 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        JsonDocument.Parse("{}")
+        GetTestMetadata("media_nature_2")
     );
 
-    public static readonly DbMedia MEDIA_TRAVEL_1 = new (
+    public static readonly DbMedia MEDIA_TRAVEL_1 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
         LOCATION_NY,
@@ -112,10 +112,10 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        JsonDocument.Parse("{}")
+        GetTestMetadata("media_travel_1")
     );
 
-    public static readonly DbMedia MEDIA_FOOD_1 = new (
+    public static readonly DbMedia MEDIA_FOOD_1 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
         LOCATION_NY,
@@ -124,6 +124,26 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        JsonDocument.Parse("{}")
+        GetTestMetadata("media_food_1")
     );
+
+    static JsonDocument GetTestMetadata(string name)
+    {
+        return JsonDocument.Parse(
+            $$"""
+            {
+                "SourceFile": "{{name}}",
+                "EXIF": {
+                    "NAME": "{{name}}",
+                    "Make": "Test Make",
+                    "Model": "Test Model",
+                    "ExposureTime": "1/100",
+                    "FNumber": 2.8,
+                    "ISOSpeedRatings": 100,
+                    "FocalLength": "35 mm"
+                }
+            }
+            """
+        );
+    }
 }

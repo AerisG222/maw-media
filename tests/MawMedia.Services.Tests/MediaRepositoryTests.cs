@@ -74,6 +74,63 @@ public class MediaRepositoryTests
         }
     }
 
+    public static TheoryData<Guid, Guid, bool> GetGpsData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),       true },
+        { Guid.CreateVersion7(),  Constants.MEDIA_NATURE_1.Id, true },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),       true },
+        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_1.Id, false },
+        { Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_1.Id, true }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetGpsData))]
+    public async Task GetGps(Guid userId, Guid mediaId, bool nullExpected)
+    {
+        var repo = GetRepo();
+
+        var gps = await repo.GetGps(userId, mediaId);
+
+        if (nullExpected)
+        {
+            Assert.Null(gps);
+        }
+        else
+        {
+            Assert.NotNull(gps);
+        }
+    }
+
+    public static TheoryData<Guid, Guid, bool> GetMetadataData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),       true },
+        { Guid.CreateVersion7(),  Constants.MEDIA_NATURE_1.Id, true },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),       true },
+        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_1.Id, false },
+        { Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_1.Id, true }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetMetadataData))]
+    public async Task GetMetadata(Guid userId, Guid mediaId, bool nullExpected)
+    {
+        var repo = GetRepo();
+
+        var gps = await repo.GetMetadata(userId, mediaId);
+
+        if (nullExpected)
+        {
+            Assert.Null(gps);
+        }
+        else
+        {
+            Assert.NotNull(gps);
+            Assert.NotEmpty(gps.RootElement.EnumerateObject());
+            Assert.DoesNotContain("SourceFile", gps.RootElement.EnumerateObject().Select(x => x.Name));
+            Assert.Contains("EXIF", gps.RootElement.EnumerateObject().Select(x => x.Name));
+        }
+    }
+
     MediaRepository GetRepo()
     {
         return new MediaRepository(
