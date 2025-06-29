@@ -408,27 +408,7 @@ public class DatabaseSeeder
     async Task PopulateLocations(NpgsqlConnection conn)
     {
         List<object> locations = [
-            new {
-                id = Constants.LOCATION_NY,
-                latitude = 40.712776m,
-                longitude = -74.005974m,
-                lookup_date = DateTime.UtcNow,
-                formatted_address = "New York, NY, USA",
-                administrative_area_level_1 = "NY",
-                administrative_area_level_2 = "New York County",
-                administrative_area_level_3 = (string?)null,
-                country = "USA",
-                locality = "New York",
-                neighborhood = "Manhattan",
-                sub_locality_level_1 = (string?)null,
-                sub_locality_level_2 = (string?)null,
-                postal_code = "10007",
-                postal_code_suffix = (string?)null,
-                premise = (string?)null,
-                route = "Broadway",
-                street_number = "1",
-                sub_premise = (string?)null
-            }
+            Constants.LOCATION_NY
         ];
 
         await conn.ExecuteAsync(
@@ -441,10 +421,10 @@ public class DatabaseSeeder
             )
             VALUES
             (
-                @id, @latitude, @longitude, @lookup_date, @formatted_address,
-                @administrative_area_level_1, @administrative_area_level_2, @administrative_area_level_3,
-                @country, @locality, @neighborhood, @sub_locality_level_1, @sub_locality_level_2,
-                @postal_code, @postal_code_suffix, @premise, @route, @street_number, @sub_premise
+                @id, @latitude, @longitude, @lookupDate, @formattedAddress,
+                @administrativeAreaLevel1, @administrativeAreaLevel2, @administrativeAreaLevel3,
+                @country, @locality, @neighborhood, @subLocalityLevel1, @subLocalityLevel2,
+                @postalCode, @postalCodeSuffix, @premise, @route, @streetNumber, @subPremise
             );
             """,
             locations

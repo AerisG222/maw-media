@@ -98,6 +98,8 @@ public class MediaRepositoryTests
         else
         {
             Assert.NotNull(gps);
+            Assert.Equal(gps.Latitude, Constants.LOCATION_NY.Latitude);
+            Assert.Equal(gps.Longitude, Constants.LOCATION_NY.Longitude);
         }
     }
 

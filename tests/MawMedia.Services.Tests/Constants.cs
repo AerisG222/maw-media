@@ -1,5 +1,4 @@
 using System.Text.Json;
-using MawMedia.Models;
 using MawMedia.Services.Tests.Models;
 using NodaTime;
 
@@ -26,7 +25,27 @@ public static class Constants
     public static readonly Guid SCALE_SRC = Guid.Parse("01965307-20f9-7e01-955e-be53d1786828");
     // ** end from db seed scripts **
 
-    public static readonly Guid LOCATION_NY = Guid.CreateVersion7();
+    public static readonly DbLocation LOCATION_NY = new (
+        Guid.CreateVersion7(),
+        40.712776m,
+        -74.005974m,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        "New York, NY, USA",
+        "NY",
+        "New York County",
+        null,
+        "USA",
+        "New York",
+        "Manhattan",
+        null,
+        null,
+        "10007",
+        null,
+        null,
+        "Broadway",
+        "1",
+        null
+    );
 
     public static readonly Guid ROLE_ADMIN = Guid.CreateVersion7();
     public static readonly Guid ROLE_FRIEND = Guid.CreateVersion7();
@@ -82,7 +101,7 @@ public static class Constants
     public static readonly DbMedia MEDIA_NATURE_1 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
-        LOCATION_NY,
+        LOCATION_NY.Id,
         null,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
@@ -94,7 +113,7 @@ public static class Constants
     public static readonly DbMedia MEDIA_NATURE_2 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
-        LOCATION_NY,
+        LOCATION_NY.Id,
         null,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
@@ -106,7 +125,7 @@ public static class Constants
     public static readonly DbMedia MEDIA_TRAVEL_1 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
-        LOCATION_NY,
+        LOCATION_NY.Id,
         null,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
@@ -118,7 +137,7 @@ public static class Constants
     public static readonly DbMedia MEDIA_FOOD_1 = new(
         Guid.CreateVersion7(),
         TYPE_PHOTO,
-        LOCATION_NY,
+        LOCATION_NY.Id,
         null,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
