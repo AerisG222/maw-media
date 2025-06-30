@@ -9,6 +9,7 @@ namespace MawMedia.Routes;
 
 public static class CategoryRoutes
 {
+    const int SEARCH_LIMIT = 24;
     static readonly Guid DUMMYUSER = Guid.Parse("01977b3a-6db0-7384-87ad-8e56aad783ef");
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
@@ -40,6 +41,13 @@ public static class CategoryRoutes
             .WithName("category-updates")
             .WithSummary("Category Updates")
             .WithDescription("Get category updates after a specified date/time");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
+        group
+            .MapGet("/search", SearchCategories)
+            .WithName("category-search")
+            .WithSummary("Category Search")
+            .WithDescription("Search for categories");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
         group
@@ -91,6 +99,16 @@ public static class CategoryRoutes
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
         TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));
+
+    static async Task<Results<Ok<SearchResult<Category>>, BadRequest<string>, ForbidHttpResult>> SearchCategories(ICategoryRepository repo, HttpRequest request, [FromQuery] string s, [FromQuery] int o = 0)
+    {
+        if(string.IsNullOrWhiteSpace(s))
+        {
+            return TypedResults.BadRequest("Search term cannot be empty.");
+        }
+
+        return TypedResults.Ok(await repo.Search(DUMMYUSER, s, o, SEARCH_LIMIT));
+    }
 
     static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id)
     {

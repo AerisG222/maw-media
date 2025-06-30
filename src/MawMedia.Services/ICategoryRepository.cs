@@ -13,4 +13,5 @@ public interface ICategoryRepository
     Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId);
     Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite);
     Task<Category?> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId);
+    Task<SearchResult<Category>> Search(Guid userId, string searchTerm, int offset, int limit);
 }

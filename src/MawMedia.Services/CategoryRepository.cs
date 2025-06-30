@@ -9,6 +9,8 @@ namespace MawMedia.Services;
 public class CategoryRepository
     : BaseRepository, ICategoryRepository
 {
+    const int SEARCH_LIMIT_MAX = 250;
+
     public CategoryRepository(
         ILogger<CategoryRepository> log,
         NpgsqlConnection conn
@@ -97,6 +99,35 @@ public class CategoryRepository
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>
         await InternalGetCategoryMedia(userId, categoryId);
 
+    public async Task<SearchResult<Category>> Search(Guid userId, string searchTerm, int offset, int limit)
+    {
+        if (offset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Offset must be greater than or equal to 0.");
+        }
+
+        if (limit < 1 || limit > SEARCH_LIMIT_MAX)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, $"Limit must be between 1 and {SEARCH_LIMIT_MAX}.");
+        }
+
+        var results = await Query<CategoryAndTeaser>(
+            "SELECT * FROM media.search_categories(@userId, @searchTerm, @offset, @limit);",
+            new
+            {
+                userId,
+                searchTerm,
+                offset,
+                limit = limit + 1
+            }
+        );
+
+        return new SearchResult<Category>(
+            ConvertToCategories(results),
+            results.Count() > limit
+        );
+    }
+
     async Task<IEnumerable<Category>> InternalGetCategories(
         Guid userId,
         Guid? categoryId = null,
@@ -115,7 +146,11 @@ public class CategoryRepository
             }
         );
 
-        return results
+        return ConvertToCategories(results);
+    }
+
+    IEnumerable<Category> ConvertToCategories(IEnumerable<CategoryAndTeaser> results) =>
+        results
             .GroupBy(x => x.Id)
             .Select(g => new Category(
                 g.Key,
@@ -135,7 +170,6 @@ public class CategoryRepository
                 )
             ))
             .ToList();
-    }
 
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(
         Guid userId,

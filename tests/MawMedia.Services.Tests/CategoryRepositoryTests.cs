@@ -232,6 +232,26 @@ public class CategoryRepositoryTests
         Assert.Equal(expectedCount, gps.Count());
     }
 
+    public static TheoryData<Guid, string, IEnumerable<Guid>> SearchCategoriesData => new()
+    {
+        { Guid.CreateVersion7(),  "Nature", [] },
+        { Constants.USER_ADMIN,   "Nature", [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_JOHNDOE, "Nature", [] }
+    };
+
+    [Theory]
+    [MemberData(nameof(SearchCategoriesData))]
+    public async Task SearchCategories(Guid userId, string searchTerm, IEnumerable<Guid> expectedIds)
+    {
+        var repo = GetRepo();
+
+        var result = await repo.Search(userId, searchTerm, 0, 100);
+
+        Assert.NotNull(result);
+        Assert.Equal(expectedIds.Count(), result.Results.Count());
+        Assert.All(expectedIds, id => result.Results.Select(c => c.Id).Contains(id));
+    }
+
     CategoryRepository GetRepo()
     {
         return new CategoryRepository(

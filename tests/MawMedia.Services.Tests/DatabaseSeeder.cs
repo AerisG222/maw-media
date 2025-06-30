@@ -70,6 +70,8 @@ public class DatabaseSeeder
         await PopulateFiles(conn);
         await PopulateComments(conn);
         await PopulateFavorites(conn);
+
+        await RefreshMaterializedViews(conn);
     }
 
     async Task PopulateRoles(NpgsqlConnection conn)
@@ -429,5 +431,10 @@ public class DatabaseSeeder
             """,
             locations
         );
+    }
+
+    async Task RefreshMaterializedViews(NpgsqlConnection conn)
+    {
+        await conn.ExecuteAsync("REFRESH MATERIALIZED VIEW media.category_search;");
     }
 }
