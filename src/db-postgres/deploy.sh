@@ -45,8 +45,9 @@ function main() {
     # header "pull latest postgres image"
     # podman pull "${IMAGE}"
 
-    header "database ${DBNAME}"
-    run_psql_script "database/maw_media.sql" "postgres" &> /dev/null
+    # we are now creating the db in our custom postgres image
+    # header "database ${DBNAME}"
+    # run_psql_script "database/maw_media.sql" "postgres" &> /dev/null
 
     header "roles"
     run_psql_script "roles/maw_media.sql"

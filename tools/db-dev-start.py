@@ -8,6 +8,7 @@ PG_CONTAINER = 'dev-media-pg'
 DATADIR = '/home/mmorano/maw/dev/media/data'
 PGDATA = f"{DATADIR}/pgdata"
 PGPWD = f"{DATADIR}/pgpwd"
+PG_IMG = 'docker.io/aerisg222/maw-media-postgres:latest'
 
 # make sure we start the podman service which is needed by the python api
 subprocess.run(['systemctl', '--user', 'start', 'podman.socket'])
@@ -31,9 +32,12 @@ pod.start()
 if not os.path.exists(PGDATA):
     os.makedirs(PGDATA)
 
+if not client.images.exists(PG_IMG):
+    client.images.pull(PG_IMG)
+
 if not client.containers.exists(PG_CONTAINER):
     client.containers.create(
-        image = 'docker.io/library/postgres:17',
+        image = PG_IMG,
         name = PG_CONTAINER,
         pod = POD,
         environment = {

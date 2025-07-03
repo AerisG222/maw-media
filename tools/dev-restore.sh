@@ -1,0 +1,17 @@
+#!/bin/bash
+PSQLUSER=postgres
+DB=maw_media
+
+podman run --rm \
+    --pod dev-media-pod \
+    --name dev-media-pg-load \
+    --security-opt label=disable \
+    --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
+    --volume "/home/mmorano/maw/dev/media/data/pgpwd:/secrets" \
+    --volume "$(pwd):/input" \
+    docker.io/aerisg222/maw-media-postgres:latest \
+        pg_restore \
+            -h localhost \
+            -U "${PSQLUSER}" \
+            -d "${DB}" \
+            /input/maw_media.dev.dump
