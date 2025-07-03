@@ -32,8 +32,8 @@ pod.start()
 if not os.path.exists(PGDATA):
     os.makedirs(PGDATA)
 
-if not client.images.exists(PG_IMG):
-    client.images.pull(PG_IMG)
+# always pull to make sure we get latest
+client.images.pull(PG_IMG)
 
 if not client.containers.exists(PG_CONTAINER):
     client.containers.create(

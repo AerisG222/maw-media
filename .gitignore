@@ -24,4 +24,4 @@ tools/*.log
 hosting/.~lock.architecture.odg#
 
 tests/MawMedia.Services.Tests/media-testing
-maw_media.dev.dump
+*.dump
