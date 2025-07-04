@@ -51,6 +51,7 @@ app
         });
     });
 
+app.MapGroup("/assets").MapAssetRoutes();
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/media").MapMediaRoutes();
 
