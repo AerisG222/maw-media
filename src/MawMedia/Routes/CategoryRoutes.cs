@@ -102,7 +102,7 @@ public static class CategoryRoutes
 
     static async Task<Results<Ok<SearchResult<Category>>, BadRequest<string>, ForbidHttpResult>> SearchCategories(ICategoryRepository repo, HttpRequest request, [FromQuery] string s, [FromQuery] int o = 0)
     {
-        if(string.IsNullOrWhiteSpace(s))
+        if (string.IsNullOrWhiteSpace(s))
         {
             return TypedResults.BadRequest("Search term cannot be empty.");
         }

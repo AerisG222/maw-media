@@ -54,5 +54,6 @@ app
 app.MapGroup("/assets").MapAssetRoutes();
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/media").MapMediaRoutes();
+app.MapGroup("/stats").MapStatRoutes();
 
 await app.RunAsync();

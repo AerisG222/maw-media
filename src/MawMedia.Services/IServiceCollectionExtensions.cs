@@ -15,7 +15,8 @@ public static class IServiceCollectionExtensions
 
         services
             .AddScoped<ICategoryRepository, CategoryRepository>()
-            .AddScoped<IMediaRepository, MediaRepository>();
+            .AddScoped<IMediaRepository, MediaRepository>()
+            .AddScoped<IStatRepository, StatRepository>();
 
         return services;
     }
