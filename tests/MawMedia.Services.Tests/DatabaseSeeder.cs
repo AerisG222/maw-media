@@ -325,6 +325,7 @@ public class DatabaseSeeder
     {
         List<object> files = [
             new {
+                id = Guid.CreateVersion7(),
                 media_id = Constants.MEDIA_NATURE_1.Id,
                 type_id = Constants.TYPE_PHOTO,
                 scale_id = Constants.SCALE_FULL_HD,
@@ -334,6 +335,7 @@ public class DatabaseSeeder
                 path = "/media/nature1.jpg"
             },
             new {
+                id = Guid.CreateVersion7(),
                 media_id = Constants.MEDIA_NATURE_2.Id,
                 type_id = Constants.TYPE_VIDEO,
                 scale_id = Constants.SCALE_FULL_HD,
@@ -343,6 +345,7 @@ public class DatabaseSeeder
                 path = "/media/nature2.jpg"
             },
             new {
+                id = Guid.CreateVersion7(),
                 media_id = Constants.MEDIA_TRAVEL_1.Id,
                 type_id = Constants.TYPE_PHOTO,
                 scale_id = Constants.SCALE_FULL_HD,
@@ -356,9 +359,9 @@ public class DatabaseSeeder
 
         await conn.ExecuteAsync(
             """
-            INSERT INTO media.file (media_id, type_id, scale_id, width, height, bytes, path)
+            INSERT INTO media.file (id, media_id, type_id, scale_id, width, height, bytes, path)
             VALUES
-            (@media_id, @type_id, @scale_id, @width, @height, @bytes, @path);
+            (@id, @media_id, @type_id, @scale_id, @width, @height, @bytes, @path);
             """,
             files
         );

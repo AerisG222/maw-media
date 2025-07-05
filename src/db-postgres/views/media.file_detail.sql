@@ -1,5 +1,6 @@
 CREATE OR REPLACE VIEW media.file_detail AS
     SELECT
+        f.id AS file_id,
         f.media_id,
         f.path AS file_path,
         s.code AS file_scale,

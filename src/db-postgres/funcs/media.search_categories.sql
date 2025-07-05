@@ -16,6 +16,7 @@ RETURNS TABLE
     media_id UUID,
     media_type TEXT,
     media_is_favorite BOOLEAN,
+    file_id UUID,
     file_path TEXT,
     file_type TEXT,
     file_scale TEXT
@@ -55,6 +56,7 @@ BEGIN
             IS NOT NULL THEN true
             ELSE false
             END AS media_is_favorite,
+        md.file_id,
         md.file_path,
         md.file_type,
         md.file_scale

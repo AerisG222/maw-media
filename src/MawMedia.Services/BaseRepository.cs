@@ -156,6 +156,7 @@ public class BaseRepository
                 g.First().MediaType,
                 g.First().MediaIsFavorite,
                 g.Select(x => new MediaFile(
+                    x.FileId,
                     x.FileScale,
                     x.FileType,
                     x.FilePath
