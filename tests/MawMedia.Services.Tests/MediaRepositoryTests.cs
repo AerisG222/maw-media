@@ -220,6 +220,34 @@ public class MediaRepositoryTests
         }
     }
 
+    public static TheoryData<Guid, Guid, DbFile?> GetMediaFileData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),      null },
+        { Guid.CreateVersion7(),  Constants.FILE_NATURE_2.Id, null },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),      null },
+        { Constants.USER_JOHNDOE, Constants.FILE_NATURE_2.Id, null },
+        { Constants.USER_ADMIN,   Constants.FILE_NATURE_2.Id, Constants.FILE_NATURE_2 }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetMediaFileData))]
+    public async Task GetMediaFile(Guid userId, Guid assetId, DbFile? expected)
+    {
+        var repo = GetRepo();
+
+        var file = await repo.GetMediaFile(userId, assetId);
+
+        if (expected == null)
+        {
+            Assert.Null(file);
+        }
+        else
+        {
+            Assert.NotNull(file);
+            Assert.Equal(expected.Id, file.Id);
+        }
+    }
+
     MediaRepository GetRepo()
     {
         return new MediaRepository(

@@ -323,45 +323,17 @@ public class DatabaseSeeder
 
     async Task PopulateFiles(NpgsqlConnection conn)
     {
-        List<object> files = [
-            new {
-                id = Guid.CreateVersion7(),
-                media_id = Constants.MEDIA_NATURE_1.Id,
-                type_id = Constants.TYPE_PHOTO,
-                scale_id = Constants.SCALE_FULL_HD,
-                width = 1920,
-                height = 1080,
-                bytes = 123456L,
-                path = "/media/nature1.jpg"
-            },
-            new {
-                id = Guid.CreateVersion7(),
-                media_id = Constants.MEDIA_NATURE_2.Id,
-                type_id = Constants.TYPE_VIDEO,
-                scale_id = Constants.SCALE_FULL_HD,
-                width = 1920,
-                height = 1080,
-                bytes = 123456L,
-                path = "/media/nature2.jpg"
-            },
-            new {
-                id = Guid.CreateVersion7(),
-                media_id = Constants.MEDIA_TRAVEL_1.Id,
-                type_id = Constants.TYPE_PHOTO,
-                scale_id = Constants.SCALE_FULL_HD,
-                width = 1920,
-                height = 1080,
-                bytes = 123456L,
-                path = "/media/travel1.jpg"
-            }
-            // NO files for FOOD category to demonstrate those will not get pulled back when querying categories
+        List<DbFile> files = [
+            Constants.FILE_NATURE_1,
+            Constants.FILE_NATURE_2,
+            Constants.FILE_TRAVEL_1
         ];
 
         await conn.ExecuteAsync(
             """
             INSERT INTO media.file (id, media_id, type_id, scale_id, width, height, bytes, path)
             VALUES
-            (@id, @media_id, @type_id, @scale_id, @width, @height, @bytes, @path);
+            (@id, @mediaId, @typeId, @scaleId, @width, @height, @bytes, @path);
             """,
             files
         );

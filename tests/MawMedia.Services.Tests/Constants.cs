@@ -146,6 +146,41 @@ public static class Constants
         GetTestMetadata("media_food_1")
     );
 
+    public static readonly DbFile FILE_NATURE_1 = new (
+        Guid.CreateVersion7(),
+        MEDIA_NATURE_1.Id,
+        TYPE_PHOTO,
+        SCALE_FULL_HD,
+        1920,
+        1080,
+        123456L,
+        "/media/nature1.jpg"
+    );
+
+    public static readonly DbFile FILE_NATURE_2 = new(
+        Guid.CreateVersion7(),
+        MEDIA_NATURE_2.Id,
+        TYPE_VIDEO,
+        SCALE_FULL_HD,
+        1920,
+        1080,
+        123456L,
+        "/media/nature2.jpg"
+    );
+
+    public static readonly DbFile FILE_TRAVEL_1 = new(
+        Guid.CreateVersion7(),
+        MEDIA_TRAVEL_1.Id,
+        TYPE_PHOTO,
+        SCALE_FULL_HD,
+        1920,
+        1080,
+        123456L,
+        "/media/travel1.jpg"
+    );
+
+    // NO files for FOOD category to demonstrate those will not get pulled back when querying categories
+
     static JsonDocument GetTestMetadata(string name)
     {
         return JsonDocument.Parse(

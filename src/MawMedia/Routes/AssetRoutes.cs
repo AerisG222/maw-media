@@ -1,16 +1,15 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using MawMedia.Services;
 
 namespace MawMedia.Routes;
 
 public static class AssetRoutes
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01977b3a-6db0-7384-87ad-8e56aad783ef");
+    static readonly Guid DUMMYUSER = Guid.Parse("0197dd28-4980-7237-9c54-c515e74e4c03");
 
     public static RouteGroupBuilder MapAssetRoutes(this RouteGroupBuilder group)
     {
         group
-            .MapGet("/{*path}", GetAsset)
+            .MapGet("/{id}", GetAsset)
             .WithName("Asset")
             .WithSummary("Get Asset")
             .WithDescription("Download asset");
@@ -19,10 +18,17 @@ public static class AssetRoutes
         return group;
     }
 
-    static async Task<Results<Ok<string>, ForbidHttpResult>> GetAsset(IMediaRepository repo, string path)
+    static async Task<IResult> GetAsset(IMediaRepository repo, Guid id)
     {
-        await Task.Delay(1);
+        var file = await repo.GetMediaFile(DUMMYUSER, id);
 
-        return TypedResults.Ok(path);
+        if (file == null)
+        {
+            return Results.NotFound();
+        }
+
+        //return Results.File(file.Path);
+
+        return Results.Ok(file.Path);
     }
 }
