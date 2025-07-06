@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION media.get_media_file
 (
     _user_id UUID,
-    _file_id UUID
+    _file_id UUID DEFAULT NULL,
+    _path TEXT DEFAULT NULL
 )
 RETURNS TABLE
 (
@@ -12,6 +13,10 @@ RETURNS TABLE
 )
 AS $$
 BEGIN
+    IF _file_id IS NULL AND _path IS NULL THEN
+        RAISE EXCEPTION 'Either file_id or path must be provided';
+    END IF;
+
     RETURN QUERY
     SELECT
         md.file_id,
@@ -24,7 +29,9 @@ BEGIN
     WHERE
         um.user_id = _user_id
         AND
-        md.file_id = _file_id;
+        (_file_id IS NULL OR md.file_id = _file_id)
+        AND
+        (_path IS NULL OR md.file_path = _path);
 END;
 $$ LANGUAGE plpgsql;
 

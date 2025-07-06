@@ -13,4 +13,5 @@ public interface IMediaRepository
     Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId);
     Task<Guid?> AddComment(Guid userId, Guid mediaId, string body);
     Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId);
+    Task<MediaFile?> GetMediaFile(Guid userId, string path);
 }

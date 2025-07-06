@@ -220,7 +220,7 @@ public class MediaRepositoryTests
         }
     }
 
-    public static TheoryData<Guid, Guid, DbFile?> GetMediaFileData => new()
+    public static TheoryData<Guid, Guid, DbFile?> GetMediaFileByIdData => new()
     {
         { Guid.CreateVersion7(),  Guid.CreateVersion7(),      null },
         { Guid.CreateVersion7(),  Constants.FILE_NATURE_2.Id, null },
@@ -230,12 +230,40 @@ public class MediaRepositoryTests
     };
 
     [Theory]
-    [MemberData(nameof(GetMediaFileData))]
-    public async Task GetMediaFile(Guid userId, Guid assetId, DbFile? expected)
+    [MemberData(nameof(GetMediaFileByIdData))]
+    public async Task GetMediaFileById(Guid userId, Guid assetId, DbFile? expected)
     {
         var repo = GetRepo();
 
         var file = await repo.GetMediaFile(userId, assetId);
+
+        if (expected == null)
+        {
+            Assert.Null(file);
+        }
+        else
+        {
+            Assert.NotNull(file);
+            Assert.Equal(expected.Id, file.Id);
+        }
+    }
+
+    public static TheoryData<Guid, string, DbFile?> GetMediaFileByPathData => new()
+    {
+        { Guid.CreateVersion7(),  "/assets/b/c.avif",           null },
+        { Guid.CreateVersion7(),  Constants.FILE_NATURE_2.Path, null },
+        { Constants.USER_ADMIN,   "/assets/b/c.avif",           null },
+        { Constants.USER_JOHNDOE, Constants.FILE_NATURE_2.Path, null },
+        { Constants.USER_ADMIN,   Constants.FILE_NATURE_2.Path, Constants.FILE_NATURE_2 }
+    };
+
+    [Theory]
+    [MemberData(nameof(GetMediaFileByPathData))]
+    public async Task GetMediaFileByPath(Guid userId, string path, DbFile? expected)
+    {
+        var repo = GetRepo();
+
+        var file = await repo.GetMediaFile(userId, path);
 
         if (expected == null)
         {
