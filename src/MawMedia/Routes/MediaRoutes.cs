@@ -8,7 +8,7 @@ namespace MawMedia.Routes;
 
 public static class MediaRoutes
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01977b3a-6db0-7384-87ad-8e56aad783ef");
+    static readonly Guid DUMMYUSER = Guid.Parse("0197dd28-4980-7237-9c54-c515e74e4c03");
 
     public static RouteGroupBuilder MapMediaRoutes(this RouteGroupBuilder group)
     {
