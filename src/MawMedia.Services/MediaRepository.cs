@@ -146,20 +146,32 @@ public class MediaRepository
         return null;
     }
 
-    public async Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId) =>
-        await InternalGetMediaFile(userId, assetId, null);
-
-    public async Task<MediaFile?> GetMediaFile(Guid userId, string path) =>
-        await InternalGetMediaFile(userId, null, path);
-
-    async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path)
+    public async Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId)
     {
-        if (assetId is null && path is null)
+        var file = await InternalGetMediaFile(userId, assetId, null);
+
+        if (file == null)
         {
-            throw new ArgumentException("Either assetId or path must be provided.");
+            _log.LogWarning("Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!", userId, assetId);
         }
 
-        var result = await QuerySingle<MediaFile>(
+        return file;
+    }
+
+    public async Task<MediaFile?> GetMediaFile(Guid userId, string path)
+    {
+        var file = await InternalGetMediaFile(userId, null, path);
+
+        if (file == null)
+        {
+            _log.LogWarning("Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!", userId, path);
+        }
+
+        return file;
+    }
+
+    async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path) =>
+        await QuerySingle<MediaFile>(
             """
             SELECT
                 file_id AS id,
@@ -175,12 +187,4 @@ public class MediaRepository
                 path
             }
         );
-
-        if (result == null)
-        {
-            _log.LogWarning("Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!", userId, assetId ?? Guid.Empty);
-        }
-
-        return result;
-    }
 }
