@@ -44,6 +44,7 @@ app
     .UseCors()
     // .UseAuthentication()
     // .UseAuthorization()
+    .UseCustomStaticFiles()
     .When(app.Environment.IsDevelopment(), app => {
         app.MapOpenApi();
         app.MapScalarApiReference(opts => {
@@ -51,7 +52,6 @@ app
         });
     });
 
-app.MapGroup("/assets").MapAssetRoutes();
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/media").MapMediaRoutes();
 app.MapGroup("/stats").MapStatRoutes();
