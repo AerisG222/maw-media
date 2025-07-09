@@ -1,6 +1,8 @@
+using MawMedia.Services;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 namespace MawMedia.Extensions;
 
@@ -8,11 +10,14 @@ public static class StaticFilesExtensions
 {
     public static IApplicationBuilder UseCustomStaticFiles(this IApplicationBuilder app)
     {
-        var assetDir = ((WebApplication)app).Configuration.GetValue<string>("AssetsDirectory");
+        var assetConfig = app.ApplicationServices.GetRequiredService<IOptions<AssetConfig>>();
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(assetDir, "Asset directory must be configured");
+        ArgumentNullException.ThrowIfNull(assetConfig);
+        ArgumentException.ThrowIfNullOrWhiteSpace(assetConfig.Value.RootDirectory);
 
-        if(!Directory.Exists(assetDir))
+        var assetDir = assetConfig.Value.RootDirectory;
+
+        if (!Directory.Exists(assetDir))
         {
             throw new DirectoryNotFoundException(assetDir);
         }

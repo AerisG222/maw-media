@@ -1,5 +1,6 @@
 
 using System.IO.Compression;
+using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services;
 
@@ -10,15 +11,15 @@ public class CategoryZipFileWriter
     readonly string _downloadRootDir;
 
     public CategoryZipFileWriter(
-        string assetRootDir,
-        string downloadRootDir
+        IOptions<AssetConfig> assetOpts,
+        IOptions<CategoryDownloadConfig> downloadOpts
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(assetRootDir);
-        ArgumentException.ThrowIfNullOrWhiteSpace(downloadRootDir);
+        ArgumentNullException.ThrowIfNull(assetOpts);
+        ArgumentNullException.ThrowIfNull(downloadOpts);
 
-        _assetRootDir = assetRootDir;
-        _downloadRootDir = downloadRootDir;
+        _assetRootDir = assetOpts.Value.RootDirectory;
+        _downloadRootDir = downloadOpts.Value.RootDirectory;
     }
 
     public Task<FileInfo?> GetZipFileIfExists(string filename)
