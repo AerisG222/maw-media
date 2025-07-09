@@ -165,10 +165,24 @@ BEGIN
             height,
             fills_dimensions
         ) VALUES (
+            '01965307-20f9-7e01-955e-be53d1786789',
+            'full',
+            2147483647,
+            2147483647,
+            false
+        );
+
+        INSERT INTO media.scale (
+            id,
+            code,
+            width,
+            height,
+            fills_dimensions
+        ) VALUES (
             '01965307-20f9-7e01-955e-be53d1786828',
             'src',
-            999999,
-            999999,
+            2147483647,
+            2147483647,
             false
         );
     END IF;

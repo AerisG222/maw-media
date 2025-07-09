@@ -106,6 +106,7 @@ function main() {
     run_psql_script "funcs/media.get_media_gps.sql"
     run_psql_script "funcs/media.get_metadata.sql"
     run_psql_script "funcs/media.get_random_media.sql"
+    run_psql_script "funcs/media.get_scales.sql"
     run_psql_script "funcs/media.get_stats.sql"
     run_psql_script "funcs/media.get_stats_for_year.sql"
     run_psql_script "funcs/media.search_categories.sql"

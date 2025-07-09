@@ -21,6 +21,7 @@ public static class IServiceCollectionExtensions
             .Configure<AssetConfig>(configuration.GetSection("Assets"))
             .Configure<CategoryDownloadConfig>(configuration.GetSection("CategoryDownload"))
             .AddScoped<ICategoryRepository, CategoryRepository>()
+            .AddScoped<IConfigRepository, ConfigRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()
             .AddSingleton<IZipFileWriter, CategoryZipFileWriter>()

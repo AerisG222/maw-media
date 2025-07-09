@@ -53,6 +53,7 @@ app
     });
 
 app.MapGroup("/categories").MapCategoryRoutes();
+app.MapGroup("/config").MapConfigRoutes();
 app.MapGroup("/media").MapMediaRoutes();
 app.MapGroup("/stats").MapStatRoutes();
 
