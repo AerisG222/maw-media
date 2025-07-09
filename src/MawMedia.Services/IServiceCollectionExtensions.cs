@@ -1,7 +1,7 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Dapper;
 using MawMedia.Services.Models;
-using Microsoft.Extensions.Configuration;
 
 namespace MawMedia.Services;
 
@@ -23,7 +23,8 @@ public static class IServiceCollectionExtensions
             .AddScoped<ICategoryRepository, CategoryRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()
-            .AddSingleton<IZipFileWriter, CategoryZipFileWriter>();
+            .AddSingleton<IZipFileWriter, CategoryZipFileWriter>()
+            .AddHostedService<CategoryDownloadCleaner>();
 
         return services;
     }
