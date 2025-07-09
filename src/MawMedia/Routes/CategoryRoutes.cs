@@ -10,6 +10,7 @@ namespace MawMedia.Routes;
 public static class CategoryRoutes
 {
     const int SEARCH_LIMIT = 24;
+    const string SCALE_FULL = "qvg";  // todo: change to proper scale once introduced
     static readonly Guid DUMMYUSER = Guid.Parse("0197e02e-7c7f-7c1e-bb77-ee35921e4c51");
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
@@ -85,6 +86,13 @@ public static class CategoryRoutes
             .WithDescription("Get GPS for media in a specific category");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
+        group
+            .MapGet("/{id}/download", DownloadCategoryMedia)
+            .WithName("category-download-media")
+            .WithSummary("Download Category Media to Zip file")
+            .WithDescription("Download full set of high resolution images for category");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
         return group;
     }
 
@@ -151,4 +159,47 @@ public static class CategoryRoutes
 
     static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategoryMediaGps(DUMMYUSER, id));
+
+    static async Task<IResult> DownloadCategoryMedia(ICategoryRepository repo, IZipFileWriter zipWriter, [FromRoute] Guid id, HttpResponse response)
+    {
+        var filename = $"{DUMMYUSER}-{id}.zip";
+        var zipFile =
+            await zipWriter.GetZipFileIfExists(filename)
+            ??
+            await CreateCategoryDownloadZipFile(repo, zipWriter, DUMMYUSER, id, filename);
+
+        if (zipFile == null || !zipFile.Exists)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return Results.File(
+                zipFile.FullName,
+                System.Net.Mime.MediaTypeNames.Application.Zip,
+                "maw-media-files.zip"
+            );
+    }
+
+    static async Task<FileInfo?> CreateCategoryDownloadZipFile(ICategoryRepository repo, IZipFileWriter zipWriter, Guid userId, Guid categoryId, string filename)
+    {
+        var media = await repo.GetCategoryMedia(userId, categoryId);
+
+        if (media == null || !media.Any())
+        {
+            return null;
+        }
+
+        var filesToInclude = media
+            .SelectMany(m => m.Files)
+            .Where(f => string.Equals(SCALE_FULL, f.Scale, StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.Path)
+            .ToArray();
+
+        if (filesToInclude.Length == 0)
+        {
+            return null;
+        }
+
+        return await zipWriter.WriteZipFile(filename, filesToInclude);
+    }
 }

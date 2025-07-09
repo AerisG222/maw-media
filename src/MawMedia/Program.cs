@@ -32,7 +32,10 @@ builder.Services
         );
     })
     .AddSingleton<IClock>(services => SystemClock.Instance)
-    .AddMediaServices();
+    .AddMediaServices(
+        builder.Configuration.GetValue<string>("AssetsDirectory") ?? string.Empty,
+        builder.Configuration.GetValue<string>("CategoryDownloadRootDirectory") ?? string.Empty
+    );
 
 var app = builder.Build();
 

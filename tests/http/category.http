@@ -62,3 +62,6 @@ http://localhost:5000/categories/01977b3a-6db5-7888-b10e-aa51e147ecc7/gps
 
 ###
 http://localhost:5000/categories/search?s=friend
+
+###
+http://localhost:5000/categories/0197e02e-7c85-7b7d-9375-3418a2a1e75e/download
