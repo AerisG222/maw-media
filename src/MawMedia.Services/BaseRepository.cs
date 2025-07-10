@@ -37,14 +37,14 @@ public class BaseRepository
         );
     }
 
-    protected async Task<int> ExecuteTransaction(
+    protected async Task<T?> ExecuteTransaction<T>(
         string statement,
         object? param = null
     )
     {
         return await RunTransaction(
             conn =>
-                conn.ExecuteScalarAsync<int>(
+                conn.ExecuteScalarAsync<T>(
                     statement,
                     param
                 )
@@ -110,7 +110,7 @@ public class BaseRepository
         }
     }
 
-    protected async Task<T> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command, bool runInTransaction = false)
+    protected async Task<T?> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command, bool runInTransaction = false)
     {
         NpgsqlTransaction? tran = null;
 

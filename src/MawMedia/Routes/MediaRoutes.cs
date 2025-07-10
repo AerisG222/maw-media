@@ -61,6 +61,13 @@ public static class MediaRoutes
             .WithDescription("Add comment for media");
         // .RequireAuthorization(AuthorizationPolicies.Reader);
 
+        group
+            .MapPost("/{id}/gps", SetGpsOverride)
+            .WithName("set-media-gps-override")
+            .WithSummary("Set GPS Override for Media")
+            .WithDescription("Set the GPS override for this media");
+        // .RequireAuthorization(AuthorizationPolicies.Reader);
+
         return group;
     }
 
@@ -129,5 +136,29 @@ public static class MediaRoutes
 
         // TODO: why can't we return guid?
         return TypedResults.Ok(commentId.ToString());
+    }
+
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> SetGpsOverride(
+        IMediaRepository repo,
+        [FromRoute] Guid id,
+        [FromBody] UpdateGpsRequest request)
+    {
+        // only used if truly new, otherwise media will be assigned location mathching these coords
+        var newLocationId = Guid.CreateVersion7();
+
+        var success = await repo.SetGpsOverride(
+            DUMMYUSER,
+            id,
+            newLocationId,
+            request.Latitude,
+            request.Longitude
+        );
+
+        if (!success)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok();
     }
 }

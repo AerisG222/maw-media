@@ -89,7 +89,7 @@ public class MediaRepository
 
     public async Task<Media?> SetIsFavorite(Guid userId, Guid mediaId, bool isFavorite)
     {
-        var result = await ExecuteTransaction(
+        var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.favorite_media(@userId, @mediaId, @isFavorite);",
             new
             {
@@ -125,7 +125,7 @@ public class MediaRepository
     {
         var commentId = Guid.CreateVersion7();
 
-        var result = await ExecuteTransaction(
+        var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.add_comment(@commentId, @userId, @mediaId, @body);",
             new
             {
@@ -168,6 +168,23 @@ public class MediaRepository
         }
 
         return file;
+    }
+
+    public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude)
+    {
+        var result = await ExecuteTransaction<int>(
+            "SELECT media.set_media_gps_override(@userId, @mediaId, @newLocationId, @latitude, @longitude);",
+            new
+            {
+                userId,
+                mediaId,
+                newLocationId,
+                latitude,
+                longitude
+            }
+        );
+
+        return result == 0;
     }
 
     async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path) =>

@@ -276,6 +276,33 @@ public class MediaRepositoryTests
         }
     }
 
+    public static TheoryData<Guid, Guid, Guid, decimal, decimal, bool> SetGpsOverrideData => new()
+    {
+        { Guid.CreateVersion7(),  Guid.CreateVersion7(),       Guid.CreateVersion7(),    1, 2, false },
+        { Guid.CreateVersion7(),  Constants.MEDIA_NATURE_2.Id, Guid.CreateVersion7(),    1, 2, false },
+        { Constants.USER_ADMIN,   Guid.CreateVersion7(),       Guid.CreateVersion7(),    1, 2, false },
+        { Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_2.Id, Guid.CreateVersion7(),    1, 2, false },
+        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_2.Id, Constants.LOCATION_MA.Id, 1, 2, true }
+    };
+
+    [Theory]
+    [MemberData(nameof(SetGpsOverrideData))]
+    public async Task SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude, bool expectSuccess)
+    {
+        var repo = GetRepo();
+
+        var result = await repo.SetGpsOverride(userId, mediaId, newLocationId, latitude, longitude);
+
+        Assert.Equal(expectSuccess, result);
+
+        if (expectSuccess)
+        {
+            var loc = await repo.GetGps(userId, mediaId);
+            Assert.Equal(latitude, loc?.Latitude);
+            Assert.Equal(longitude, loc?.Longitude);
+        }
+    }
+
     MediaRepository GetRepo()
     {
         return new MediaRepository(

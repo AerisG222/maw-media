@@ -47,6 +47,28 @@ public static class Constants
         null
     );
 
+    public static readonly DbLocation LOCATION_MA = new (
+        Guid.CreateVersion7(),
+        42.3555m,
+        -71.0565m,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        "Boston, MA, USA",
+        "MA",
+        null,
+        null,
+        "USA",
+        "Massachusetts",
+        "Boston",
+        null,
+        null,
+        "02109",
+        null,
+        null,
+        null,
+        null,
+        null
+    );
+
     public static readonly Guid ROLE_ADMIN = Guid.CreateVersion7();
     public static readonly Guid ROLE_FRIEND = Guid.CreateVersion7();
 

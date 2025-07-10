@@ -14,4 +14,5 @@ public interface IMediaRepository
     Task<Guid?> AddComment(Guid userId, Guid mediaId, string body);
     Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId);
     Task<MediaFile?> GetMediaFile(Guid userId, string path);
+    Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude);
 }

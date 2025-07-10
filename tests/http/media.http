@@ -60,5 +60,11 @@ http://localhost:5000/media/01977b3a-6db7-7eda-96c0-21c853957389/gps
 ### (valid media - src gps)
 http://localhost:5000/media/01977b3a-6fb2-711a-bbc3-7d1f8d4ebcd6/gps
 
-### (valid media - override only gps)
-http://localhost:5000/media/01977b3a-6dbd-7d29-a708-a424095ad02f/gps
+### (valid media - override gps)
+POST http://localhost:5000/media/0197e02e-7c8c-7ae4-842f-87b04234002c/gps
+Content-Type: application/json
+
+{
+    "latitude": 1,
+    "longitude": 2
+}

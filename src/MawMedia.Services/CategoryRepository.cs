@@ -54,7 +54,7 @@ public class CategoryRepository
 
     public async Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
     {
-        var result = await ExecuteTransaction(
+        var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.favorite_category(@userId, @categoryId, @isFavorite);",
             new
             {
@@ -76,7 +76,7 @@ public class CategoryRepository
 
     public async Task<Category?> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
     {
-        var result = await ExecuteTransaction(
+        var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
             new
             {
