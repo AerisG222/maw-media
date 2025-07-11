@@ -1,0 +1,39 @@
+###
+http://localhost:5000/upload
+
+###
+POST http://localhost:5000/upload
+Content-Type: multipart/form-data; boundary=myBoundary
+
+--myBoundary
+Content-Disposition: form-data; name="file"; filename="example.txt"
+Content-Type: text/plain
+
+hello world
+--myBoundary--
+
+###
+http://localhost:5000/upload/example.txt
+
+
+### evil1
+POST http://localhost:5000/upload
+Content-Type: multipart/form-data; boundary=myBoundary
+
+--myBoundary
+Content-Disposition: form-data; name="file"; filename="../example.txt"
+Content-Type: text/plain
+
+hello world
+--myBoundary--
+
+### evil2
+POST http://localhost:5000/upload
+Content-Type: multipart/form-data; boundary=myBoundary
+
+--myBoundary
+Content-Disposition: form-data; name="file"; filename="/example.txt"
+Content-Type: text/plain
+
+hello world
+--myBoundary--
