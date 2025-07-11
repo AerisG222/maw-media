@@ -10,7 +10,7 @@ namespace MawMedia.Routes;
 public static class CategoryRoutes
 {
     const int SEARCH_LIMIT = 24;
-    const string SCALE_FULL = "qvg";  // todo: change to proper scale once introduced
+    const string SCALE_FULL = "full";
     static readonly Guid DUMMYUSER = Guid.Parse("0197e02e-7c7f-7c1e-bb77-ee35921e4c51");
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
