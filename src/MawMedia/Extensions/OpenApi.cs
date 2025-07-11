@@ -1,19 +1,18 @@
 using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 
 namespace MawMedia.Extensions;
 
 public static class OpenApiExtensions
 {
+    const string TITLE = "MaW Media API";
+    const string DESCRIPTION = "An API to access photos and videos from media.mikeandwan.us.";
+
     // currently, the default openapi call does not recognize authorization requirements, so we add this ourselves
     // https://github.com/dotnet/aspnetcore/issues/39761
     // https://github.com/martincostello/aspnetcore-openapi/blob/d87b42a236762ac32d833e6b482500b4d97f118c/src/TodoApp/OpenApi/AspNetCore/AspNetCoreOpenApiEndpoints.cs#L35-L53
-    public static IServiceCollection AddCustomOpenApi
-    (
-        this IServiceCollection services,
-        string title,
-        string description
-    )
+    public static IServiceCollection AddCustomOpenApi(this IServiceCollection services)
     {
         services
             .Configure<RouteOptions>(options => options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"))
@@ -21,8 +20,8 @@ public static class OpenApiExtensions
             {
                 opts.AddDocumentTransformer((document, _, _) =>
                 {
-                    document.Info.Title = title;
-                    document.Info.Description = description;
+                    document.Info.Title = TITLE;
+                    document.Info.Description = DESCRIPTION;
 
                     var scheme = new OpenApiSecurityScheme()
                     {
@@ -49,5 +48,18 @@ public static class OpenApiExtensions
             .AddEndpointsApiExplorer();
 
         return services;
+    }
+
+    public static IApplicationBuilder UseCustomOpenApi(this IApplicationBuilder app)
+    {
+        var webApp = (WebApplication)app;
+
+        webApp.MapOpenApi();
+        webApp.MapScalarApiReference(opts =>
+        {
+            opts.AddAuthorizationCodeFlow("OAuth2", flow => { });
+        });
+
+        return webApp;
     }
 }

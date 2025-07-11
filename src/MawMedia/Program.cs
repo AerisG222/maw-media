@@ -1,7 +1,5 @@
 using NodaTime;
-using NodaTime.Serialization.SystemTextJson;
 using ZiggyCreatures.Caching.Fusion;
-using Scalar.AspNetCore;
 using MawMedia.Extensions;
 using MawMedia.Routes;
 using MawMedia.Services;
@@ -16,21 +14,12 @@ builder.Services
     .AddCustomCorsPolicy(builder.Configuration)
     .AddCustomDataProtection(builder.Configuration)
     .AddCustomForwardedHeaders(builder.Configuration)
+    .ConfigureCustomJsonOptions()
     .AddNpgsql(builder.Configuration)
-    .ConfigureHttpJsonOptions(opts =>
-    {
-        opts.SerializerOptions.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-    })
     .AddFusionCache()
         .AsHybridCache()
         .Services
-    .When(builder.Environment.IsDevelopment(), services =>
-    {
-        services.AddCustomOpenApi(
-            "MaW Media API",
-            "An API to access photos and videos from media.mikeandwan.us."
-        );
-    })
+    .AddCustomOpenApi()
     .AddSingleton<IClock>(services => SystemClock.Instance)
     .AddMediaServices(builder.Configuration);
 
@@ -45,12 +34,7 @@ app
     // .UseAuthentication()
     // .UseAuthorization()
     .UseCustomStaticFiles()
-    .When(app.Environment.IsDevelopment(), app => {
-        app.MapOpenApi();
-        app.MapScalarApiReference(opts => {
-            opts.AddAuthorizationCodeFlow("OAuth2", flow => { });
-        });
-    });
+    .UseCustomOpenApi();
 
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/config").MapConfigRoutes();
