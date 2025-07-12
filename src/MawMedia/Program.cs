@@ -20,6 +20,7 @@ builder.Services
         .AsHybridCache()
         .Services
     .AddCustomOpenApi()
+    .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(services => SystemClock.Instance)
     .AddMediaServices(builder.Configuration);
 
@@ -31,8 +32,8 @@ app
     .UseRouting()
     .UseCustomSecurityHeaders()
     .UseCors()
-    // .UseAuthentication()
-    // .UseAuthorization()
+    .UseAuthentication()
+    .UseAuthorization()
     .UseCustomStaticFiles()
     .UseCustomOpenApi();
 
