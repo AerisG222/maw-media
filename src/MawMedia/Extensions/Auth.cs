@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MawMedia.Extensions;
 
@@ -30,17 +31,19 @@ public static class AuthExtensions
             .AddAuthorization(opts =>
             {
                 opts.AddPolicy(
-                    AuthPolicies.User, p =>
-                    {
-                        p.RequireAuthenticatedUser();
-                    });
+                    AuthPolicies.User, p => p
+                        .RequireAuthenticatedUser()
+                    );
 
                 opts.AddPolicy(
-                    AuthPolicies.Admin, p =>
-                    {
-                        p.RequireAuthenticatedUser();
-                        p.RequireRole("Administrator");
-                    });
+                    AuthPolicies.Admin, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireRole("Administrator")
+                    );
+
+                opts.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
             });
 
         return services;
