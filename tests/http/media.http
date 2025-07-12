@@ -1,14 +1,14 @@
 ###
-http://localhost:5000/media/random/5
+http://localhost:8081/media/random/5
 
 ### (invalid media)
-http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc
+http://localhost:8081/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc
 
 ###
-http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc
+http://localhost:8081/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc
 
 ###
-POST http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
+POST http://localhost:8081/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
 Content-Type: application/json
 
 {
@@ -16,7 +16,7 @@ Content-Type: application/json
 }
 
 ### (invalid media)
-POST http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
+POST http://localhost:8081/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/favorite
 Content-Type: application/json
 
 {
@@ -24,13 +24,13 @@ Content-Type: application/json
 }
 
 ###
-http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+http://localhost:8081/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
 
 ### (invalid media)
-http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+http://localhost:8081/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
 
 ### (invalid media)
-POST http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+POST http://localhost:8081/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
 Content-Type: application/json
 
 {
@@ -38,7 +38,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
+POST http://localhost:8081/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/comments
 Content-Type: application/json
 
 {
@@ -46,22 +46,22 @@ Content-Type: application/json
 }
 
 ###
-http://localhost:5000/media/01977b3a-799f-75ab-bff3-9448bf7909f6/metadata
+http://localhost:8081/media/01977b3a-799f-75ab-bff3-9448bf7909f6/metadata
 
 ### (valid media w/ no metadata)
-http://localhost:5000/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/metadata
+http://localhost:8081/media/01977b3a-71d2-72b6-9431-fb6ec679f4dc/metadata
 
 ### (invalid media)
-http://localhost:5000/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/metadata
+http://localhost:8081/media/21977b3a-71d2-72b6-9431-fb6ec679f4dc/metadata
 
 ### (valid media - no gps)
-http://localhost:5000/media/01977b3a-6db7-7eda-96c0-21c853957389/gps
+http://localhost:8081/media/01977b3a-6db7-7eda-96c0-21c853957389/gps
 
 ### (valid media - src gps)
-http://localhost:5000/media/01977b3a-6fb2-711a-bbc3-7d1f8d4ebcd6/gps
+http://localhost:8081/media/01977b3a-6fb2-711a-bbc3-7d1f8d4ebcd6/gps
 
 ### (valid media - override gps)
-POST http://localhost:5000/media/0197e02e-7c8c-7ae4-842f-87b04234002c/gps
+POST http://localhost:8081/media/0197e02e-7c8c-7ae4-842f-87b04234002c/gps
 Content-Type: application/json
 
 {
