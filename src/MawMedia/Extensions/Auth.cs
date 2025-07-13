@@ -1,3 +1,4 @@
+using MawMedia.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 
@@ -43,6 +44,7 @@ public static class AuthExtensions
 
                 opts.FallbackPolicy = new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
+                    .AddRequirements(new MediaStaticAssetRequirement())
                     .Build();
             });
 

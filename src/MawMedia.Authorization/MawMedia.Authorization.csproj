@@ -8,14 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Dapper" Version="2.1.66" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
-        <PackageReference Include="Npgsql" Version="9.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.7" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MawMedia.Models\MawMedia.Models.csproj" />
         <ProjectReference Include="..\MawMedia.Services.Abstractions\MawMedia.Services.Abstractions.csproj" />
     </ItemGroup>
 

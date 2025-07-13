@@ -1,5 +1,6 @@
 using NodaTime;
 using ZiggyCreatures.Caching.Fusion;
+using MawMedia.Authorization;
 using MawMedia.Extensions;
 using MawMedia.Routes;
 using MawMedia.Services;
@@ -22,6 +23,7 @@ builder.Services
     .AddCustomOpenApi()
     .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(services => SystemClock.Instance)
+    .AddMediaAuthorizationHandler()
     .AddMediaServices(builder.Configuration);
 
 var app = builder.Build();

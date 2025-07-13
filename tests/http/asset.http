@@ -1,6 +1,7 @@
-### (legacy url)
+### (legacy url - now that we check path against access in db, this should not work)
 http://localhost:8081/assets/2007/dusty/lg/dsc_0216.jpg
 Authorization: Bearer xyz
 
 ### (new url)
 http://localhost:8081/assets/2007/dusty/qqvg/dsc_0216.avif
+Authorization: Bearer xyz

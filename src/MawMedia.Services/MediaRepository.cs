@@ -170,6 +170,13 @@ public class MediaRepository
         return file;
     }
 
+    public async Task<bool> HasAccess(Guid userId, string path)
+    {
+        var media = await GetMediaFile(userId, path);
+
+        return media != null;
+    }
+
     public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude)
     {
         var result = await ExecuteTransaction<int>(

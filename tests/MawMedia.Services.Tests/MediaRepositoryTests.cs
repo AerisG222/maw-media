@@ -250,9 +250,9 @@ public class MediaRepositoryTests
 
     public static TheoryData<Guid, string, DbFile?> GetMediaFileByPathData => new()
     {
-        { Guid.CreateVersion7(),  "/assets/b/c.avif",           null },
+        { Guid.CreateVersion7(),  $"{Services.Constants.AssetBaseUrl}/b/c.avif",           null },
         { Guid.CreateVersion7(),  Constants.FILE_NATURE_2.Path, null },
-        { Constants.USER_ADMIN,   "/assets/b/c.avif",           null },
+        { Constants.USER_ADMIN,   $"{Services.Constants.AssetBaseUrl}/b/c.avif",           null },
         { Constants.USER_JOHNDOE, Constants.FILE_NATURE_2.Path, null },
         { Constants.USER_ADMIN,   Constants.FILE_NATURE_2.Path, Constants.FILE_NATURE_2 }
     };

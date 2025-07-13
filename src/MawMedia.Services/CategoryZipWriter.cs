@@ -60,7 +60,7 @@ public class CategoryZipFileWriter
 
     string TrimAssetsPathPrefix(string urlPath)
     {
-        if (!urlPath.StartsWith("/assets/"))
+        if (!urlPath.StartsWith(Constants.AssetBaseUrlWithSlash))
         {
             throw new ArgumentOutOfRangeException(nameof(urlPath));
         }
@@ -72,6 +72,6 @@ public class CategoryZipFileWriter
             .Replace(".avif", ".jpg");
         // TEMP END
 
-        return urlPath["/assets/".Length..];
+        return urlPath[Constants.AssetBaseUrlWithSlash.Length..];
     }
 }
