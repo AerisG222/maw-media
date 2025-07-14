@@ -7,7 +7,12 @@ public static class SecurityHeadersExtensions
         app
             .UseSecurityHeaders(policies => {
                 policies
-                    .AddDefaultSecurityHeaders();
+                    .AddDefaultSecurityHeaders()
+                    .AddCrossOriginResourcePolicy(opts =>
+                    {
+                        // this enables service worker to be able to load images
+                        opts.CrossOrigin();
+                    });
             });
 
         return app;
