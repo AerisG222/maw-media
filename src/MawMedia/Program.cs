@@ -7,6 +7,9 @@ using MawMedia.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
+builder.WebHost
+    .UseKestrelHttpsConfiguration();
+
 builder.Configuration
     .AddEnvironmentVariables("MAW_MEDIA_");
 
@@ -30,7 +33,6 @@ var app = builder.Build();
 
 app
     .UseForwardedHeaders()
-    .UseHttpsRedirection()
     .UseRouting()
     .UseCustomSecurityHeaders()
     .UseCors()
