@@ -4,8 +4,12 @@ WORKDIR /maw-media
 # restore
 COPY maw-media.sln .
 COPY nuget.config .
-COPY src/MawWww/MawMedia.csproj src/MawMedia/
-RUN dotnet restore --runtime linux-x64
+COPY src/MawMedia/MawMedia.csproj src/MawMedia/
+COPY src/MawMedia.Authorization/MawMedia.Authorization.csproj src/MawMedia.Authorization/
+COPY src/MawMedia.Models/MawMedia.Models.csproj src/MawMedia.Models/
+COPY src/MawMedia.Services/MawMedia.Services.csproj src/MawMedia.Services/
+COPY src/MawMedia.Services.Abstractions/MawMedia.Services.Abstractions.csproj src/MawMedia.Services.Abstractions/
+RUN dotnet restore --runtime linux-x64 src/MawMedia/MawMedia.csproj
 
 # build
 COPY src/. src/
