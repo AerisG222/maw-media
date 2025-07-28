@@ -5,9 +5,9 @@ from podman import PodmanClient
 
 POD = 'dev-media-pod'
 PG_CONTAINER = 'dev-media-pg'
-DATADIR = '/home/mmorano/maw/dev/media/data'
-PGDATA = f"{DATADIR}/pgdata"
-PGPWD = f"{DATADIR}/pgpwd"
+DATADIR = '/home/mmorano/maw-media/dev'
+PGDATA = f"{DATADIR}/pg-data"
+PGPWD = f"{DATADIR}/pg-pwd"
 PG_IMG = 'docker.io/aerisg222/maw-media-postgres:latest'
 
 # make sure we start the podman service which is needed by the python api
