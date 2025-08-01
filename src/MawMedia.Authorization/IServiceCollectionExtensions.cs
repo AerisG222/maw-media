@@ -8,7 +8,8 @@ public static class IServiceCollectionExtensions
     public static IServiceCollection AddMediaAuthorizationHandler (this IServiceCollection services)
     {
         services
-            .AddScoped<IAuthorizationHandler, MediaStaticAssetAuthorizationHandler>();
+            .AddScoped<IAuthorizationHandler, MediaStaticAssetAuthorizationHandler>()
+            .AddSingleton<IAuthorizationHandler, ScopeAuthorizationHandler>();
 
         return services;
     }

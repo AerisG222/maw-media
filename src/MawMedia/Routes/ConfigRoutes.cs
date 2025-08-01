@@ -13,7 +13,7 @@ public static class ConfigRoutes
             .WithName("config-scales")
             .WithSummary("Scales")
             .WithDescription("Lists available scales")
-            .RequireAuthorization(AuthPolicies.User);
+            .RequireAuthorization(AuthorizationPolicies.User);
 
         return group;
     }

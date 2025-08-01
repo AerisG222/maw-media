@@ -32,14 +32,44 @@ public static class AuthExtensions
             .AddAuthorization(opts =>
             {
                 opts.AddPolicy(
-                    AuthPolicies.User, p => p
+                    AuthorizationPolicies.User, p => p
                         .RequireAuthenticatedUser()
                     );
 
                 opts.AddPolicy(
-                    AuthPolicies.Admin, p => p
+                    AuthorizationPolicies.Admin, p => p
                         .RequireAuthenticatedUser()
                         .RequireRole("Administrator")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.MediaReader, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/media:read")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.MediaWriter, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/media:write")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.CommentReader, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/comment:read")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.CommentWriter, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/comment:write")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.StatsReader, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/stats:read")
                     );
 
                 opts.FallbackPolicy = new AuthorizationPolicyBuilder()

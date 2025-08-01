@@ -20,8 +20,8 @@ public static class CategoryRoutes
             .MapGet("/", GetCategories)
             .WithName("categories")
             .WithSummary("Categories")
-            .WithDescription("Lists categories");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Lists categories")
+        .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/years", GetCategoryYears)
