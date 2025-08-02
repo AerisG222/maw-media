@@ -95,6 +95,20 @@ BEGIN
             height,
             fills_dimensions
         ) VALUES (
+            '01965306-6f04-739f-aea6-3b4022f1d6c7',
+            'hd',
+            1280,
+            720,
+            false
+        );
+
+        INSERT INTO media.scale (
+            id,
+            code,
+            width,
+            height,
+            fills_dimensions
+        ) VALUES (
             '01965306-9387-7cb7-8945-1d626de296fa',
             'full-hd',
             1920,
