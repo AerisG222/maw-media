@@ -16,57 +16,57 @@ public static class MediaRoutes
             .MapGet("/random/{count}", GetRandomMedia)
             .WithName("random-media")
             .WithSummary("Random Media")
-            .WithDescription("Lists random media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Lists random media")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}", GetMedia)
             .WithName("media")
             .WithSummary("Get Media")
-            .WithDescription("Get media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get media")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}/metadata", GetMetadata)
             .WithName("media-metadata")
             .WithSummary("Get Media Metadata")
-            .WithDescription("Get media metadata");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get media metadata")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}/gps", GetGps)
             .WithName("media-gps")
             .WithSummary("Get GPS for Media")
-            .WithDescription("Get GPS for media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get GPS for media")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapPost("/{id}/favorite", FavoriteMedia)
             .WithName("favorite-media")
             .WithSummary("Favorite Media")
-            .WithDescription("Favorites media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Favorites media")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}/comments", GetComments)
             .WithName("media-comments")
             .WithSummary("Get Media Comments")
-            .WithDescription("Get media comments");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get media comments")
+            .RequireAuthorization(AuthorizationPolicies.CommentReader);
 
         group
             .MapPost("/{id}/comments", AddComment)
             .WithName("add-media-comment")
             .WithSummary("Add Media Comment")
-            .WithDescription("Add comment for media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Add comment for media")
+            .RequireAuthorization(AuthorizationPolicies.CommentWriter);
 
         group
             .MapPost("/{id}/gps", SetGpsOverride)
             .WithName("set-media-gps-override")
             .WithSummary("Set GPS Override for Media")
-            .WithDescription("Set the GPS override for this media");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Set the GPS override for this media")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         return group;
     }

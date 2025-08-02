@@ -12,18 +12,18 @@ public static class StatRoutes
     public static RouteGroupBuilder MapStatRoutes(this RouteGroupBuilder group)
     {
         group
-                .MapGet("/", GetStats)
-                .WithName("stats-overall")
-                .WithSummary("Overall Stats")
-                .WithDescription("Get overall stats by year");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .MapGet("/", GetStats)
+            .WithName("stats-overall")
+            .WithSummary("Overall Stats")
+            .WithDescription("Get overall stats by year")
+            .RequireAuthorization(AuthorizationPolicies.StatsReader);
 
         group
             .MapGet("/{year}", GetStatsForYear)
-                .WithName("stats-for-year")
-                .WithSummary("Stats for Year")
-                .WithDescription("Get category stats for year");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithName("stats-for-year")
+            .WithSummary("Stats for Year")
+            .WithDescription("Get category stats for year")
+            .RequireAuthorization(AuthorizationPolicies.StatsReader);
 
         return group;
     }

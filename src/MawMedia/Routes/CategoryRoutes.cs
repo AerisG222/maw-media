@@ -21,77 +21,77 @@ public static class CategoryRoutes
             .WithName("categories")
             .WithSummary("Categories")
             .WithDescription("Lists categories")
-        .RequireAuthorization(AuthorizationPolicies.MediaReader);
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/years", GetCategoryYears)
             .WithName("category-years")
             .WithSummary("Category Years")
-            .WithDescription("Lists category years");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Lists category years")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/years/{year}", GetCategoriesForYear)
             .WithName("categories-for-years")
             .WithSummary("Categories for Year")
-            .WithDescription("Lists categories for a specific year");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Lists categories for a specific year")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/updates/{date}", GetCategoryUpdates)
             .WithName("category-updates")
             .WithSummary("Category Updates")
-            .WithDescription("Get category updates after a specified date/time");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get category updates after a specified date/time")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/search", SearchCategories)
             .WithName("category-search")
             .WithSummary("Category Search")
-            .WithDescription("Search for categories");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Search for categories")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}", GetCategory)
             .WithName("category")
             .WithSummary("Category")
-            .WithDescription("Get single category");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get single category")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapPost("/{id}/favorite", FavoriteCategory)
             .WithName("category-favorite")
             .WithSummary("Favorite Category")
-            .WithDescription("Favorite specified category");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Favorite specified category")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapPost("/{id}/teaser", SetCategoryTeaser)
             .WithName("category-set-teaser")
             .WithSummary("Set Category Teaser")
-            .WithDescription("Set category teaser");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Set category teaser")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         group
             .MapGet("/{id}/media", GetCategoryMedia)
             .WithName("category-media")
             .WithSummary("Category Media")
-            .WithDescription("Get media for single category");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get media for single category")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}/gps", GetCategoryMediaGps)
             .WithName("category-media-gps")
             .WithSummary("Category Media GPS")
-            .WithDescription("Get GPS for media in a specific category");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Get GPS for media in a specific category")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
             .MapGet("/{id}/download", DownloadCategoryMedia)
             .WithName("category-download-media")
             .WithSummary("Download Category Media to Zip file")
-            .WithDescription("Download full set of high resolution images for category");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Download full set of high resolution images for category")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         return group;
     }
