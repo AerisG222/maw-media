@@ -2,6 +2,7 @@ CREATE OR REPLACE FUNCTION media.get_scales
 ()
 RETURNS TABLE
 (
+    id UUID,
     code TEXT,
     width INTEGER,
     height INTEGER,
@@ -11,6 +12,7 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT
+        s.id,
         s.code,
         s.width,
         s.height,
