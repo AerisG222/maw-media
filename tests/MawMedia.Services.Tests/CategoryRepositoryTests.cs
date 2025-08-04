@@ -6,6 +6,8 @@ namespace MawMedia.Services.Tests;
 
 public class CategoryRepositoryTests
 {
+    const string BASE_URL = "https://media.example.com/";
+
     readonly TestFixture _fixture;
 
     public CategoryRepositoryTests(TestFixture fixture)
@@ -47,7 +49,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var cats = await repo.GetCategories(userId);
+        var cats = await repo.GetCategories(userId, BASE_URL);
 
         Assert.NotNull(cats);
         Assert.Equal(expectedCount, cats.Count());
@@ -67,7 +69,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var cats = await repo.GetCategories(userId, year);
+        var cats = await repo.GetCategories(userId, BASE_URL, year);
 
         Assert.NotNull(cats);
         Assert.Equal(expectedCount, cats.Count());
@@ -89,7 +91,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var cat = await repo.GetCategory(userId, categoryId);
+        var cat = await repo.GetCategory(userId, categoryId, BASE_URL);
 
         if (expected == null)
         {
@@ -142,18 +144,20 @@ public class CategoryRepositoryTests
 
     [Theory]
     [MemberData(nameof(UpdateCategoryTeaserData))]
-    public async Task UpdateCategoryTeaser(Guid userId, Guid categoryId, Guid mediaId, bool shouldReturnNull)
+    public async Task UpdateCategoryTeaser(Guid userId, Guid categoryId, Guid mediaId, bool shouldFail)
     {
         var repo = GetRepo();
 
-        var updatedCategory = await repo.SetTeaserMedia(userId, categoryId, mediaId);
+        var success = await repo.SetTeaserMedia(userId, categoryId, mediaId);
 
-        if (shouldReturnNull)
+        if (shouldFail)
         {
-            Assert.Null(updatedCategory);
+            Assert.False(success);
         }
         else
         {
+            var updatedCategory =  await repo.GetCategory(userId, categoryId, BASE_URL);
+
             Assert.NotNull(updatedCategory);
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
             Assert.Equal(Constants.MEDIA_NATURE_2.Id, updatedCategory.Teaser.Id);
@@ -166,13 +170,17 @@ public class CategoryRepositoryTests
         var repo = GetRepo();
         var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow);
 
-        var updatedCategory = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id);
+        var success = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id);
+
+        Assert.True(success);
+
+        var updatedCategory =  await repo.GetCategory(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, BASE_URL);
 
         Assert.NotNull(updatedCategory);
         Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
         Assert.Equal(Constants.MEDIA_NATURE_2.Id, updatedCategory.Teaser.Id);
 
-        var updates = await repo.GetCategoryUpdates(Constants.USER_ADMIN, startOfTest);
+        var updates = await repo.GetCategoryUpdates(Constants.USER_ADMIN, startOfTest, BASE_URL);
 
         Assert.NotNull(updates);
         Assert.NotEmpty(updates);
@@ -193,18 +201,22 @@ public class CategoryRepositoryTests
 
     [Theory]
     [MemberData(nameof(FavoriteCategoryData))]
-    public async Task FavoriteCategory(Guid userId, Guid categoryId, bool shouldReturnNull, bool doFavorite)
+    public async Task FavoriteCategory(Guid userId, Guid categoryId, bool shouldFail, bool doFavorite)
     {
         var repo = GetRepo();
 
-        var updatedCategory = await repo.SetIsFavorite(userId, categoryId, doFavorite);
+        var success = await repo.SetIsFavorite(userId, categoryId, doFavorite);
 
-        if (shouldReturnNull)
+        if (shouldFail)
         {
-            Assert.Null(updatedCategory);
+            Assert.False(success);
         }
         else
         {
+            Assert.True(success);
+
+            var updatedCategory =  await repo.GetCategory(userId, categoryId, BASE_URL);
+
             Assert.NotNull(updatedCategory);
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
             Assert.Equal(doFavorite, updatedCategory.IsFavorite);
@@ -245,7 +257,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.Search(userId, searchTerm, 0, 100);
+        var result = await repo.Search(userId, BASE_URL, searchTerm, 0, 100);
 
         Assert.NotNull(result);
         Assert.Equal(expectedIds.Count(), result.Results.Count());
@@ -256,7 +268,8 @@ public class CategoryRepositoryTests
     {
         return new CategoryRepository(
             new FakeLogger<CategoryRepository>(),
-            _fixture.DataSource.CreateConnection()
+            _fixture.DataSource.CreateConnection(),
+            new AssetPathBuilder()
         );
     }
 }

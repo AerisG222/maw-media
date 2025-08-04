@@ -11,12 +11,17 @@ public class CategoryRepository
 {
     const int SEARCH_LIMIT_MAX = 250;
 
+    readonly IAssetPathBuilder _assetPathBuilder;
+
     public CategoryRepository(
         ILogger<CategoryRepository> log,
-        NpgsqlConnection conn
+        NpgsqlConnection conn,
+        IAssetPathBuilder assetPathBuilder
     ) : base(log, conn)
     {
+        ArgumentNullException.ThrowIfNull(assetPathBuilder);
 
+        _assetPathBuilder = assetPathBuilder;
     }
 
     public async Task<IEnumerable<short>> GetCategoryYears(Guid userId)
@@ -30,14 +35,14 @@ public class CategoryRepository
         );
     }
 
-    public async Task<IEnumerable<Category>> GetCategories(Guid userId, short? year = null) =>
-        await InternalGetCategories(userId, year: year);
+    public async Task<IEnumerable<Category>> GetCategories(Guid userId, string baseUrl, short? year = null) =>
+        await InternalGetCategories(userId, baseUrl, year: year);
 
-    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date) =>
-        await InternalGetCategories(userId, modifiedAfter: date);
+    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date, string baseUrl) =>
+        await InternalGetCategories(userId, baseUrl, modifiedAfter: date);
 
-    public async Task<Category?> GetCategory(Guid userId, Guid categoryId) =>
-        (await InternalGetCategories(userId, categoryId))
+    public async Task<Category?> GetCategory(Guid userId, Guid categoryId, string baseUrl) =>
+        (await InternalGetCategories(userId, baseUrl, categoryId))
             .SingleOrDefault();
 
     public async Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId)
@@ -52,7 +57,7 @@ public class CategoryRepository
         );
     }
 
-    public async Task<Category?> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
+    public async Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
     {
         var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.favorite_category(@userId, @categoryId, @isFavorite);",
@@ -66,15 +71,15 @@ public class CategoryRepository
 
         if (result == 0)
         {
-            return await GetCategory(userId, categoryId);
+            return true;
         }
 
         _log.LogWarning("Unable to set favorite category - user {USER} does not have access to category {CATEGORY} or category does not exist!", userId, categoryId);
 
-        return null;
+        return false;
     }
 
-    public async Task<Category?> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
+    public async Task<bool> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
     {
         var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
@@ -88,18 +93,24 @@ public class CategoryRepository
 
         if (result == 0)
         {
-            return await GetCategory(userId, categoryId);
+            return true;
         }
 
         _log.LogWarning("Unable to set category teaser - user {USER} does not have access to category {CATEGORY} or media {MEDIA} - or category/media does not exist!", userId, categoryId, mediaId);
 
-        return null;
+        return false;
     }
 
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>
         await InternalGetCategoryMedia(userId, categoryId);
 
-    public async Task<SearchResult<Category>> Search(Guid userId, string searchTerm, int offset, int limit)
+    public async Task<SearchResult<Category>> Search(
+        Guid userId,
+        string baseUrl,
+        string searchTerm,
+        int offset,
+        int limit
+    )
     {
         if (offset < 0)
         {
@@ -123,13 +134,14 @@ public class CategoryRepository
         );
 
         return new SearchResult<Category>(
-            ConvertToCategories(results),
+            ConvertToCategories(results, baseUrl),
             results.Count() > limit
         );
     }
 
     async Task<IEnumerable<Category>> InternalGetCategories(
         Guid userId,
+        string baseUrl,
         Guid? categoryId = null,
         short? year = null,
         Instant? modifiedAfter = null
@@ -146,10 +158,10 @@ public class CategoryRepository
             }
         );
 
-        return ConvertToCategories(results);
+        return ConvertToCategories(results, baseUrl);
     }
 
-    IEnumerable<Category> ConvertToCategories(IEnumerable<CategoryAndTeaser> results) =>
+    IEnumerable<Category> ConvertToCategories(IEnumerable<CategoryAndTeaser> results, string baseUrl) =>
         results
             .GroupBy(x => x.Id)
             .Select(g => new Category(
@@ -166,7 +178,7 @@ public class CategoryRepository
                         x.FileId,
                         x.FileScale,
                         x.FileType,
-                        x.FilePath
+                        _assetPathBuilder.Build(baseUrl, x.FilePath)
                     )).ToList()
                 )
             ))

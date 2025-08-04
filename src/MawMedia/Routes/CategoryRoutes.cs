@@ -4,6 +4,8 @@ using NodaTime;
 using MawMedia.Models;
 using MawMedia.Services;
 using MawMedia.ViewModels;
+using Microsoft.AspNetCore.Http.Extensions;
+using MawMedia.Routes.Extensions;
 
 namespace MawMedia.Routes;
 
@@ -96,17 +98,17 @@ public static class CategoryRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(ICategoryRepository repo, HttpRequest request) =>
+    static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(ICategoryRepository repo) =>
         TypedResults.Ok(await repo.GetCategoryYears(DUMMYUSER));
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(ICategoryRepository repo, HttpRequest request) =>
-        TypedResults.Ok(await repo.GetCategories(DUMMYUSER));
+        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, request.GetBaseUrl()));
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoriesForYear(ICategoryRepository repo, HttpRequest request, [FromRoute] short year) =>
-        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, year));
+        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, request.GetBaseUrl(), year));
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
-        TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime())));
+        TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime()), request.GetBaseUrl()));
 
     static async Task<Results<Ok<SearchResult<Category>>, BadRequest<string>, ForbidHttpResult>> SearchCategories(ICategoryRepository repo, HttpRequest request, [FromQuery] string s, [FromQuery] int o = 0)
     {
@@ -115,12 +117,12 @@ public static class CategoryRoutes
             return TypedResults.BadRequest("Search term cannot be empty.");
         }
 
-        return TypedResults.Ok(await repo.Search(DUMMYUSER, s, o, SEARCH_LIMIT));
+        return TypedResults.Ok(await repo.Search(DUMMYUSER, request.GetBaseUrl(), s, o, SEARCH_LIMIT));
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, [FromRoute] Guid id)
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id)
     {
-        var category = await repo.GetCategory(DUMMYUSER, id);
+        var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
 
         if (category == null)
         {
@@ -130,28 +132,32 @@ public static class CategoryRoutes
         return TypedResults.Ok(category);
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id, [FromBody] FavoriteRequest favRequest)
     {
-        var category = await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite);
+        var success = await repo.SetIsFavorite(DUMMYUSER, id, favRequest.IsFavorite);
 
-        if (category == null)
+        if (success)
         {
-            return TypedResults.NotFound();
+            var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
+
+            return TypedResults.Ok(category);
         }
 
-        return TypedResults.Ok(category);
+        return TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest request)
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest teaserRequest)
     {
-        var category = await repo.SetTeaserMedia(DUMMYUSER, id, request.MediaId);
+        var success = await repo.SetTeaserMedia(DUMMYUSER, id, teaserRequest.MediaId);
 
-        if (category == null)
+        if (success)
         {
-            return TypedResults.NotFound();
+            var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
+
+            return TypedResults.Ok(category);
         }
 
-        return TypedResults.Ok(category);
+        return TypedResults.NotFound();
     }
 
     static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>

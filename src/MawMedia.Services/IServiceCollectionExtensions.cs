@@ -25,6 +25,7 @@ public static class IServiceCollectionExtensions
             .AddScoped<IConfigRepository, ConfigRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()
+            .AddSingleton<IAssetPathBuilder, AssetPathBuilder>()
             .AddSingleton<IZipFileWriter, CategoryZipFileWriter>()
             .AddSingleton<IUploadService, UploadService>()
             .AddHostedService<CategoryDownloadCleaner>();
