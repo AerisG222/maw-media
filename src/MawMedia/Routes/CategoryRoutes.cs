@@ -60,6 +60,7 @@ public static class CategoryRoutes
             .WithDescription("Get single category")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
+        // todo: consider replacing below 2 routes w/ a patch to /{id}
         group
             .MapPost("/{id}/favorite", FavoriteCategory)
             .WithName("category-favorite")
