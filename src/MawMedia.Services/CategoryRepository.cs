@@ -172,6 +172,7 @@ public class CategoryRepository
                 g.First().IsFavorite,
                 new Media(
                     g.First().MediaId,
+                    g.Key,
                     g.First().MediaType,
                     g.First().MediaIsFavorite,
                     g.Select(x => new MediaFile(

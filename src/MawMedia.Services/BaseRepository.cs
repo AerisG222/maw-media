@@ -153,6 +153,7 @@ public class BaseRepository
             .GroupBy(x => x.MediaId)
             .Select(g => new Media(
                 g.Key,
+                g.First().CategoryId,
                 g.First().MediaType,
                 g.First().MediaIsFavorite,
                 g.Select(x => new MediaFile(

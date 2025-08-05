@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION media.get_media
 )
 RETURNS TABLE
 (
+    category_id UUID,
     media_id UUID,
     media_type TEXT,
     media_is_favorite BOOLEAN,
@@ -17,6 +18,7 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT
+        um.category_id,
         md.media_id,
         md.media_type,
         CASE WHEN f.media_id

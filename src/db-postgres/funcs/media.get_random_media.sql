@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION media.get_random_media
 )
 RETURNS TABLE
 (
+    category_id UUID,
     media_id UUID,
     media_type TEXT,
     media_is_favorite BOOLEAN,
@@ -25,13 +26,16 @@ BEGIN
     RETURN QUERY
     WITH random AS
     (
-        SELECT um.media_id
+        SELECT
+            um.category_id,
+            um.media_id
         FROM media.user_media um
         WHERE um.user_id = _user_id
         ORDER BY RANDOM()
         LIMIT _count
     )
     SELECT
+        um.category_id,
         md.media_id,
         md.media_type,
         CASE WHEN f.media_id
