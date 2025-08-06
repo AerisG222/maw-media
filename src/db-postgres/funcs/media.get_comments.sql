@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION media.get_comments
 (
     _user_id UUID,
-    _media_id UUID
+    _media_id UUID,
+    _comment_id UUID
 )
 RETURNS TABLE
 (
@@ -26,9 +27,19 @@ BEGIN
     INNER JOIN media.user u
         ON c.created_by = u.id
     WHERE
-        um.media_id = _media_id
-        AND
         um.user_id = _user_id
+        AND
+        (
+            _media_id IS NULL
+            OR
+            um.media_id = _media_id
+        )
+        AND
+        (
+            _comment_id IS NULL
+            OR
+            c.id = _comment_id
+        )
     ORDER BY c.created DESC;
 END;
 $$ LANGUAGE plpgsql;

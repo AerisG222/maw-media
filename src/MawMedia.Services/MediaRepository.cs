@@ -117,14 +117,15 @@ public class MediaRepository
 
     public async Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId)
     {
-        return await Query<Comment>(
-            "SELECT * FROM media.get_comments(@userId, @mediaId);",
-            new
-            {
-                userId,
-                mediaId
-            }
-        );
+        return await InternalGetComments(userId, mediaId, null);
+    }
+
+    public async Task<Comment?> GetComment(Guid userId, Guid commentId)
+    {
+        var comments = await InternalGetComments(userId, null, commentId);
+
+        return comments
+            .SingleOrDefault();
     }
 
     public async Task<Guid?> AddComment(Guid userId, Guid mediaId, string body)
@@ -217,4 +218,17 @@ public class MediaRepository
                 path
             }
         );
+
+    async Task<IEnumerable<Comment>> InternalGetComments(Guid userId, Guid? mediaId, Guid? commentId)
+    {
+        return await Query<Comment>(
+            "SELECT * FROM media.get_comments(@userId, @mediaId, @commentId);",
+            new
+            {
+                userId,
+                mediaId,
+                commentId
+            }
+        );
+    }
 }

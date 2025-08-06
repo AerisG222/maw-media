@@ -126,7 +126,7 @@ public static class MediaRoutes
     static async Task<Results<Ok<IEnumerable<Comment>>, ForbidHttpResult>> GetComments(IMediaRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetComments(DUMMYUSER, id));
 
-    static async Task<Results<Ok<string>, NotFound, ForbidHttpResult>> AddComment(IMediaRepository repo, [FromRoute] Guid id, [FromBody] AddCommentRequest request)
+    static async Task<Results<Ok<Comment>, NotFound, ForbidHttpResult>> AddComment(IMediaRepository repo, [FromRoute] Guid id, [FromBody] AddCommentRequest request)
     {
         var commentId = await repo.AddComment(DUMMYUSER, id, request.Body);
 
@@ -135,8 +135,7 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        // TODO: why can't we return guid?
-        return TypedResults.Ok(commentId.ToString());
+        return TypedResults.Ok(await repo.GetComment(DUMMYUSER, (Guid)commentId));
     }
 
     static async Task<Results<Ok, NotFound, ForbidHttpResult>> SetGpsOverride(

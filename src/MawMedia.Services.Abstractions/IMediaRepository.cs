@@ -11,6 +11,7 @@ public interface IMediaRepository
     Task<JsonDocument?> GetMetadata(Guid userId, Guid mediaId);
     Task<Media?> SetIsFavorite(Guid userId, string baseUrl, Guid mediaId, bool isFavorite);
     Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId);
+    Task<Comment?> GetComment(Guid userId, Guid commentId);
     Task<Guid?> AddComment(Guid userId, Guid mediaId, string body);
     Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId);
     Task<MediaFile?> GetMediaFile(Guid userId, string path);
