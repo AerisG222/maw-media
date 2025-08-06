@@ -35,7 +35,7 @@ BEGIN
         LIMIT _count
     )
     SELECT
-        um.category_id,
+        r.category_id,
         md.media_id,
         md.media_type,
         CASE WHEN f.media_id
