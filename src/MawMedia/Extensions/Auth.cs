@@ -57,13 +57,13 @@ public static class AuthExtensions
                 opts.AddPolicy(
                     AuthorizationPolicies.CommentReader, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/comment:read")
+                        .RequireScope($"{audience}/comments:read")
                     );
 
                 opts.AddPolicy(
                     AuthorizationPolicies.CommentWriter, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/comment:write")
+                        .RequireScope($"{audience}/comments:write")
                     );
 
                 opts.AddPolicy(
