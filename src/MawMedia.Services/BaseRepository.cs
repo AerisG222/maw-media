@@ -148,7 +148,7 @@ public class BaseRepository
         }
     }
 
-    internal IEnumerable<Media> AssembleMedia(IEnumerable<MediaAndFile> mediaAndFiles) =>
+    internal IEnumerable<Media> AssembleMedia(IEnumerable<MediaAndFile> mediaAndFiles, string baseUrl, IAssetPathBuilder assetPathBuilder) =>
         mediaAndFiles
             .GroupBy(x => x.MediaId)
             .Select(g => new Media(
@@ -160,7 +160,7 @@ public class BaseRepository
                     x.FileId,
                     x.FileScale,
                     x.FileType,
-                    x.FilePath
+                    assetPathBuilder.Build(baseUrl, x.FilePath)
                 )).ToList()
             ))
             .ToList();

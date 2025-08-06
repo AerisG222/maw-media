@@ -29,7 +29,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var media = await repo.GetRandomMedia(userId, count);
+        var media = await repo.GetRandomMedia(userId, "http://example.com", count);
 
         Assert.NotNull(media);
 
@@ -58,7 +58,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var media = await repo.GetMedia(userId, mediaId);
+        var media = await repo.GetMedia(userId, "http://example.com", mediaId);
 
         if (expectedMedia == null)
         {
@@ -151,7 +151,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var updatedMedia = await repo.SetIsFavorite(userId, mediaId, doFavorite);
+        var updatedMedia = await repo.SetIsFavorite(userId, "http://example.com", mediaId, doFavorite);
 
         if (shouldReturnNull)
         {
@@ -307,7 +307,8 @@ public class MediaRepositoryTests
     {
         return new MediaRepository(
             new FakeLogger<MediaRepository>(),
-            _fixture.DataSource.CreateConnection()
+            _fixture.DataSource.CreateConnection(),
+            new AssetPathBuilder()
         );
     }
 }

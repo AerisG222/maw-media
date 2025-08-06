@@ -126,7 +126,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var media = await repo.GetCategoryMedia(userId, categoryId);
+        var media = await repo.GetCategoryMedia(userId, "http://example.com", categoryId);
 
         Assert.NotNull(media);
         Assert.Equal(expectedCount, media.Count());

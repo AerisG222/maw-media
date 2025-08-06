@@ -161,8 +161,8 @@ public static class CategoryRoutes
         return TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, [FromRoute] Guid id) =>
-        TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, id));
+    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id) =>
+        TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, request.GetBaseUrl(), id));
 
     static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(ICategoryRepository repo, [FromRoute] Guid id) =>
         TypedResults.Ok(await repo.GetCategoryMediaGps(DUMMYUSER, id));
@@ -189,7 +189,7 @@ public static class CategoryRoutes
 
     static async Task<FileInfo?> CreateCategoryDownloadZipFile(ICategoryRepository repo, IZipFileWriter zipWriter, Guid userId, Guid categoryId, string filename)
     {
-        var media = await repo.GetCategoryMedia(userId, categoryId);
+        var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId);
 
         if (media == null || !media.Any())
         {

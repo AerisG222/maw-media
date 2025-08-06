@@ -9,16 +9,22 @@ namespace MawMedia.Services;
 public class MediaRepository
     : BaseRepository, IMediaRepository
 {
+    readonly IAssetPathBuilder _assetPathBuilder;
+
     public MediaRepository(
         ILogger<MediaRepository> log,
-        NpgsqlConnection conn
+        NpgsqlConnection conn,
+        IAssetPathBuilder assetPathBuilder
     ) : base(log, conn)
     {
+        ArgumentNullException.ThrowIfNull(assetPathBuilder);
 
+        _assetPathBuilder = assetPathBuilder;
     }
 
     public async Task<IEnumerable<Media>> GetRandomMedia(
         Guid userId,
+        string baseUrl,
         byte count
     )
     {
@@ -31,10 +37,10 @@ public class MediaRepository
             }
         );
 
-        return AssembleMedia(results);
+        return AssembleMedia(results, baseUrl, _assetPathBuilder);
     }
 
-    public async Task<Media?> GetMedia(Guid userId, Guid mediaId)
+    public async Task<Media?> GetMedia(Guid userId, string baseUrl, Guid mediaId)
     {
         var results = await Query<MediaAndFile>(
             "SELECT * FROM media.get_media(@userId, @mediaId);",
@@ -45,7 +51,7 @@ public class MediaRepository
             }
         );
 
-        return AssembleMedia(results)
+        return AssembleMedia(results, baseUrl, _assetPathBuilder)
             .SingleOrDefault();
     }
 
@@ -87,7 +93,7 @@ public class MediaRepository
         });
     }
 
-    public async Task<Media?> SetIsFavorite(Guid userId, Guid mediaId, bool isFavorite)
+    public async Task<Media?> SetIsFavorite(Guid userId, string baseUrl, Guid mediaId, bool isFavorite)
     {
         var result = await ExecuteTransaction<int>(
             "SELECT * FROM media.favorite_media(@userId, @mediaId, @isFavorite);",
@@ -101,7 +107,7 @@ public class MediaRepository
 
         if (result == 0)
         {
-            return await GetMedia(userId, mediaId);
+            return await GetMedia(userId, baseUrl, mediaId);
         }
 
         _log.LogWarning("Unable to set media favorite - user {USER} does not have access to media {MEDIA} - or media does not exist!", userId, mediaId);

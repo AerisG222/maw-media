@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MawMedia.Models;
 using MawMedia.Services;
 using MawMedia.ViewModels;
+using MawMedia.Routes.Extensions;
 
 namespace MawMedia.Routes;
 
@@ -72,11 +73,11 @@ public static class MediaRoutes
     }
 
     static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetRandomMedia(IMediaRepository repo, HttpRequest request, [FromRoute] byte count) =>
-        TypedResults.Ok(await repo.GetRandomMedia(DUMMYUSER, count));
+        TypedResults.Ok(await repo.GetRandomMedia(DUMMYUSER, request.GetBaseUrl(), count));
 
-    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> GetMedia(IMediaRepository repo, [FromRoute] Guid id)
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> GetMedia(IMediaRepository repo, HttpRequest request, [FromRoute] Guid id)
     {
-        var media = await repo.GetMedia(DUMMYUSER, id);
+        var media = await repo.GetMedia(DUMMYUSER, request.GetBaseUrl(), id);
 
         if (media == null)
         {
@@ -110,9 +111,9 @@ public static class MediaRoutes
         return TypedResults.Ok(metadata);
     }
 
-    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(IMediaRepository repo, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(IMediaRepository repo, HttpRequest httpRequest, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
     {
-        var media = await repo.SetIsFavorite(DUMMYUSER, id, request.IsFavorite);
+        var media = await repo.SetIsFavorite(DUMMYUSER, httpRequest.GetBaseUrl(), id, request.IsFavorite);
 
         if (media == null)
         {

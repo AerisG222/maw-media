@@ -101,8 +101,8 @@ public class CategoryRepository
         return false;
     }
 
-    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, Guid categoryId) =>
-        await InternalGetCategoryMedia(userId, categoryId);
+    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, string baseUrl, Guid categoryId) =>
+        await InternalGetCategoryMedia(userId, baseUrl, categoryId);
 
     public async Task<SearchResult<Category>> Search(
         Guid userId,
@@ -187,6 +187,7 @@ public class CategoryRepository
 
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(
         Guid userId,
+        string baseUrl,
         Guid categoryId
     )
     {
@@ -199,6 +200,6 @@ public class CategoryRepository
             }
         );
 
-        return AssembleMedia(results);
+        return AssembleMedia(results, baseUrl, _assetPathBuilder);
     }
 }
