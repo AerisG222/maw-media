@@ -29,11 +29,12 @@ public class MediaRepository
     )
     {
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_random_media(@userId, @count);",
+            "SELECT * FROM media.get_random_media(@userId, @count, @excludeSrcFiles);",
             new
             {
                 userId,
-                count
+                count,
+                excludeSrcFiles = true
             }
         );
 
@@ -43,11 +44,12 @@ public class MediaRepository
     public async Task<Media?> GetMedia(Guid userId, string baseUrl, Guid mediaId)
     {
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_media(@userId, @mediaId);",
+            "SELECT * FROM media.get_media(@userId, @mediaId, @excludeSrcFiles);",
             new
             {
                 userId,
-                mediaId
+                mediaId,
+                excludeSrcFiles = true
             }
         );
 
@@ -209,13 +211,14 @@ public class MediaRepository
                 file_scale AS scale,
                 file_type AS type,
                 file_path AS path
-            FROM media.get_media_file(@userId, @assetId, @path);
+            FROM media.get_media_file(@userId, @assetId, @path, @excludeSrcFiles);
             """,
             new
             {
                 userId,
                 assetId,
-                path
+                path,
+                excludeSrcFiles = true
             }
         );
 

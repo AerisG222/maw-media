@@ -3,7 +3,8 @@ CREATE OR REPLACE FUNCTION media.get_categories
     _user_id UUID,
     _id UUID DEFAULT NULL,
     _year SMALLINT DEFAULT NULL,
-    _modified_after TIMESTAMPTZ DEFAULT NULL
+    _modified_after TIMESTAMPTZ DEFAULT NULL,
+    _exclude_src_files BOOLEAN = False
 )
 RETURNS TABLE
 (
@@ -49,6 +50,11 @@ BEGIN
         AND cm.is_teaser = true
     INNER JOIN media.media_detail md
         ON cm.media_id = md.media_id
+        AND (
+            _exclude_src_files = FALSE
+            OR
+            md.file_scale <> 'src'
+        )
     LEFT OUTER JOIN media.favorite f
         ON cm.media_id = f.media_id
         AND f.created_by = _user_id

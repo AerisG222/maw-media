@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION media.get_random_media
 (
     _user_id UUID,
-    _count SMALLINT DEFAULT 1
+    _count SMALLINT = 1,
+    _exclude_src_files BOOLEAN = False
 )
 RETURNS TABLE
 (
@@ -49,6 +50,11 @@ BEGIN
     FROM random r
     INNER JOIN media.media_detail md
         ON r.media_id = md.media_id
+        AND (
+            _exclude_src_files = FALSE
+            OR
+            md.file_scale <> 'src'
+        )
     LEFT OUTER JOIN media.favorite f
         ON r.media_id = f.media_id
         AND f.created_by = _user_id;

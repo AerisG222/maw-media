@@ -3,8 +3,9 @@ CREATE OR REPLACE FUNCTION media.search_categories
 (
     _user_id UUID,
     _search_term TEXT,
-    _offset INTEGER DEFAULT 0,
-    _limit INTEGER DEFAULT 25
+    _offset INTEGER = 0,
+    _limit INTEGER = 25,
+    _exclude_src_files BOOLEAN = False
 )
 RETURNS TABLE
 (
@@ -68,6 +69,11 @@ BEGIN
         AND cm.is_teaser = true
     INNER JOIN media.media_detail md
         ON cm.media_id = md.media_id
+        AND (
+            _exclude_src_files = FALSE
+            OR
+            md.file_scale <> 'src'
+        )
     LEFT OUTER JOIN media.favorite f
         ON cm.media_id = f.media_id
         AND f.created_by = _user_id

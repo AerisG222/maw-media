@@ -123,13 +123,14 @@ public class CategoryRepository
         }
 
         var results = await Query<CategoryAndTeaser>(
-            "SELECT * FROM media.search_categories(@userId, @searchTerm, @offset, @limit);",
+            "SELECT * FROM media.search_categories(@userId, @searchTerm, @offset, @limit, @excludeSrcFiles);",
             new
             {
                 userId,
                 searchTerm,
                 offset,
-                limit = limit + 1
+                limit = limit + 1,
+                excludeSrcFiles = true
             }
         );
 
@@ -151,13 +152,14 @@ public class CategoryRepository
     )
     {
         var results = await Query<CategoryAndTeaser>(
-            "SELECT * FROM media.get_categories(@userId, @categoryId, @year, @modifiedAfter);",
+            "SELECT * FROM media.get_categories(@userId, @categoryId, @year, @modifiedAfter, @excludeSrcFiles);",
             new
             {
                 userId,
                 categoryId,
                 year,
-                modifiedAfter
+                modifiedAfter,
+                excludeSrcFiles = true
             }
         );
 
@@ -195,11 +197,12 @@ public class CategoryRepository
     )
     {
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_category_media(@userId, @categoryId);",
+            "SELECT * FROM media.get_category_media(@userId, @categoryId, @excludeSrcFiles);",
             new
             {
                 userId,
-                categoryId
+                categoryId,
+                excludeSrcFiles = true
             }
         );
 

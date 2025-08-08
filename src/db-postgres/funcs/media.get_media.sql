@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION media.get_media
 (
     _user_id UUID,
-    _media_id UUID
+    _media_id UUID,
+    _exclude_src_files BOOLEAN = False
 )
 RETURNS TABLE
 (
@@ -34,6 +35,11 @@ BEGIN
         ON um.media_id = m.id
     INNER JOIN media.media_detail md
         ON md.media_id = m.id
+        AND (
+            _exclude_src_files = FALSE
+            OR
+            md.file_scale <> 'src'
+        )
     LEFT OUTER JOIN media.favorite f
         ON um.media_id = f.media_id
         AND f.created_by = _user_id

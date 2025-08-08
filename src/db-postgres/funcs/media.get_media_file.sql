@@ -2,7 +2,8 @@ CREATE OR REPLACE FUNCTION media.get_media_file
 (
     _user_id UUID,
     _file_id UUID DEFAULT NULL,
-    _path TEXT DEFAULT NULL
+    _path TEXT DEFAULT NULL,
+    _exclude_src_files BOOLEAN = False
 )
 RETURNS TABLE
 (
@@ -26,6 +27,11 @@ BEGIN
     FROM media.user_media um
     INNER JOIN media.media_detail md
         ON md.media_id = um.media_id
+        AND (
+            _exclude_src_files = FALSE
+            OR
+            md.file_scale <> 'src'
+        )
     WHERE
         um.user_id = _user_id
         AND
