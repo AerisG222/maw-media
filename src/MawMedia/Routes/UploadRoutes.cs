@@ -14,23 +14,23 @@ public static class UploadRoutes
             .MapGet("/", GetFiles)
             .WithName("get-uploaded-files")
             .WithSummary("Uploaded Files")
-            .WithDescription("Lists uploaded files");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Lists uploaded files")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         group
             .MapGet("/{filename}", DownloadFile)
             .WithName("download-uploaded-file")
             .WithSummary("Download File")
-            .WithDescription("Downlad file that was previously uploaded");
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .WithDescription("Downlad file that was previously uploaded")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         group
             .MapPost("/", UploadFile)
             .WithName("upload-file")
             .WithSummary("Upload File")
             .WithDescription("Downlad file that was previously uploaded")
-            .DisableAntiforgery();
-        // .RequireAuthorization(AuthorizationPolicies.Reader);
+            .DisableAntiforgery()
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         return group;
     }
