@@ -133,9 +133,12 @@ public class CategoryRepository
             }
         );
 
+        var hasMore = results.Count() > limit;
+
         return new SearchResult<Category>(
             ConvertToCategories(results, baseUrl),
-            results.Count() > limit
+            hasMore,
+            hasMore ? limit + 1 : 0
         );
     }
 
