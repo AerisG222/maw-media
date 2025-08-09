@@ -1,0 +1,16 @@
+{
+    "name": "perf",
+    "private": true,
+    "scripts": {
+        "download-test": "k6 run download-media-perf.ts"
+    },
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@types/k6": "^1.1.1"
+    }
+}

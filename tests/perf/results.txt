@@ -1,0 +1,90 @@
+###########################
+# mm - 2025-08-09 - test of always hitting db to verify permissions to media
+###########################
+
+$ k6 run download-media-perf.ts
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+     execution: local
+        script: download-media-perf.ts
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 50s max duration (incl. graceful stop):
+              * default: 10 looping VUs for 20s (gracefulStop: 30s)
+
+
+
+  █ TOTAL RESULTS
+
+    HTTP
+    http_req_duration.......................................................: avg=92.65ms min=4.07ms med=94.84ms max=124.69ms p(90)=101.22ms p(95)=103.97ms
+      { expected_response:true }............................................: avg=92.65ms min=4.07ms med=94.84ms max=124.69ms p(90)=101.22ms p(95)=103.97ms
+    http_req_failed.........................................................: 0.00%  0 out of 2400
+    http_reqs...............................................................: 2400   107.400071/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=2.78s   min=2.71s  med=2.78s   max=2.93s    p(90)=2.81s    p(95)=2.83s
+    iterations..............................................................: 80     3.580002/s
+    vus.....................................................................: 10     min=10        max=10
+    vus_max.................................................................: 10     min=10        max=10
+
+    NETWORK
+    data_received...........................................................: 17 MB  773 kB/s
+    data_sent...............................................................: 223 kB 10 kB/s
+
+
+
+
+running (22.3s), 00/10 VUs, 80 complete and 0 interrupted iterations
+default ✓ [======================================] 10 VUs  20s
+
+
+
+###########################
+# mm - 2025-08-09 - test of never hitting db to verify permissions to media (disable auth for routes in code)
+###########################
+$ k6 run download-media-perf.ts
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+     execution: local
+        script: download-media-perf.ts
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 50s max duration (incl. graceful stop):
+              * default: 10 looping VUs for 20s (gracefulStop: 30s)
+
+
+
+  █ TOTAL RESULTS
+
+    HTTP
+    http_req_duration.......................................................: avg=1.44ms min=197.72µs med=410.06µs max=1s    p(90)=5.46ms  p(95)=7.29ms
+      { expected_response:true }............................................: avg=1.44ms min=197.72µs med=410.06µs max=1s    p(90)=5.46ms  p(95)=7.29ms
+    http_req_failed.........................................................: 0.00%  0 out of 127680
+    http_reqs...............................................................: 127680 6376.892323/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=47ms   min=22.19ms  med=43.8ms   max=1.07s p(90)=51.64ms p(95)=60.06ms
+    iterations..............................................................: 4256   212.563077/s
+    vus.....................................................................: 10     min=10          max=10
+    vus_max.................................................................: 10     min=10          max=10
+
+    NETWORK
+    data_received...........................................................: 918 MB 46 MB/s
+    data_sent...............................................................: 11 MB  538 kB/s
+
+
+
+
+running (20.0s), 00/10 VUs, 4256 complete and 0 interrupted iterations
+default ✓ [======================================] 10 VUs  20s
