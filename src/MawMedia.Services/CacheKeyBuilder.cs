@@ -22,8 +22,6 @@ public static class CacheKeyBuilder
             throw new ArgumentException($"Invalid asset path detected: {assetPath}");
         }
 
-        var pathKey = assetPath[..second];
-
-        return $"asset-{userId}-{assetPath}";
+        return $"asset-{userId}-{assetPath[..second]}";
     }
 }
