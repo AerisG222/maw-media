@@ -1,9 +1,9 @@
 using System.Text.Json;
-using MawMedia.Models;
-using MawMedia.Services.Models;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using MawMedia.Models;
+using MawMedia.Services.Models;
 
 namespace MawMedia.Services;
 
@@ -43,7 +43,7 @@ public class MediaRepository
             }
         );
 
-        return AssembleMedia(results, baseUrl, _assetPathBuilder);
+        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache);
     }
 
     public async Task<Media?> GetMedia(Guid userId, string baseUrl, Guid mediaId)
@@ -58,7 +58,7 @@ public class MediaRepository
             }
         );
 
-        return AssembleMedia(results, baseUrl, _assetPathBuilder)
+        return (await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache))
             .SingleOrDefault();
     }
 
@@ -184,8 +184,7 @@ public class MediaRepository
         return file;
     }
 
-    public async Task<bool> HasAccess(Guid userId, string path, CancellationToken token) =>
-
+    public async Task<bool> AllowAccessToAsset(Guid userId, string path, CancellationToken token) =>
         await _cache.GetOrCreateAsync(
             CacheKeyBuilder.CanAccessAsset(userId, path),
             async cancel => (await GetMediaFile(userId, path)) != null,

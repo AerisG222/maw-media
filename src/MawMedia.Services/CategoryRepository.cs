@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 using Npgsql;
@@ -11,16 +12,20 @@ public class CategoryRepository
 {
     const int SEARCH_LIMIT_MAX = 250;
 
+    readonly HybridCache _cache;
     readonly IAssetPathBuilder _assetPathBuilder;
 
     public CategoryRepository(
         ILogger<CategoryRepository> log,
         NpgsqlConnection conn,
+        HybridCache cache,
         IAssetPathBuilder assetPathBuilder
     ) : base(log, conn)
     {
+        ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(assetPathBuilder);
 
+        _cache = cache;
         _assetPathBuilder = assetPathBuilder;
     }
 
@@ -137,7 +142,7 @@ public class CategoryRepository
         var hasMore = results.Count() > limit;
 
         return new SearchResult<Category>(
-            ConvertToCategories(results, baseUrl),
+            await ConvertToCategories(userId, results, baseUrl),
             hasMore,
             hasMore ? limit + 1 : 0
         );
@@ -163,12 +168,26 @@ public class CategoryRepository
             }
         );
 
-        return ConvertToCategories(results, baseUrl);
+        return await ConvertToCategories(userId, results, baseUrl);
     }
 
-    IEnumerable<Category> ConvertToCategories(IEnumerable<CategoryAndTeaser> results, string baseUrl) =>
-        results
+    async Task<IEnumerable<Category>> ConvertToCategories(
+        Guid userId,
+        IEnumerable<CategoryAndTeaser> results,
+        string baseUrl
+    )
+    {
+        var uniqueCacheKeys = new HashSet<string>();
+
+        var cats = results
             .GroupBy(x => x.Id)
+            .Select(g =>
+            {
+                // side effect to simplify priming the cache
+                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, g.First().FilePath));
+
+                return g;
+            })
             .Select(g => new Category(
                 g.Key,
                 g.First().Name,
@@ -190,6 +209,14 @@ public class CategoryRepository
             ))
             .ToList();
 
+        foreach (var key in uniqueCacheKeys)
+        {
+            await _cache.SetAsync(key, true);
+        }
+
+        return cats;
+    }
+
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(
         Guid userId,
         string baseUrl,
@@ -206,6 +233,6 @@ public class CategoryRepository
             }
         );
 
-        return AssembleMedia(results, baseUrl, _assetPathBuilder);
+        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache);
     }
 }

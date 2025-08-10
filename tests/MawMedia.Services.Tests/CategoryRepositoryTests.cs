@@ -269,6 +269,7 @@ public class CategoryRepositoryTests
         return new CategoryRepository(
             new FakeLogger<CategoryRepository>(),
             _fixture.DataSource.CreateConnection(),
+            new FakeHybridCache(),
             new AssetPathBuilder()
         );
     }

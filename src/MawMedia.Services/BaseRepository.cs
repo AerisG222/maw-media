@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Dapper;
 using Npgsql;
@@ -148,9 +149,25 @@ public class BaseRepository
         }
     }
 
-    internal IEnumerable<Media> AssembleMedia(IEnumerable<MediaAndFile> mediaAndFiles, string baseUrl, IAssetPathBuilder assetPathBuilder) =>
-        mediaAndFiles
+    internal async Task<IEnumerable<Media>> AssembleMedia(
+        Guid userId,
+        IEnumerable<MediaAndFile> mediaAndFiles,
+        string baseUrl,
+        IAssetPathBuilder assetPathBuilder,
+        HybridCache cache
+    )
+    {
+        var uniqueCacheKeys = new HashSet<string>();
+
+        var media = mediaAndFiles
             .GroupBy(x => x.MediaId)
+            .Select(g =>
+            {
+                // side effect to simplify priming the cache
+                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, g.First().FilePath));
+
+                return g;
+            })
             .Select(g => new Media(
                 g.Key,
                 g.First().CategoryId,
@@ -164,4 +181,12 @@ public class BaseRepository
                 )).ToList()
             ))
             .ToList();
+
+        foreach (var key in uniqueCacheKeys)
+        {
+            await cache.SetAsync(key, true);
+        }
+
+        return media;
+    }
 }
