@@ -308,6 +308,7 @@ public class MediaRepositoryTests
         return new MediaRepository(
             new FakeLogger<MediaRepository>(),
             _fixture.DataSource.CreateConnection(),
+            new FakeHybridCache(),
             new AssetPathBuilder()
         );
     }

@@ -36,7 +36,7 @@ public class MediaStaticAssetAuthorizationHandler
         }
 
         // ctx.User.Identity.Name
-        if (await _repo.HasAccess(DUMMYUSER, ctx.Request.Path))
+        if (await _repo.HasAccess(DUMMYUSER, ctx.Request.Path, default))
         {
             context.Succeed(requirement);
         }

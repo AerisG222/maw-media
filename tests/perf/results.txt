@@ -45,9 +45,11 @@ default ✓ [======================================] 10 VUs  20s
 
 
 
+
 ###########################
 # mm - 2025-08-09 - test of never hitting db to verify permissions to media (disable auth for routes in code)
 ###########################
+
 $ k6 run download-media-perf.ts
 
          /\      Grafana   /‾‾/
@@ -87,4 +89,52 @@ $ k6 run download-media-perf.ts
 
 
 running (20.0s), 00/10 VUs, 4256 complete and 0 interrupted iterations
+default ✓ [======================================] 10 VUs  20s
+
+
+
+
+###########################
+# mm - 2025-08-10 - test of using cache on asset path to avoid db lookup each request
+###########################
+
+$ k6 run download-media-perf.ts
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+     execution: local
+        script: download-media-perf.ts
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 50s max duration (incl. graceful stop):
+              * default: 10 looping VUs for 20s (gracefulStop: 30s)
+
+
+
+  █ TOTAL RESULTS
+
+    HTTP
+    http_req_duration.......................................................: avg=3.33ms   min=233.51µs med=494.17µs max=998.42ms p(90)=10.63ms  p(95)=11.85ms
+      { expected_response:true }............................................: avg=3.33ms   min=233.51µs med=494.17µs max=998.42ms p(90)=10.63ms  p(95)=11.85ms
+    http_req_failed.........................................................: 0.00%  0 out of 57660
+    http_reqs...............................................................: 57660  2875.821686/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=104.21ms min=31.06ms  med=83.79ms  max=3.44s    p(90)=102.42ms p(95)=109.99ms
+    iterations..............................................................: 1922   95.860723/s
+    vus.....................................................................: 10     min=10         max=10
+    vus_max.................................................................: 10     min=10         max=10
+
+    NETWORK
+    data_received...........................................................: 414 MB 21 MB/s
+    data_sent...............................................................: 4.9 MB 245 kB/s
+
+
+
+
+running (20.0s), 00/10 VUs, 1922 complete and 0 interrupted iterations
 default ✓ [======================================] 10 VUs  20s

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MawMedia.Models;
 using MawMedia.Services.Models;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -9,16 +10,20 @@ namespace MawMedia.Services;
 public class MediaRepository
     : BaseRepository, IMediaRepository
 {
+    readonly HybridCache _cache;
     readonly IAssetPathBuilder _assetPathBuilder;
 
     public MediaRepository(
         ILogger<MediaRepository> log,
         NpgsqlConnection conn,
+        HybridCache cache,
         IAssetPathBuilder assetPathBuilder
     ) : base(log, conn)
     {
+        ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(assetPathBuilder);
 
+        _cache = cache;
         _assetPathBuilder = assetPathBuilder;
     }
 
@@ -179,12 +184,13 @@ public class MediaRepository
         return file;
     }
 
-    public async Task<bool> HasAccess(Guid userId, string path)
-    {
-        var media = await GetMediaFile(userId, path);
+    public async Task<bool> HasAccess(Guid userId, string path, CancellationToken token) =>
 
-        return media != null;
-    }
+        await _cache.GetOrCreateAsync(
+            CacheKeyBuilder.CanAccessAsset(userId, path),
+            async cancel => (await GetMediaFile(userId, path)) != null,
+            cancellationToken: token
+        );
 
     public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude)
     {

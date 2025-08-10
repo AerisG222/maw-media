@@ -31,6 +31,7 @@
 
     <ItemGroup>
         <PackageReference Include="CliWrap" Version="3.9.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.7.0" />
         <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.7.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
         <PackageReference Include="Npgsql" Version="9.0.3" />
