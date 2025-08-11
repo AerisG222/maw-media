@@ -1,16 +1,17 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Dapper;
 using MawMedia.Services.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MawMedia.Services;
 
 public static class IServiceCollectionExtensions
 {
-    public static IServiceCollection AddMediaServices (
+    public static IServiceCollection AddMediaServices(
         this IServiceCollection services,
         IConfiguration configuration
-    ) {
+    )
+    {
         ArgumentNullException.ThrowIfNull(configuration);
 
         DefaultTypeMap.MatchNamesWithUnderscores = true;

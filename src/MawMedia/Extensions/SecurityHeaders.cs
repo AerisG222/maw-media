@@ -5,7 +5,8 @@ public static class SecurityHeadersExtensions
     public static IApplicationBuilder UseCustomSecurityHeaders(this IApplicationBuilder app)
     {
         app
-            .UseSecurityHeaders(policies => {
+            .UseSecurityHeaders(policies =>
+            {
                 policies
                     .AddDefaultSecurityHeaders()
                     .AddCrossOriginResourcePolicy(opts =>

@@ -5,7 +5,7 @@ namespace MawMedia.Authorization;
 
 public static class IServiceCollectionExtensions
 {
-    public static IServiceCollection AddMediaAuthorizationHandler (this IServiceCollection services)
+    public static IServiceCollection AddMediaAuthorizationHandler(this IServiceCollection services)
     {
         services
             .AddScoped<IAuthorizationHandler, MediaStaticAssetAuthorizationHandler>()

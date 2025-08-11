@@ -1,4 +1,4 @@
-﻿using MawMedia.Services.Tests.Models;
+using MawMedia.Services.Tests.Models;
 using Microsoft.Extensions.Logging.Testing;
 using NodaTime;
 
@@ -156,7 +156,7 @@ public class CategoryRepositoryTests
         }
         else
         {
-            var updatedCategory =  await repo.GetCategory(userId, categoryId, BASE_URL);
+            var updatedCategory = await repo.GetCategory(userId, categoryId, BASE_URL);
 
             Assert.NotNull(updatedCategory);
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
@@ -174,7 +174,7 @@ public class CategoryRepositoryTests
 
         Assert.True(success);
 
-        var updatedCategory =  await repo.GetCategory(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, BASE_URL);
+        var updatedCategory = await repo.GetCategory(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, BASE_URL);
 
         Assert.NotNull(updatedCategory);
         Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);
@@ -215,7 +215,7 @@ public class CategoryRepositoryTests
         {
             Assert.True(success);
 
-            var updatedCategory =  await repo.GetCategory(userId, categoryId, BASE_URL);
+            var updatedCategory = await repo.GetCategory(userId, categoryId, BASE_URL);
 
             Assert.NotNull(updatedCategory);
             Assert.Equal(Constants.CATEGORY_NATURE.Id, updatedCategory.Id);

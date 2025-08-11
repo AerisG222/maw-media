@@ -1,9 +1,9 @@
-using NodaTime;
-using ZiggyCreatures.Caching.Fusion;
 using MawMedia.Authorization;
 using MawMedia.Extensions;
 using MawMedia.Routes;
 using MawMedia.Services;
+using NodaTime;
+using ZiggyCreatures.Caching.Fusion;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 

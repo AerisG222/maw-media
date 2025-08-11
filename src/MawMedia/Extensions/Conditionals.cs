@@ -7,8 +7,10 @@ public static class ConditionalExtensions
         this IServiceCollection services,
         bool condition,
         Action<IServiceCollection> action
-    ) {
-        if(condition) {
+    )
+    {
+        if (condition)
+        {
             action(services);
         }
 

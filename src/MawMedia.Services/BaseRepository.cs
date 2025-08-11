@@ -1,9 +1,9 @@
-using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Logging;
 using Dapper;
-using Npgsql;
 using MawMedia.Models;
 using MawMedia.Services.Models;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace MawMedia.Services;
 

@@ -1,9 +1,9 @@
-using Dapper;
-using Npgsql;
-using MawMedia.Services.Models;
 using CliWrap;
-using Xunit.Sdk;
+using Dapper;
+using MawMedia.Services.Models;
+using Npgsql;
 using Xunit.Runner.Common;
+using Xunit.Sdk;
 
 namespace MawMedia.Services.Tests;
 

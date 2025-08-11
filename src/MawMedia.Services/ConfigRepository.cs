@@ -1,6 +1,6 @@
+using MawMedia.Models;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using MawMedia.Models;
 
 namespace MawMedia.Services;
 

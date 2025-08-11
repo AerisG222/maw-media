@@ -1,4 +1,4 @@
-﻿using MawMedia.Services.Tests.Models;
+using MawMedia.Services.Tests.Models;
 using Microsoft.Extensions.Logging.Testing;
 
 namespace MawMedia.Services.Tests;

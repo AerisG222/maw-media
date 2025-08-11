@@ -25,7 +25,7 @@ public static class Constants
     public static readonly Guid SCALE_SRC = Guid.Parse("01965307-20f9-7e01-955e-be53d1786828");
     // ** end from db seed scripts **
 
-    public static readonly DbLocation LOCATION_NY = new (
+    public static readonly DbLocation LOCATION_NY = new(
         Guid.CreateVersion7(),
         40.712776m,
         -74.005974m,
@@ -47,7 +47,7 @@ public static class Constants
         null
     );
 
-    public static readonly DbLocation LOCATION_MA = new (
+    public static readonly DbLocation LOCATION_MA = new(
         Guid.CreateVersion7(),
         42.3555m,
         -71.0565m,
@@ -168,7 +168,7 @@ public static class Constants
         GetTestMetadata("media_food_1")
     );
 
-    public static readonly DbFile FILE_NATURE_1 = new (
+    public static readonly DbFile FILE_NATURE_1 = new(
         Guid.CreateVersion7(),
         MEDIA_NATURE_1.Id,
         TYPE_PHOTO,

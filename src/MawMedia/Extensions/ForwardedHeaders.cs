@@ -16,13 +16,13 @@ public static class ForwardedHeadersExtensions
 
                 var knownNetworks = configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>();
 
-                if(knownNetworks == null || knownNetworks.Length == 0)
+                if (knownNetworks == null || knownNetworks.Length == 0)
                 {
                     Console.WriteLine("No KnownNetworks found when configuring ForwardedHeaders!");
                 }
                 else
                 {
-                    foreach(var network in knownNetworks)
+                    foreach (var network in knownNetworks)
                     {
                         opts.KnownNetworks.Add(IPNetwork.Parse(network));
                     }

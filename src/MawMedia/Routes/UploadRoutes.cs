@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using MawMedia.Models;
 using MawMedia.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace MawMedia.Routes;
 

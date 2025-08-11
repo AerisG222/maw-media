@@ -1,10 +1,10 @@
+using MawMedia.Models;
+using MawMedia.Routes.Extensions;
+using MawMedia.Services;
+using MawMedia.ViewModels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NodaTime;
-using MawMedia.Models;
-using MawMedia.Services;
-using MawMedia.ViewModels;
-using MawMedia.Routes.Extensions;
 
 namespace MawMedia.Routes;
 

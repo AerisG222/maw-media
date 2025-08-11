@@ -7,12 +7,13 @@ public static class DataProtectionExtensions
     public static IServiceCollection AddCustomDataProtection(
         this IServiceCollection services,
         IConfiguration config
-    ) {
+    )
+    {
         var dpPath = config["DataProtection:Path"];
 
         ArgumentException.ThrowIfNullOrWhiteSpace(dpPath);
 
-        if(!Directory.Exists(dpPath))
+        if (!Directory.Exists(dpPath))
         {
             throw new DirectoryNotFoundException(dpPath);
         }
