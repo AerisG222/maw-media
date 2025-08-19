@@ -52,7 +52,7 @@ public class CategoryRepository
 
     public async Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId)
     {
-        return await Query<Gps>(
+        var recs = await Query<GpsRecord>(
             "SELECT * FROM media.get_media_gps(@userId, NULL, @categoryId);",
             new
             {
@@ -60,6 +60,10 @@ public class CategoryRepository
                 categoryId
             }
         );
+
+        return recs == null
+            ? []
+            : recs.Select(r => r.ToGps());
     }
 
     public async Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)

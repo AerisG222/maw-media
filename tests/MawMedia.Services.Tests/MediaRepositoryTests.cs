@@ -98,8 +98,8 @@ public class MediaRepositoryTests
         else
         {
             Assert.NotNull(gps);
-            Assert.Equal(gps.Latitude, Constants.LOCATION_NY.Latitude);
-            Assert.Equal(gps.Longitude, Constants.LOCATION_NY.Longitude);
+            Assert.Equal(gps.Recorded?.Latitude, Constants.LOCATION_NY.Latitude);
+            Assert.Equal(gps.Recorded?.Longitude, Constants.LOCATION_NY.Longitude);
         }
     }
 
@@ -298,8 +298,8 @@ public class MediaRepositoryTests
         if (expectSuccess)
         {
             var loc = await repo.GetGps(userId, mediaId);
-            Assert.Equal(latitude, loc?.Latitude);
-            Assert.Equal(longitude, loc?.Longitude);
+            Assert.Equal(latitude, loc?.Override?.Latitude);
+            Assert.Equal(longitude, loc?.Override?.Longitude);
         }
     }
 

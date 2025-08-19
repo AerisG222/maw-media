@@ -2,6 +2,6 @@ namespace MawMedia.Models;
 
 public record Gps(
     Guid MediaId,
-    decimal Latitude,
-    decimal Longitude
+    GpsCoordinate? Recorded,
+    GpsCoordinate? Override
 );

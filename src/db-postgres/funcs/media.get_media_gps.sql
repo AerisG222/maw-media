@@ -7,8 +7,10 @@ CREATE OR REPLACE FUNCTION media.get_media_gps
 RETURNS TABLE
 (
     media_id UUID,
-    latitude NUMERIC(8, 6),
-    longitude NUMERIC(9, 6)
+    recorded_latitude NUMERIC(8, 6),
+    recorded_longitude NUMERIC(9, 6),
+    override_latitude NUMERIC(8, 6),
+    override_longitude NUMERIC(9, 6)
 )
 AS $$
 BEGIN
@@ -19,8 +21,10 @@ BEGIN
     RETURN QUERY
     SELECT
         gps.media_id,
-        gps.latitude,
-        gps.longitude
+        gps.recorded_latitude,
+        gps.recorded_longitude,
+        gps.override_latitude,
+        gps.override_longitude
     FROM media.user_media um
     INNER JOIN media.media_gps gps
         ON gps.media_id = um.media_id
@@ -28,8 +32,17 @@ BEGIN
         um.user_id = _user_id
         AND (_media_id IS NULL OR um.media_id = _media_id)
         AND (_category_id IS NULL OR um.category_id = _category_id)
-        AND gps.latitude IS NOT NULL
-        AND gps.longitude IS NOT NULL;
+        AND (
+            (
+                gps.recorded_latitude IS NOT NULL
+                AND gps.recorded_longitude IS NOT NULL
+            )
+            OR
+            (
+                gps.override_latitude IS NOT NULL
+                AND gps.override_longitude IS NOT NULL
+            )
+        );
 END;
 $$ LANGUAGE plpgsql;
 
