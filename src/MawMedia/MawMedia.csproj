@@ -18,7 +18,7 @@
         <PackageReference Include="Npgsql.DependencyInjection" Version="9.0.3" />
         <PackageReference Include="Npgsql.NodaTime" Version="9.0.3" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.6.9" />
-        <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.3.0" />
+        <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.4.0" />
     </ItemGroup>
 
     <ItemGroup>
