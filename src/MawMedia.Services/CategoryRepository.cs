@@ -143,12 +143,13 @@ public class CategoryRepository
             }
         );
 
-        var hasMore = results.Count() > limit;
+        var categories = await ConvertToCategories(userId, results, baseUrl);
+        var hasMore = categories.Count() > limit;
 
         return new SearchResult<Category>(
-            await ConvertToCategories(userId, results, baseUrl),
+            categories,
             hasMore,
-            hasMore ? limit + 1 : 0
+            hasMore ? offset + limit + 1 : 0
         );
     }
 
