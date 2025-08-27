@@ -1,9 +1,7 @@
 namespace MawMedia.Models;
 
 public record CategoryStat(
+    Guid? CategoryId,
     string CategoryName,
-    string MediaType,
-    long MediaCount,
-    decimal FileSize,
-    long Duration
+    IEnumerable<MediaTypeStat> MediaTypeStats
 );

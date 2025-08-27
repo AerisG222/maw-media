@@ -17,18 +17,31 @@ public class StatRepository
 
     public async Task<IEnumerable<YearStat>> GetStats(Guid userId)
     {
-        return await Query<YearStat>(
+        var stats = await Query<YearStatRecord>(
             "SELECT * FROM media.get_stats(@userId);",
             new
             {
                 userId
             }
         );
+
+        return stats
+            .GroupBy(s => s.Year)
+            .Select(g => new YearStat(
+                g.Key,
+                g.First().CategoryCount,
+                g.Select(x => new MediaTypeStat(
+                    x.MediaType,
+                    x.MediaCount,
+                    x.FileSize,
+                    x.Duration
+                ))
+            ));
     }
 
     public async Task<IEnumerable<CategoryStat>> GetStatsForYear(Guid userId, short year)
     {
-        return await Query<CategoryStat>(
+        var stats = await Query<CategoryStatRecord>(
             "SELECT * FROM media.get_stats_for_year(@userId, @year);",
             new
             {
@@ -36,5 +49,18 @@ public class StatRepository
                 year
             }
         );
+
+        return stats
+            .GroupBy(s => s.CategoryId)
+            .Select(g => new CategoryStat(
+                g.First().CategoryId,
+                g.First().CategoryName,
+                g.Select(x => new MediaTypeStat(
+                    x.MediaType,
+                    x.MediaCount,
+                    x.FileSize,
+                    x.Duration
+                ))
+            ));
     }
 }

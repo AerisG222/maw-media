@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION media.get_stats_for_year
 )
 RETURNS TABLE
 (
+    category_id UUID,
     category_name TEXT,
     media_type TEXT,
     media_count BIGINT,
@@ -17,6 +18,7 @@ BEGIN
     WITH media_stats AS
     (
         SELECT
+            uc.category_id,
             CASE
                 WHEN uc.category_id IS NULL THEN 'Other'
                 ELSE c.name
@@ -41,6 +43,7 @@ BEGIN
             EXTRACT(YEAR FROM c.effective_date) = _year
     )
     SELECT
+        ms.category_id,
         ms.category_name,
         ms.media_type,
         COUNT(DISTINCT ms.media_id) AS media_count,
@@ -48,6 +51,7 @@ BEGIN
         SUM(ms.duration) AS duration
     FROM media_stats ms
     GROUP BY
+        ms.category_id,
         ms.category_name,
         ms.media_type
     ORDER BY ms.category_name;
