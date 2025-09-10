@@ -17,12 +17,11 @@ BEGIN
     WITH media_stats AS
     (
         SELECT
-            EXTRACT(YEAR FROM c.effective_date) AS category_year,
-            c.id AS category_id,
-            m.id AS media_id,
+            CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
             mt.code AS media_type,
-            f.bytes AS file_size,
-            CAST(NULL AS INTEGER) AS duration
+            COUNT(DISTINCT m.id) AS media_count,
+            SUM(f.bytes) AS file_size,
+            SUM(CAST(NULL AS INTEGER)) AS duration
         FROM media.category c
         INNER JOIN media.category_media cm
             ON cm.category_id = c.id
@@ -32,30 +31,26 @@ BEGIN
             ON mt.id = m.type_id
         INNER JOIN media.file f
             ON f.media_id = m.id
-    ),
-    category_count AS
-    (
-        SELECT
-            m.category_year,
-            COUNT(DISTINCT m.category_id) AS category_count
-        FROM media_stats m
         GROUP BY
-            m.category_year
+            year,
+            media_type
     )
     SELECT
-        CAST(ms.category_year AS SMALLINT) AS year,
-        MAX(cc.category_count),
+        ms.year,
+        (SELECT COUNT(cat.id) FROM media.category cat WHERE ms.year = CAST(EXTRACT(YEAR FROM cat.effective_date) AS SMALLINT)) AS category_count,
         ms.media_type,
-        COUNT(DISTINCT ms.media_id) AS media_count,
-        SUM(ms.file_size) AS file_size,
-        SUM(ms.duration) AS duration
+        ms.media_count,
+        ms.file_size,
+        ms.duration
     FROM media_stats ms
-    INNER JOIN category_count cc
-        ON cc.category_year = ms.category_year
     GROUP BY
-        ms.category_year,
-        ms.media_type
-    ORDER BY year DESC;
+        ms.year,
+        ms.media_type,
+        ms.media_count,
+        ms.file_size,
+        ms.duration
+    ORDER BY
+        ms.year DESC;
 
 END;
 $$ LANGUAGE plpgsql;
