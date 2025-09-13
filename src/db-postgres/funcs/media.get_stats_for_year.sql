@@ -10,7 +10,7 @@ RETURNS TABLE
     media_type TEXT,
     media_count BIGINT,
     file_size NUMERIC(24),
-    duration BIGINT
+    duration INTEGER
 )
 AS $$
 BEGIN
@@ -26,7 +26,7 @@ BEGIN
             m.id AS media_id,
             mt.code AS media_type,
             f.bytes AS file_size,
-            CAST(NULL AS INTEGER) AS duration
+            m.duration AS duration
         FROM media.category c
         INNER JOIN media.category_media cm
             ON cm.category_id = c.id
@@ -48,7 +48,7 @@ BEGIN
         ms.media_type,
         COUNT(DISTINCT ms.media_id) AS media_count,
         SUM(ms.file_size) AS file_size,
-        SUM(ms.duration) AS duration
+        MAX(ms.duration) AS duration
     FROM media_stats ms
     GROUP BY
         ms.category_id,

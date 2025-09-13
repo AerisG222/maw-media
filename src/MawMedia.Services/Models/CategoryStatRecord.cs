@@ -4,5 +4,5 @@ public record CategoryStatRecord(
     string MediaType,
     long MediaCount,
     decimal FileSize,
-    long? Duration
+    int? Duration
 );

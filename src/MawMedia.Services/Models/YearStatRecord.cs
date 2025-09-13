@@ -4,5 +4,5 @@ public record YearStatRecord(
     string MediaType,
     long MediaCount,
     decimal FileSize,
-    long? Duration
+    int? Duration
 );
