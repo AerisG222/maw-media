@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS media.media (
     created_by UUID NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
     modified_by UUID NOT NULL,
-    duration INTEGER,
+    duration REAL,
     metadata JSONB,
 
     CONSTRAINT pk_media_media
