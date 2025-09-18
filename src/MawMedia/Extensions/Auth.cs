@@ -37,12 +37,6 @@ public static class AuthExtensions
                     );
 
                 opts.AddPolicy(
-                    AuthorizationPolicies.Admin, p => p
-                        .RequireAuthenticatedUser()
-                        .RequireRole("Administrator")
-                    );
-
-                opts.AddPolicy(
                     AuthorizationPolicies.MediaReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/media:read")

@@ -101,6 +101,7 @@ function main() {
     run_psql_script "funcs/media.get_category_media.sql"
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
+    run_psql_script "funcs/media.get_is_admin.sql"
     run_psql_script "funcs/media.get_media.sql"
     run_psql_script "funcs/media.get_media_file.sql"
     run_psql_script "funcs/media.get_media_gps.sql"
