@@ -39,6 +39,13 @@ public static class CategoryRoutes
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
+            .MapGet("/years/{year}/no-gps", GetCategoriesWithoutGps)
+            .WithName("categories-without-gps")
+            .WithSummary("Categories Without GPS")
+            .WithDescription("List Categories that are not tagged with a GPS position")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
+
+        group
             .MapGet("/updates/{date}", GetCategoryUpdates)
             .WithName("category-updates")
             .WithSummary("Category Updates")
@@ -119,6 +126,9 @@ public static class CategoryRoutes
 
         return TypedResults.Ok(await repo.Search(DUMMYUSER, request.GetBaseUrl(), s, o, SEARCH_LIMIT));
     }
+
+    static async Task<Results<Ok<IEnumerable<Guid>>, BadRequest<string>, ForbidHttpResult>> GetCategoriesWithoutGps(ICategoryRepository repo, HttpRequest request, [FromRoute] short year) =>
+        TypedResults.Ok(await repo.GetCategoriesWithoutGps(DUMMYUSER, year));
 
     static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id)
     {

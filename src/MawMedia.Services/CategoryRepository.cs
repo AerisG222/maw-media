@@ -153,6 +153,16 @@ public class CategoryRepository
         );
     }
 
+    public async Task<IEnumerable<Guid>> GetCategoriesWithoutGps(Guid userId, short? year) =>
+        await Query<Guid>(
+            "SELECT * FROM media.get_categories_without_gps(@userId, @year)",
+            new
+            {
+                userId,
+                year
+            }
+        );
+
     async Task<IEnumerable<Category>> InternalGetCategories(
         Guid userId,
         string baseUrl,

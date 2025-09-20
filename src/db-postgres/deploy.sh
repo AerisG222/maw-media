@@ -99,6 +99,7 @@ function main() {
     run_psql_script "funcs/media.favorite_category.sql"
     run_psql_script "funcs/media.favorite_media.sql"
     run_psql_script "funcs/media.get_categories.sql"
+    run_psql_script "funcs/media.get_categories_without_gps.sql"
     run_psql_script "funcs/media.get_category_media.sql"
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
