@@ -1,3 +1,24 @@
 {
-    "dotnet.defaultSolution": "maw-media.sln"
+    "dotnet.defaultSolution": "maw-media.sln",
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#6c3089",
+        "activityBar.background": "#6c3089",
+        "activityBar.foreground": "#e7e7e7",
+        "activityBar.inactiveForeground": "#e7e7e799",
+        "activityBarBadge.background": "#181308",
+        "activityBarBadge.foreground": "#e7e7e7",
+        "commandCenter.border": "#e7e7e799",
+        "sash.hoverBorder": "#6c3089",
+        "statusBar.background": "#4e2363",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#6c3089",
+        "statusBarItem.remoteBackground": "#4e2363",
+        "statusBarItem.remoteForeground": "#e7e7e7",
+        "tab.activeBorder": "#6c3089",
+        "titleBar.activeBackground": "#4e2363",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#4e236399",
+        "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.color": "#4e2363"
 }
