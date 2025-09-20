@@ -69,6 +69,13 @@ public static class MediaRoutes
             .WithDescription("Set the GPS override for this media")
             .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
+        group
+            .MapPost("/bulk-gps-override", BulkGpsOverride)
+            .WithName("bulk-set-gps-override")
+            .WithSummary("Bulk GPS Override")
+            .WithDescription("Set the GPS override for many media items at once")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         return group;
     }
 
@@ -152,6 +159,30 @@ public static class MediaRoutes
             newLocationId,
             request.Latitude,
             request.Longitude
+        );
+
+        if (!success)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok();
+    }
+
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> BulkGpsOverride(
+        IMediaRepository repo,
+        [FromBody] BulkUpdateGpsRequest request
+    )
+    {
+        // only used if truly new, otherwise media will be assigned location mathching these coords
+        var newLocationId = Guid.CreateVersion7();
+
+        var success = await repo.BulkSetGpsOverride(
+            DUMMYUSER,
+            request.MediaIds,
+            newLocationId,
+            request.GpsCoordinate.Latitude,
+            request.GpsCoordinate.Longitude
         );
 
         if (!success)

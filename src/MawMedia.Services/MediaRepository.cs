@@ -210,6 +210,23 @@ public class MediaRepository
         return result == 0;
     }
 
+    public async Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude)
+    {
+        var result = await ExecuteTransaction<int>(
+            "SELECT media.bulk_set_media_gps_override(@userId, @mediaIds, @newLocationId, @latitude, @longitude);",
+            new
+            {
+                userId,
+                mediaIds,
+                newLocationId,
+                latitude,
+                longitude
+            }
+        );
+
+        return result == 0;
+    }
+
     async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path) =>
         await QuerySingle<MediaFile>(
             """

@@ -17,4 +17,5 @@ public interface IMediaRepository
     Task<MediaFile?> GetMediaFile(Guid userId, string path);
     Task<bool> AllowAccessToAsset(Guid userId, string path, CancellationToken token);
     Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude);
+    Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude);
 }
