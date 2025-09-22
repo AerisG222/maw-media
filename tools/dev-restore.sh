@@ -7,7 +7,7 @@ podman run --rm \
     --name dev-media-pg-load \
     --security-opt label=disable \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
-    --volume "/home/mmorano/maw/dev/media/data/pgpwd:/secrets" \
+    --volume "/home/mmorano/maw-media/dev/pg-pwd:/secrets" \
     --volume "$(pwd):/input" \
     docker.io/aerisg222/maw-media-postgres:latest \
         psql \
@@ -21,7 +21,7 @@ podman run --rm \
     --name dev-media-pg-load \
     --security-opt label=disable \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
-    --volume "/home/mmorano/maw/dev/media/data/pgpwd:/secrets" \
+    --volume "/home/mmorano/maw-media/dev/pg-pwd:/secrets" \
     --volume "$(pwd):/input" \
     docker.io/aerisg222/maw-media-postgres:latest \
         pg_restore \

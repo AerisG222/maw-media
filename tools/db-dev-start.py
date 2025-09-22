@@ -40,6 +40,7 @@ if not client.containers.exists(PG_CONTAINER):
         image = PG_IMG,
         name = PG_CONTAINER,
         pod = POD,
+        # userns_mode = 'keep-id:uid=999',
         environment = {
             "POSTGRES_PASSWORD_FILE": f"/secrets/psql-postgres"
         },
