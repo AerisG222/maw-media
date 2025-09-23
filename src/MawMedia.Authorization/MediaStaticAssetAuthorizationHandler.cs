@@ -7,7 +7,7 @@ namespace MawMedia.Authorization;
 public class MediaStaticAssetAuthorizationHandler
     : AuthorizationHandler<MediaStaticAssetRequirement>
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("0197e02e-7c7f-7c1e-bb77-ee35921e4c51");
+    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
 
     readonly IMediaRepository _repo;
 
