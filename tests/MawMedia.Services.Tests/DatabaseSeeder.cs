@@ -59,6 +59,7 @@ public class DatabaseSeeder
     async Task PopulateData(NpgsqlConnection conn)
     {
         await PopulateUsers(conn);
+        await PopulateExternalIdentities(conn);
         await PopulateRoles(conn);
         await PopulateUserRoles(conn);
 
@@ -133,6 +134,48 @@ public class DatabaseSeeder
             (@id, @created, @modified, @name, @email, @email_verified, @given_name, @surname);
             """,
             users
+        );
+    }
+
+    async Task PopulateExternalIdentities(NpgsqlConnection conn)
+    {
+        List<object> externalIds = [
+            new {
+                external_id = Constants.EXTERNAL_ID_NOUSER,
+                user_id = (Guid?) null,
+                created = DateTime.Now,
+                modified = DateTime.Now,
+                name = "No User",
+                email = "nouser@example.com",
+                email_verified = true,
+            },
+            new {
+                external_id = Constants.EXTERNAL_ID_USERADMIN,
+                user_id = (Guid?)Constants.USER_ADMIN,
+                created = DateTime.Now,
+                modified = DateTime.Now,
+                name = "Admin User",
+                email = "adminuser@example.com",
+                email_verified = true,
+            },
+            new {
+                external_id = Constants.EXTERNAL_ID_JOHNDOE,
+                user_id = (Guid?)Constants.USER_JOHNDOE,
+                created = DateTime.Now,
+                modified = DateTime.Now,
+                name = "John Doe",
+                email = "jdoe@example.com",
+                email_verified = true,
+            }
+        ];
+
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.external_identity (external_id, user_id, created, modified, name, email, email_verified)
+            VALUES
+            (@external_id, @user_id, @created, @modified, @name, @email, @email_verified);
+            """,
+            externalIds
         );
     }
 

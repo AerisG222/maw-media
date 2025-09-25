@@ -75,6 +75,10 @@ public static class Constants
     public static readonly Guid USER_ADMIN = Guid.CreateVersion7();
     public static readonly Guid USER_JOHNDOE = Guid.CreateVersion7();
 
+    public static readonly string EXTERNAL_ID_NOUSER = Guid.CreateVersion7().ToString();
+    public static readonly string EXTERNAL_ID_USERADMIN = Guid.CreateVersion7().ToString();
+    public static readonly string EXTERNAL_ID_JOHNDOE = Guid.CreateVersion7().ToString();
+
     public static readonly IEnumerable<dynamic> UserRoles = [
         new {
             user_id = USER_ADMIN,

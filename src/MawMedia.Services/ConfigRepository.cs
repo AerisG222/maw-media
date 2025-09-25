@@ -17,13 +17,4 @@ public class ConfigRepository
 
     public async Task<IEnumerable<Scale>> GetScales() =>
         await Query<Scale>("SELECT * FROM media.get_scales();");
-
-    public async Task<bool> GetIsAdmin(Guid userId) =>
-        await ExecuteScalar<bool>(
-            "SELECT * FROM media.get_is_admin(@userId);",
-            new
-            {
-                userId
-            }
-        );
 }

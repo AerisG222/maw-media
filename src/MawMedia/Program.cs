@@ -41,6 +41,7 @@ app
     .UseCustomStaticFiles()
     .UseCustomOpenApi();
 
+app.MapGroup("/auth").MapAuthRoutes();
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/config").MapConfigRoutes();
 app.MapGroup("/media").MapMediaRoutes();

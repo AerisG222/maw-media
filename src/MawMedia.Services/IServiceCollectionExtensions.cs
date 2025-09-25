@@ -22,6 +22,7 @@ public static class IServiceCollectionExtensions
             .Configure<AssetConfig>(configuration.GetSection("Assets"))
             .Configure<CategoryDownloadConfig>(configuration.GetSection("CategoryDownload"))
             .Configure<UploadConfig>(configuration.GetSection("Upload"))
+            .AddScoped<IAuthRepository, AuthRepository>()
             .AddScoped<ICategoryRepository, CategoryRepository>()
             .AddScoped<IConfigRepository, ConfigRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()

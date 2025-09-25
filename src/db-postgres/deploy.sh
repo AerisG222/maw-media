@@ -112,6 +112,7 @@ function main() {
     run_psql_script "funcs/media.get_scales.sql"
     run_psql_script "funcs/media.get_stats.sql"
     run_psql_script "funcs/media.get_stats_for_year.sql"
+    run_psql_script "funcs/media.get_user_state.sql"
     run_psql_script "funcs/media.search_categories.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"
     run_psql_script "funcs/media.set_media_gps_override.sql"
