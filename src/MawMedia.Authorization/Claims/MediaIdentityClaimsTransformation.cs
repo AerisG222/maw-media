@@ -53,7 +53,7 @@ public class MediaIdentityClaimsTransformation
         return principal;
     }
 
-    void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, bool isAdmin)
+    static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, bool isAdmin)
     {
         var claimsIdentity = new ClaimsIdentity();
 

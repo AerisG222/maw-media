@@ -108,7 +108,7 @@ public class AuthRepository
         return BuildUserState(userStateRecord);
     }
 
-    IUserState BuildUserState(UserStateRecord? userStateRecord)
+    static IUserState BuildUserState(UserStateRecord? userStateRecord)
     {
         if (userStateRecord == null)
         {

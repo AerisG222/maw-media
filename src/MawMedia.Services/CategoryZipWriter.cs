@@ -58,7 +58,7 @@ public class CategoryZipFileWriter
         return Path.Combine(_downloadRootDir, filename);
     }
 
-    string TrimAssetsPathPrefix(string urlPath)
+    static string TrimAssetsPathPrefix(string urlPath)
     {
         if (!urlPath.StartsWith(Constants.AssetBaseUrlWithSlash))
         {

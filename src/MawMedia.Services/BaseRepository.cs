@@ -163,7 +163,7 @@ public class BaseRepository
         }
     }
 
-    internal async Task<IEnumerable<Media>> AssembleMedia(
+    internal static async Task<IEnumerable<Media>> AssembleMedia(
         Guid userId,
         IEnumerable<MediaAndFile> mediaAndFiles,
         string baseUrl,
