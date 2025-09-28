@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,8 +9,6 @@ namespace MawMedia.Routes;
 
 public static class StatRoutes
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
-
     public static RouteGroupBuilder MapStatRoutes(this RouteGroupBuilder group)
     {
         group
@@ -28,9 +28,28 @@ public static class StatRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<YearStat>>, ForbidHttpResult>> GetStats(IStatRepository repo) =>
-        TypedResults.Ok(await repo.GetStats(DUMMYUSER));
+    static async Task<Results<Ok<IEnumerable<YearStat>>, ForbidHttpResult>> GetStats(
+        IStatRepository repo,
+        ClaimsPrincipal user
+    )
+    {
+        var userId = user.GetMediaUserId();
 
-    static async Task<Results<Ok<IEnumerable<CategoryStat>>, ForbidHttpResult>> GetStatsForYear(IStatRepository repo, [FromRoute] short year) =>
-        TypedResults.Ok(await repo.GetStatsForYear(DUMMYUSER, year));
+        return userId != null
+            ? TypedResults.Ok(await repo.GetStats(userId.Value))
+            : TypedResults.Ok(Array.Empty<YearStat>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<IEnumerable<CategoryStat>>, ForbidHttpResult>> GetStatsForYear(
+        IStatRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] short year
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetStatsForYear(userId.Value, year))
+            : TypedResults.Ok(Array.Empty<CategoryStat>().AsEnumerable());
+    }
 }

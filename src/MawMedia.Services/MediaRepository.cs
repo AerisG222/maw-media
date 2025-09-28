@@ -104,7 +104,7 @@ public class MediaRepository
 
     public async Task<Media?> SetIsFavorite(Guid userId, string baseUrl, Guid mediaId, bool isFavorite)
     {
-        var result = await ExecuteTransaction<int>(
+        var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.favorite_media(@userId, @mediaId, @isFavorite);",
             new
             {
@@ -141,7 +141,7 @@ public class MediaRepository
     {
         var commentId = Guid.CreateVersion7();
 
-        var result = await ExecuteTransaction<int>(
+        var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.add_comment(@commentId, @userId, @mediaId, @body);",
             new
             {
@@ -195,7 +195,7 @@ public class MediaRepository
 
     public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude)
     {
-        var result = await ExecuteTransaction<int>(
+        var result = await ExecuteScalarInTransaction<int>(
             "SELECT media.set_media_gps_override(@userId, @mediaId, @newLocationId, @latitude, @longitude);",
             new
             {
@@ -212,7 +212,7 @@ public class MediaRepository
 
     public async Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude)
     {
-        var result = await ExecuteTransaction<int>(
+        var result = await ExecuteScalarInTransaction<int>(
             "SELECT media.bulk_set_media_gps_override(@userId, @mediaIds, @newLocationId, @latitude, @longitude);",
             new
             {

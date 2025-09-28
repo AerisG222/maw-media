@@ -28,7 +28,7 @@ public class AuthRepositoryTests
     {
         var repo = GetRepo();
 
-        var state = await repo.GetUserState(externalId);
+        var state = await repo.GetUserState(externalId, TestContext.Current.CancellationToken);
 
         Assert.Equal(expectedType, state.GetType());
 
@@ -67,7 +67,9 @@ public class AuthRepositoryTests
     {
         return new AuthRepository(
             new FakeLogger<AuthRepository>(),
-            _fixture.DataSource.CreateConnection()
+            _fixture.DataSource.CreateConnection(),
+            new FakeHybridCache(),
+            new FakeUserInfoClient()
         );
     }
 }

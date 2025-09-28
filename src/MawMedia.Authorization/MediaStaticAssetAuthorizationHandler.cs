@@ -1,3 +1,4 @@
+using MawMedia.Authorization.Claims;
 using MawMedia.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -7,8 +8,6 @@ namespace MawMedia.Authorization;
 public class MediaStaticAssetAuthorizationHandler
     : AuthorizationHandler<MediaStaticAssetRequirement>
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
-
     readonly IMediaRepository _repo;
 
     public MediaStaticAssetAuthorizationHandler(IMediaRepository repo)
@@ -30,19 +29,27 @@ public class MediaStaticAssetAuthorizationHandler
             return;
         }
 
-        if (!ctx.Request.Path.StartsWithSegments(Constants.AssetBaseUrl))
+        if (!ctx.Request.Path.StartsWithSegments(Services.Constants.AssetBaseUrl))
         {
             return;
         }
 
-        // ctx.User.Identity.Name
-        if (await _repo.AllowAccessToAsset(DUMMYUSER, ctx.Request.Path, default))
+        var userId = ctx.User.GetMediaUserId();
+
+        if (userId == null)
         {
-            context.Succeed(requirement);
+            context.Fail();
         }
         else
         {
-            context.Fail();
+            if (await _repo.AllowAccessToAsset(userId.Value, ctx.Request.Path, default))
+            {
+                context.Succeed(requirement);
+            }
+            else
+            {
+                context.Fail();
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Routes.Extensions;
 using MawMedia.Services;
@@ -9,8 +11,6 @@ namespace MawMedia.Routes;
 
 public static class MediaRoutes
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
-
     public static RouteGroupBuilder MapMediaRoutes(this RouteGroupBuilder group)
     {
         group
@@ -79,117 +79,193 @@ public static class MediaRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetRandomMedia(IMediaRepository repo, HttpRequest request, [FromRoute] byte count) =>
-        TypedResults.Ok(await repo.GetRandomMedia(DUMMYUSER, request.GetBaseUrl(), count));
-
-    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> GetMedia(IMediaRepository repo, HttpRequest request, [FromRoute] Guid id)
+    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetRandomMedia(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] byte count
+    )
     {
-        var media = await repo.GetMedia(DUMMYUSER, request.GetBaseUrl(), id);
+        var userId = user.GetMediaUserId();
 
-        if (media == null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return TypedResults.Ok(media);
+        return userId != null
+            ? TypedResults.Ok(await repo.GetRandomMedia(userId.Value, request.GetBaseUrl(), count))
+            : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
     }
 
-    static async Task<Results<Ok<Gps>, NotFound, ForbidHttpResult>> GetGps(IMediaRepository repo, [FromRoute] Guid id)
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> GetMedia(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id
+    )
     {
-        var gps = await repo.GetGps(DUMMYUSER, id);
+        var userId = user.GetMediaUserId();
 
-        if (gps == null)
+        if (userId == null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(gps);
+        var media = await repo.GetMedia(userId.Value, request.GetBaseUrl(), id);
+
+        return media != null
+            ? TypedResults.Ok(media)
+            : TypedResults.NotFound();
     }
 
-    static async Task<IResult> GetMetadata(IMediaRepository repo, HttpRequest request, [FromRoute] Guid id)
+    static async Task<Results<Ok<Gps>, NotFound, ForbidHttpResult>> GetGps(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id
+    )
     {
-        var metadata = await repo.GetMetadata(DUMMYUSER, id);
+        var userId = user.GetMediaUserId();
 
-        if (metadata == null)
+        if (userId == null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(metadata);
+        var gps = await repo.GetGps(userId.Value, id);
+
+        return gps != null
+            ? TypedResults.Ok(gps)
+            : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(IMediaRepository repo, HttpRequest httpRequest, [FromRoute] Guid id, [FromBody] FavoriteRequest request)
+    static async Task<IResult> GetMetadata(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id
+    )
     {
-        var media = await repo.SetIsFavorite(DUMMYUSER, httpRequest.GetBaseUrl(), id, request.IsFavorite);
+        var userId = user.GetMediaUserId();
 
-        if (media == null)
+        if (userId == null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(media);
+        var metadata = await repo.GetMetadata(userId.Value, id);
+
+        return metadata != null
+            ? TypedResults.Ok(metadata)
+            : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<IEnumerable<Comment>>, ForbidHttpResult>> GetComments(IMediaRepository repo, [FromRoute] Guid id) =>
-        TypedResults.Ok(await repo.GetComments(DUMMYUSER, id));
-
-    static async Task<Results<Ok<Comment>, NotFound, ForbidHttpResult>> AddComment(IMediaRepository repo, [FromRoute] Guid id, [FromBody] AddCommentRequest request)
+    static async Task<Results<Ok<Media>, NotFound, ForbidHttpResult>> FavoriteMedia(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest httpRequest,
+        [FromRoute] Guid id,
+        [FromBody] FavoriteRequest request)
     {
-        var commentId = await repo.AddComment(DUMMYUSER, id, request.Body);
+        var userId = user.GetMediaUserId();
 
-        if (commentId == null)
+        if (userId == null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(await repo.GetComment(DUMMYUSER, (Guid)commentId));
+        var media = await repo.SetIsFavorite(userId.Value, httpRequest.GetBaseUrl(), id, request.IsFavorite);
+
+        return media != null
+            ? TypedResults.Ok(media)
+            : TypedResults.NotFound();
+    }
+
+    static async Task<Results<Ok<IEnumerable<Comment>>, ForbidHttpResult>> GetComments(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetComments(userId.Value, id))
+            : TypedResults.Ok(Array.Empty<Comment>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<Comment>, NotFound, ForbidHttpResult>> AddComment(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        [FromBody] AddCommentRequest request
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var commentId = await repo.AddComment(userId.Value, id, request.Body);
+
+        return commentId != null
+            ? TypedResults.Ok(await repo.GetComment(userId.Value, (Guid)commentId))
+            : TypedResults.NotFound();
     }
 
     static async Task<Results<Ok, NotFound, ForbidHttpResult>> SetGpsOverride(
         IMediaRepository repo,
+        ClaimsPrincipal user,
         [FromRoute] Guid id,
-        [FromBody] UpdateGpsRequest request)
+        [FromBody] UpdateGpsRequest request
+    )
     {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
         // only used if truly new, otherwise media will be assigned location mathching these coords
         var newLocationId = Guid.CreateVersion7();
 
         var success = await repo.SetGpsOverride(
-            DUMMYUSER,
+            userId.Value,
             id,
             newLocationId,
             request.Latitude,
             request.Longitude
         );
 
-        if (!success)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return TypedResults.Ok();
+        return success
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
     }
 
     static async Task<Results<Ok, NotFound, ForbidHttpResult>> BulkGpsOverride(
         IMediaRepository repo,
+        ClaimsPrincipal user,
         [FromBody] BulkUpdateGpsRequest request
     )
     {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
         // only used if truly new, otherwise media will be assigned location mathching these coords
         var newLocationId = Guid.CreateVersion7();
 
         var success = await repo.BulkSetGpsOverride(
-            DUMMYUSER,
+            userId.Value,
             request.MediaIds,
             newLocationId,
             request.GpsCoordinate.Latitude,
             request.GpsCoordinate.Longitude
         );
 
-        if (!success)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return TypedResults.Ok();
+        return success
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
     }
 }

@@ -2,6 +2,7 @@ using MawMedia.Authorization;
 using MawMedia.Extensions;
 using MawMedia.Routes;
 using MawMedia.Services;
+using Microsoft.Net.Http.Headers;
 using NodaTime;
 using ZiggyCreatures.Caching.Fusion;
 
@@ -19,6 +20,10 @@ builder.Services
     .AddCustomDataProtection(builder.Configuration)
     .AddCustomForwardedHeaders(builder.Configuration)
     .ConfigureCustomJsonOptions()
+    .AddHeaderPropagation(opts =>
+    {
+        opts.Headers.Add(HeaderNames.Authorization);
+    })
     .AddNpgsql(builder.Configuration)
     .AddFusionCache()
         .AsHybridCache()
@@ -33,6 +38,7 @@ var app = builder.Build();
 
 app
     .UseForwardedHeaders()
+    .UseHeaderPropagation()
     .UseRouting()
     .UseCustomSecurityHeaders()
     .UseCors()

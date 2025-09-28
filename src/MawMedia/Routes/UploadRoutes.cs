@@ -1,13 +1,14 @@
+using System.Security.Claims;
+using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MawMedia.Routes;
 
 public static class UploadRoutes
 {
-    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
-
     public static RouteGroupBuilder MapUploadRoutes(this RouteGroupBuilder group)
     {
         group
@@ -35,21 +36,49 @@ public static class UploadRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<UploadedFile>>, ForbidHttpResult>> GetFiles(IUploadService svc, HttpRequest request) =>
-        TypedResults.Ok(await svc.GetFiles(DUMMYUSER));
-
-    static async Task<Results<Ok<UploadedFile>, ForbidHttpResult>> UploadFile(IUploadService svc, IFormFile file) =>
-        TypedResults.Ok(await svc.UploadFile(DUMMYUSER, file.OpenReadStream(), file.FileName));
-
-    static async Task<IResult> DownloadFile(IUploadService svc, string filename)
+    static async Task<Results<Ok<IEnumerable<UploadedFile>>, ForbidHttpResult>> GetFiles(
+        IUploadService svc,
+        ClaimsPrincipal user,
+        HttpRequest request
+    )
     {
-        var physicalFile = await svc.GetPhysicalFilePath(DUMMYUSER, filename);
+        var userId = user.GetMediaUserId();
 
-        if (physicalFile == null)
+        return userId != null
+            ? TypedResults.Ok(await svc.GetFiles(userId.Value))
+            : TypedResults.Ok(Array.Empty<UploadedFile>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<UploadedFile>, NotFound, ForbidHttpResult>> UploadFile(
+        IUploadService svc,
+        ClaimsPrincipal user,
+        IFormFile file
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName))
+            : TypedResults.NotFound();
+    }
+
+    static async Task<IResult> DownloadFile(
+        IUploadService svc,
+        ClaimsPrincipal user,
+        [FromRoute] string filename
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
         {
             return Results.NotFound();
         }
 
-        return Results.File(physicalFile);
+        var physicalFile = await svc.GetPhysicalFilePath(userId.Value, filename);
+
+        return physicalFile != null
+            ? Results.File(physicalFile)
+            : Results.NotFound();
     }
 }

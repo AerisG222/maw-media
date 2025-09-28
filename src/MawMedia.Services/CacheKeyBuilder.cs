@@ -24,4 +24,6 @@ public static class CacheKeyBuilder
 
         return $"asset-{userId}-{assetPath[..second]}";
     }
+
+    public static string UserState(string externalId) => $"user-state-{externalId}";
 }

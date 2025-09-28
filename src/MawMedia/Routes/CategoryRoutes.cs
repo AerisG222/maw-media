@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Routes.Extensions;
 using MawMedia.Services;
@@ -12,7 +14,6 @@ public static class CategoryRoutes
 {
     const int SEARCH_LIMIT = 24;
     const string SCALE_FULL = "full";
-    static readonly Guid DUMMYUSER = Guid.Parse("01997368-32db-7af5-83c3-00712e2304fd");
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)
     {
@@ -105,84 +106,205 @@ public static class CategoryRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(ICategoryRepository repo) =>
-        TypedResults.Ok(await repo.GetCategoryYears(DUMMYUSER));
+    static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(
+        ICategoryRepository repo,
+        ClaimsPrincipal user
+    )
+    {
+        var userId = user.GetMediaUserId();
 
-    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(ICategoryRepository repo, HttpRequest request) =>
-        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, request.GetBaseUrl()));
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategoryYears(userId.Value))
+            : TypedResults.Ok(Array.Empty<short>().AsEnumerable());
+    }
 
-    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoriesForYear(ICategoryRepository repo, HttpRequest request, [FromRoute] short year) =>
-        TypedResults.Ok(await repo.GetCategories(DUMMYUSER, request.GetBaseUrl(), year));
+    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request
+    )
+    {
+        var userId = user.GetMediaUserId();
 
-    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(ICategoryRepository repo, HttpRequest request, DateTime date) =>
-        TypedResults.Ok(await repo.GetCategoryUpdates(DUMMYUSER, Instant.FromDateTimeUtc(date.ToUniversalTime()), request.GetBaseUrl()));
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl()))
+            : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
+    }
 
-    static async Task<Results<Ok<SearchResult<Category>>, BadRequest<string>, ForbidHttpResult>> SearchCategories(ICategoryRepository repo, HttpRequest request, [FromQuery] string s, [FromQuery] int o = 0)
+    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoriesForYear(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] short year
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl(), year))
+            : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategoryUpdates(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] DateTime date
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategoryUpdates(userId.Value, Instant.FromDateTimeUtc(date.ToUniversalTime()), request.GetBaseUrl()))
+            : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<SearchResult<Category>>, BadRequest<string>, ForbidHttpResult>> SearchCategories(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromQuery] string s,
+        [FromQuery] int o = 0
+    )
     {
         if (string.IsNullOrWhiteSpace(s))
         {
             return TypedResults.BadRequest("Search term cannot be empty.");
         }
 
-        return TypedResults.Ok(await repo.Search(DUMMYUSER, request.GetBaseUrl(), s, o, SEARCH_LIMIT));
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.Search(userId.Value, request.GetBaseUrl(), s, o, SEARCH_LIMIT))
+            : TypedResults.Ok(new SearchResult<Category>([], false, 0));
     }
 
-    static async Task<Results<Ok<IEnumerable<Guid>>, BadRequest<string>, ForbidHttpResult>> GetCategoriesWithoutGps(ICategoryRepository repo, HttpRequest request, [FromRoute] short year) =>
-        TypedResults.Ok(await repo.GetCategoriesWithoutGps(DUMMYUSER, year));
-
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id)
+    static async Task<Results<Ok<IEnumerable<Guid>>, BadRequest<string>, ForbidHttpResult>> GetCategoriesWithoutGps(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] short year
+    )
     {
-        var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
+        var userId = user.GetMediaUserId();
 
-        if (category == null)
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategoriesWithoutGps(userId.Value, year))
+            : TypedResults.Ok(Array.Empty<Guid>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> GetCategory(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(category);
+        var category = await repo.GetCategory(userId.Value, id, request.GetBaseUrl());
+
+        return category != null
+            ? TypedResults.Ok(category)
+            : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> FavoriteCategory(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id, [FromBody] FavoriteRequest favRequest)
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> FavoriteCategory(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] FavoriteRequest favRequest
+    )
     {
-        var success = await repo.SetIsFavorite(DUMMYUSER, id, favRequest.IsFavorite);
+        var userId = user.GetMediaUserId();
 
-        if (success)
+        if (userId == null)
         {
-            var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
-
-            return TypedResults.Ok(category);
+            return TypedResults.NotFound();
         }
 
-        return TypedResults.NotFound();
+        var success = await repo.SetIsFavorite(userId.Value, id, favRequest.IsFavorite);
+
+        return success
+            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl()))
+            : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id, [FromBody] CategoryTeaserRequest teaserRequest)
+    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] CategoryTeaserRequest teaserRequest
+    )
     {
-        var success = await repo.SetTeaserMedia(DUMMYUSER, id, teaserRequest.MediaId);
+        var userId = user.GetMediaUserId();
 
-        if (success)
+        if (userId == null)
         {
-            var category = await repo.GetCategory(DUMMYUSER, id, request.GetBaseUrl());
-
-            return TypedResults.Ok(category);
+            return TypedResults.NotFound();
         }
 
-        return TypedResults.NotFound();
+        var success = await repo.SetTeaserMedia(userId.Value, id, teaserRequest.MediaId);
+
+        return success
+            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl()))
+            : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(ICategoryRepository repo, HttpRequest request, [FromRoute] Guid id) =>
-        TypedResults.Ok(await repo.GetCategoryMedia(DUMMYUSER, request.GetBaseUrl(), id));
-
-    static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(ICategoryRepository repo, [FromRoute] Guid id) =>
-        TypedResults.Ok(await repo.GetCategoryMediaGps(DUMMYUSER, id));
-
-    static async Task<IResult> DownloadCategoryMedia(ICategoryRepository repo, IZipFileWriter zipWriter, [FromRoute] Guid id, HttpResponse response)
+    static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id
+    )
     {
-        var filename = $"{DUMMYUSER}-{id}.zip";
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategoryMedia(userId.Value, request.GetBaseUrl(), id))
+            : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetCategoryMediaGps(userId.Value, id))
+            : TypedResults.Ok(Array.Empty<Gps>().AsEnumerable());
+    }
+
+    static async Task<IResult> DownloadCategoryMedia(
+        ICategoryRepository repo,
+        IZipFileWriter zipWriter,
+        ClaimsPrincipal user,
+        HttpResponse response,
+        [FromRoute] Guid id
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var filename = $"{userId}-{id}.zip";
         var zipFile =
             await zipWriter.GetZipFileIfExists(filename)
             ??
-            await CreateCategoryDownloadZipFile(repo, zipWriter, DUMMYUSER, id, filename);
+            await CreateCategoryDownloadZipFile(repo, zipWriter, userId.Value, id, filename);
 
         if (zipFile == null || !zipFile.Exists)
         {
@@ -196,7 +318,13 @@ public static class CategoryRoutes
             );
     }
 
-    static async Task<FileInfo?> CreateCategoryDownloadZipFile(ICategoryRepository repo, IZipFileWriter zipWriter, Guid userId, Guid categoryId, string filename)
+    static async Task<FileInfo?> CreateCategoryDownloadZipFile(
+        ICategoryRepository repo,
+        IZipFileWriter zipWriter,
+        Guid userId,
+        Guid categoryId,
+        string filename
+    )
     {
         var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId);
 

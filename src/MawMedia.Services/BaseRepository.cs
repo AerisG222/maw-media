@@ -38,7 +38,7 @@ public class BaseRepository
         );
     }
 
-    protected async Task<T?> ExecuteTransaction<T>(
+    protected async Task<T?> ExecuteScalarInTransaction<T>(
         string statement,
         object? param = null
     )
@@ -46,6 +46,20 @@ public class BaseRepository
         return await RunTransaction(
             conn =>
                 conn.ExecuteScalarAsync<T>(
+                    statement,
+                    param
+                )
+        );
+    }
+
+    protected async Task<IEnumerable<T>?> ExecuteQueryInTransaction<T>(
+        string statement,
+        object? param = null
+    )
+    {
+        return await RunTransaction(
+            conn =>
+                conn.QueryAsync<T>(
                     statement,
                     param
                 )

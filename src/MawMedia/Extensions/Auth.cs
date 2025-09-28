@@ -1,6 +1,9 @@
-using MawMedia.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using MawMedia.Authorization;
+using MawMedia.Authorization.Claims;
+using MawMedia.Services;
 
 namespace MawMedia.Extensions;
 
@@ -18,6 +21,15 @@ public static class AuthExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(audience);
 
         services
+            .AddScoped<IClaimsTransformation, MediaIdentityClaimsTransformation>()
+            .AddHttpClient<IUserInfoClient, UserInfoClient>(client =>
+            {
+                client.BaseAddress = new Uri(authority);
+
+            })
+            .AddHeaderPropagation()
+            .AddStandardResilienceHandler()
+            .Services
             .AddAuthentication(opts =>
             {
                 opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -27,6 +39,7 @@ public static class AuthExtensions
             {
                 opts.Authority = authority;
                 opts.Audience = audience;
+                opts.MapInboundClaims = false;
             })
             .Services
             .AddAuthorization(opts =>

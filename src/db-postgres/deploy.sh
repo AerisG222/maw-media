@@ -96,6 +96,7 @@ function main() {
     header "functions"
     run_psql_script "funcs/media.add_comment.sql"
     run_psql_script "funcs/media.bulk_set_media_gps_override.sql"
+    run_psql_script "funcs/media.create_external_identity.sql"
     run_psql_script "funcs/media.favorite_category.sql"
     run_psql_script "funcs/media.favorite_media.sql"
     run_psql_script "funcs/media.get_categories.sql"
