@@ -30,11 +30,11 @@ public class MediaIdentityClaimsTransformation
 
         if (userState is ActivatedUser activatedUser)
         {
-            AddMediaIdentityClaims(principal, activatedUser.UserId, activatedUser.IsAdmin);
+            AddMediaIdentityClaims(principal, activatedUser.UserId, Constants.USER_STATUS_ACTIVE, activatedUser.IsAdmin);
         }
         else if (userState is NonActivatedUser)
         {
-            AddMediaIdentityClaims(principal, null, false);
+            AddMediaIdentityClaims(principal, null, Constants.USER_STATUS_INACTIVE, false);
         }
         else if (userState is NonExistentUser)
         {
@@ -42,18 +42,18 @@ public class MediaIdentityClaimsTransformation
 
             if (userState is ActivatedUser newlyActivatedUser)
             {
-                AddMediaIdentityClaims(principal, newlyActivatedUser.UserId, newlyActivatedUser.IsAdmin);
+                AddMediaIdentityClaims(principal, newlyActivatedUser.UserId, Constants.USER_STATUS_ACTIVE, newlyActivatedUser.IsAdmin);
             }
             else if (userState is NonActivatedUser)
             {
-                AddMediaIdentityClaims(principal, null, false);
+                AddMediaIdentityClaims(principal, null, Constants.USER_STATUS_INACTIVE, false);
             }
         }
 
         return principal;
     }
 
-    static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, bool isAdmin)
+    static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, string status, bool isAdmin)
     {
         var claimsIdentity = new ClaimsIdentity();
 
@@ -62,6 +62,7 @@ public class MediaIdentityClaimsTransformation
             claimsIdentity.AddClaim(new Claim(Constants.CLAIM_USER_ID, userId.Value.ToString()));
         }
 
+        claimsIdentity.AddClaim(new Claim(Constants.CLAIM_USER_STATUS, status));
         claimsIdentity.AddClaim(new Claim(Constants.CLAIM_IS_ADMIN, isAdmin.ToString()));
 
         principal.AddIdentity(claimsIdentity);

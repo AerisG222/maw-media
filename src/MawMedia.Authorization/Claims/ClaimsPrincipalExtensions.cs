@@ -19,4 +19,9 @@ public static class ClaimsPrincipalExtensions
 
         return isAdmin != null && bool.Parse(isAdmin);
     }
+
+    public static string GetUserStatus(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirstValue(Constants.CLAIM_USER_STATUS) ?? Constants.USER_STATUS_INACTIVE;
+    }
 }
