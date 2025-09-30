@@ -64,7 +64,7 @@ BEGIN
     WHERE
         (_id IS NULL OR c.id = _id)
         AND (_year IS NULL OR EXTRACT(YEAR FROM c.effective_date) = _year)
-        AND (_modified_after IS NULL OR c.modified > _modified_after)
+        AND (_modified_after IS NULL OR c.modified::timestamptz(3) > _modified_after::timestamptz(3))
     ORDER BY c.effective_date DESC;
 END;
 $$ LANGUAGE plpgsql;
