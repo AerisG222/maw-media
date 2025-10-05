@@ -1,6 +1,6 @@
 #!/bin/bash
 DBNAME="maw_media"
-IMAGE="docker.io/library/postgres:17"
+IMAGE="docker.io/library/postgres:18-trixie"
 PODNAME=$1
 PWDFILEDIR=$2
 

@@ -7,7 +7,7 @@ podman run --rm \
     --name dev-media-pg-dumpall \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-pwd:/secrets" \
-    docker.io/library/postgres:17 \
+    docker.io/library/postgres:18-trixie \
         pg_dumpall \
             -h localhost \
             -U "${PSQLUSER}" \
@@ -19,7 +19,7 @@ podman run --rm \
     --name dev-media-pg-dump \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-pwd:/secrets" \
-    docker.io/library/postgres:17 \
+    docker.io/library/postgres:18-trixie \
         pg_dump \
             -Fc \
             -h localhost \
