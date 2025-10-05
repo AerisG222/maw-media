@@ -14,7 +14,7 @@
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
             },
-            "envFile": "/home/mmorano/maw-media/dev/env/maw-media.env",
+            "envFile": "/home/mmorano/maw-media/dev/media-env/maw-media.env",
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
             }
