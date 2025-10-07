@@ -28,6 +28,6 @@ WORKDIR /maw-media
 
 COPY --from=build /build .
 
-EXPOSE 8081
+EXPOSE 8090
 
 ENTRYPOINT [ "/maw-media/MawMedia" ]

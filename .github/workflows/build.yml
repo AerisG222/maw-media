@@ -3,7 +3,7 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
 
 env:
   IID_FILE: image.iid
@@ -13,34 +13,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: build container image
-      run: |
-        buildah bud \
-          -f Containerfile \
-          -t maw-media \
-          --iidfile "$IID_FILE"
+      - name: build container image
+        run: |
+          buildah bud \
+            -f Containerfile \
+            -t maw-media \
+            --iidfile "$IID_FILE"
 
-    - name: populate image id variable
-      run: echo "IID=$(cat $IID_FILE)" >> "$GITHUB_ENV"
+      - name: populate image id variable
+        run: echo "IID=$(cat $IID_FILE)" >> "$GITHUB_ENV"
 
-    - name: push image with specific tag
-      env:
-        DH_USER: ${{ secrets.DH_USER }}
-        DH_PASS: ${{ secrets.DH_PASS }}
-      run: |
-        buildah push \
-          --creds "$DH_USER:$DH_PASS" \
-          "${IID}" \
-          docker://aerisg222/maw-media:"$(date +%Y%m%d%H%M%S)"
+      - name: push image with specific tag
+        env:
+          DH_USER: ${{ secrets.DH_USER }}
+          DH_PASS: ${{ secrets.DH_PASS }}
+        run: |
+          buildah push \
+            --creds "$DH_USER:$DH_PASS" \
+            "${IID}" \
+            docker://aerisg222/maw-media:"$(date +%Y%m%d%H%M%S)"
 
-    - name: push image with latest tag
-      env:
-        DH_USER: ${{ secrets.DH_USER }}
-        DH_PASS: ${{ secrets.DH_PASS }}
-      run: |
-        buildah push \
-          --creds "$DH_USER:$DH_PASS" \
-          "${IID}" \
-          docker://aerisg222/maw-media:"$(date +%Y%m%d%H%M%S)"
+      - name: push image with latest tag
+        env:
+          DH_USER: ${{ secrets.DH_USER }}
+          DH_PASS: ${{ secrets.DH_PASS }}
+        run: |
+          buildah push \
+            --creds "$DH_USER:$DH_PASS" \
+            "${IID}" \
+            docker://aerisg222/maw-media:latest
