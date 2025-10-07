@@ -25,3 +25,7 @@ hosting/.~lock.architecture.odg#
 
 tests/MawMedia.Services.Tests/media-testing
 *.dump
+
+# python env for deployment
+.ansible
+.venv

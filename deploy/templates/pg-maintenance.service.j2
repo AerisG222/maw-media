@@ -1,0 +1,9 @@
+[Unit]
+Description=maw-ww database maintenance job
+
+[Service]
+Type=oneshot
+ExecStart=podman exec {{ container_pg }} /bin/bash -c "pg_dumpall -h localhost -U postgres --roles-only --no-role-passwords > /backups/roles.$(date +%%Y%%m%%d).dump"
+ExecStart=podman exec {{ container_pg }} /bin/bash -c "pg_dump -h localhost -U postgres -Fc maw_media > /backups/maw_media.$(date +%%Y%%m%%d).dump"
+ExecStart=podman exec {{ container_pg }} vacuumdb -h localhost -U postgres --all --analyze
+ExecStart=podman exec {{ container_pg }} find /backup -type f -mtime +5 -not -iname *01.dump -delete
