@@ -51,12 +51,13 @@
     dir_mediaupload: "{{ dir_approot }}/media-upload"
     dir_rcloneconf: "{{ dir_approot }}/rclone-config"
     dir_rclonesecrets: "{{ dir_approot }}/rclone-secrets"
+    dir_scripts: "{{ dir_approot }}/scripts"
 
   tasks:
     - name: Create Directories
       ansible.builtin.file:
         path: "{{ item }}"
-        recurse: true
+        recurse: false
         state: directory
       loop:
         - "{{ dir_systemd }}"
@@ -71,6 +72,7 @@
         - "{{ dir_mediaupload }}"
         - "{{ dir_rcloneconf }}"
         - "{{ dir_rclonesecrets }}"
+        - "{{ dir_scripts }}"
 
     - name: Copy Files
       ansible.builtin.copy:
@@ -235,3 +237,11 @@
         scope: user
         enabled: true
         state: started
+
+    - name: Prepare Admin Scripts
+      ansible.builtin.template:
+        dest: "{{ dir_scripts }}/{{ item.dest }}"
+        src: "{{ item.src }}"
+        mode: "u+rwx"
+      loop:
+        - { "src": "sql-media.j2", "dest": "sql-media.sh" }

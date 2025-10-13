@@ -1,0 +1,12 @@
+#!/bin/bash
+
+podman run -it --rm \
+    --pod pod-maw-media \
+    --env POSTGRES_PASSWORD_FILE=~/maw-media/pg-secrets/psql-postgres \
+    --env PSQL_HISTORY="/psqlhist/.psql_history" \
+    --volume .:/psqlhist:z \
+    docker.io/library/postgres:18-trixie \
+        psql \
+            -h 127.0.0.1 \
+            -U postgres \
+            -d maw_media
