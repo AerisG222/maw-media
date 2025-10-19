@@ -244,4 +244,5 @@
         src: "{{ item.src }}"
         mode: "u+rwx"
       loop:
-        - { "src": "sql-media.j2", "dest": "sql-media.sh" }
+        - { "src": "sql-media.sh.j2", "dest": "sql-media.sh" }
+        - { "src": "logs.sh.j2", "dest": "logs.sh" }
