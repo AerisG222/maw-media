@@ -124,7 +124,7 @@
         volumes:
           - "{{ dir_pgdata }}:/var/lib/postgresql/data:Z"
           - "{{ dir_pgsecrets }}:/secrets:ro,Z"
-          - "{{ dir_pgbackups }}:/backups:rw,Z"
+          - "{{ dir_pgbackups }}:/backups:rw,z"
         quadlet_options:
           - "AutoUpdate=registry"
           - "Pull=newer"
@@ -216,7 +216,7 @@
         volumes:
           - "{{ dir_rcloneconf }}:/config/rclone:ro,Z"
           - "{{ dir_rclonesecrets }}:/secrets:ro,Z"
-          - "{{ dir_pgbackups }}:/backups:ro,Z"
+          - "{{ dir_pgbackups }}:/backups:ro,z"
         command: "-v --drive-impersonate mmorano@mikeandwan.us sync /backups gdrive:maw-media-{{ mawenv }}"
         quadlet_options:
           - "AutoUpdate=registry"
