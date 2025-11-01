@@ -20,8 +20,29 @@ CREATE TABLE IF NOT EXISTS media.location (
     sub_premise TEXT,
 
     CONSTRAINT pk_media_location
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+
+    CONSTRAINT uq_media_location$latitude$longitude
+    UNIQUE(latitude, longitude)
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_constraint
+        WHERE
+            conname = 'uq_media_location$latitude$longitude'
+            AND
+            conrelid = 'media.location'::regclass
+    )
+    THEN
+        ALTER TABLE media.location
+            ADD CONSTRAINT uq_media_location$latitude$longitude
+            UNIQUE(latitude, longitude);
+    END IF;
+END $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.location
