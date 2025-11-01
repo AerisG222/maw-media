@@ -48,7 +48,7 @@ if not client.containers.exists(PG_CONTAINER):
             {
                 'type': 'bind',
                 'source': PGDATA,
-                'target': '/var/lib/postgresql/data',
+                'target': '/var/lib/postgresql',
                 'read_only': False,
                 'relabel': 'Z'
             },
