@@ -1,3 +1,6 @@
+-- 2025-11-04 - add slug to return
+DROP FUNCTION IF EXISTS media.search_categories;
+
 -- we (plan to) only return 24 results from the api at a time - so if we do return a 25th result, then we know more are available
 CREATE OR REPLACE FUNCTION media.search_categories
 (
@@ -11,6 +14,8 @@ RETURNS TABLE
 (
     id UUID,
     name TEXT,
+    year SMALLINT,
+    slug TEXT,
     effective_date DATE,
     modified TIMESTAMPTZ,
     is_favorite BOOLEAN,
@@ -45,6 +50,8 @@ BEGIN
     SELECT
         c.id,
         c.name,
+        CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
+        c.slug,
         c.effective_date,
         c.modified,
         CASE WHEN cf.category_id

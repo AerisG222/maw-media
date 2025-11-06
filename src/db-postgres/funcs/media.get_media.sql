@@ -1,3 +1,6 @@
+-- 2025-11-04 - add slug to return
+DROP FUNCTION IF EXISTS media.get_media;
+
 CREATE OR REPLACE FUNCTION media.get_media
 (
     _user_id UUID,
@@ -8,6 +11,7 @@ RETURNS TABLE
 (
     category_id UUID,
     media_id UUID,
+    media_slug TEXT,
     media_type TEXT,
     media_is_favorite BOOLEAN,
     file_id UUID,
@@ -21,6 +25,7 @@ BEGIN
     SELECT
         um.category_id,
         md.media_id,
+        um.media_slug,
         md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true

@@ -184,6 +184,7 @@ public class BaseRepository
             })
             .Select(g => new Media(
                 g.Key,
+                g.First().MediaSlug,
                 g.First().CategoryId,
                 g.First().MediaType,
                 g.First().MediaIsFavorite,

@@ -1,3 +1,6 @@
+-- 2025-11-04 - add slug to return
+DROP FUNCTION IF EXISTS media.get_categories;
+
 CREATE OR REPLACE FUNCTION media.get_categories
 (
     _user_id UUID,
@@ -10,6 +13,8 @@ RETURNS TABLE
 (
     id UUID,
     name TEXT,
+    year SMALLINT,
+    slug TEXT,
     effective_date DATE,
     modified TIMESTAMPTZ,
     is_favorite BOOLEAN,
@@ -26,6 +31,8 @@ BEGIN
     SELECT DISTINCT
         c.id,
         c.name,
+        CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
+        c.slug,
         c.effective_date,
         c.modified,
         CASE WHEN cf.category_id
@@ -70,5 +77,5 @@ END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE
-   ON FUNCTION media.get_categories
-   TO maw_media;
+    ON FUNCTION media.get_categories
+    TO maw_media;
