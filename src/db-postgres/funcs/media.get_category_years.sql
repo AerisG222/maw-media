@@ -11,8 +11,7 @@ BEGIN
     RETURN QUERY
     WITH years AS
     (
-        SELECT DISTINCT
-            CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year
+        SELECT DISTINCT c.year
         FROM media.category c
         INNER JOIN media.user_category uc
             ON c.id = uc.category_id

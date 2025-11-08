@@ -31,7 +31,7 @@ BEGIN
     SELECT DISTINCT
         c.id,
         c.name,
-        CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
+        c.year,
         c.slug,
         c.effective_date,
         c.modified,
@@ -70,7 +70,7 @@ BEGIN
         AND cf.created_by = _user_id
     WHERE
         (_id IS NULL OR c.id = _id)
-        AND (_year IS NULL OR EXTRACT(YEAR FROM c.effective_date) = _year)
+        AND (_year IS NULL OR c.year = _year)
         AND (_modified_after IS NULL OR c.modified::timestamptz(3) > _modified_after::timestamptz(3))
     ORDER BY c.effective_date DESC;
 END;

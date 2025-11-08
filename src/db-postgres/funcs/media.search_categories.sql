@@ -50,7 +50,7 @@ BEGIN
     SELECT
         c.id,
         c.name,
-        CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
+        c.year,
         c.slug,
         c.effective_date,
         c.modified,

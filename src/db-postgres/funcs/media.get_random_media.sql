@@ -35,7 +35,7 @@ BEGIN
     (
         SELECT
             um.category_id,
-            CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS category_year,
+            c.year AS category_year,
             c.slug AS category_slug,
             um.media_id,
             um.media_slug

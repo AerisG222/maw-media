@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS media.category (
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
     effective_date DATE NOT NULL,
+    year SMALLINT GENERATED ALWAYS AS (CAST(EXTRACT(YEAR FROM effective_date) AS SMALLINT)) STORED,
     created TIMESTAMPTZ NOT NULL,
     created_by UUID NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
@@ -62,7 +63,8 @@ $$;
 
 -- 2025-11-04 - begin - add slug
 ALTER TABLE media.category
-    ADD COLUMN IF NOT EXISTS slug TEXT;
+    ADD COLUMN IF NOT EXISTS slug TEXT,
+    ADD COLUMN IF NOT EXISTS year SMALLINT GENERATED ALWAYS AS (CAST(EXTRACT(YEAR FROM effective_date) AS SMALLINT)) STORED;
 
 DO
 $$
@@ -75,27 +77,28 @@ BEGIN
     )
     THEN
 
-        WITH a AS ( SELECT id, effective_date, REPLACE(LOWER(name), ' - ','-') AS slug FROM media.category),
-        b AS ( SELECT id, effective_date, REPLACE(slug, '''', '')    AS slug FROM a ),
-        c AS ( SELECT id, effective_date, REPLACE(slug, ' ', '-')    AS slug FROM b ),
-        d AS ( SELECT id, effective_date, REPLACE(slug, '(', '')     AS slug FROM c ),
-        e AS ( SELECT id, effective_date, REPLACE(slug, ')', '')     AS slug FROM d ),
-        f AS ( SELECT id, effective_date, REPLACE(slug, ')', '')     AS slug FROM e ),
-        g AS ( SELECT id, effective_date, REPLACE(slug, '&amp;', '') AS slug FROM f ),
-        h AS ( SELECT id, effective_date, REPLACE(slug, '&', '')     AS slug FROM g ),
-        i AS ( SELECT id, effective_date, REPLACE(slug, '--', '-')   AS slug FROM h ),
-        j AS ( SELECT id, effective_date, REPLACE(slug, '.', '')     AS slug FROM i ),
-        k AS ( SELECT id, effective_date, REPLACE(slug, '!', '')     AS slug FROM j ),
-        l AS ( SELECT id, effective_date, REPLACE(slug, ',', '')     AS slug FROM k ),
-        m AS ( SELECT id, effective_date, REPLACE(slug, '#', '')     AS slug FROM l ),
-        n AS ( SELECT id, effective_date, REPLACE(slug, '?', '')     AS slug FROM m ),
-        zz AS (
-            SELECT
-                id,
-                EXTRACT(YEAR FROM effective_date) AS year,
-                slug
-            FROM n
-        )
+        WITH
+            a AS ( SELECT id, year, REPLACE(LOWER(name), ' - ','-') AS slug FROM media.category),
+            b AS ( SELECT id, year, REPLACE(slug, '''', '')         AS slug FROM a ),
+            c AS ( SELECT id, year, REPLACE(slug, ' ', '-')         AS slug FROM b ),
+            d AS ( SELECT id, year, REPLACE(slug, '(', '')          AS slug FROM c ),
+            e AS ( SELECT id, year, REPLACE(slug, ')', '')          AS slug FROM d ),
+            f AS ( SELECT id, year, REPLACE(slug, ')', '')          AS slug FROM e ),
+            g AS ( SELECT id, year, REPLACE(slug, '&amp;', '')      AS slug FROM f ),
+            h AS ( SELECT id, year, REPLACE(slug, '&', '')          AS slug FROM g ),
+            i AS ( SELECT id, year, REPLACE(slug, '--', '-')        AS slug FROM h ),
+            j AS ( SELECT id, year, REPLACE(slug, '.', '')          AS slug FROM i ),
+            k AS ( SELECT id, year, REPLACE(slug, '!', '')          AS slug FROM j ),
+            l AS ( SELECT id, year, REPLACE(slug, ',', '')          AS slug FROM k ),
+            m AS ( SELECT id, year, REPLACE(slug, '#', '')          AS slug FROM l ),
+            n AS ( SELECT id, year, REPLACE(slug, '?', '')          AS slug FROM m ),
+            zz AS (
+                SELECT
+                    id,
+                    year,
+                    slug
+                FROM n
+            )
         UPDATE media.category c
             SET slug = zz.slug
         FROM zz
@@ -124,7 +127,7 @@ BEGIN
         -- can not create unique constraint w/ an expression
         CREATE UNIQUE INDEX uq_media_category$year$slug
         ON media.category(
-            EXTRACT(YEAR FROM effective_date),
+            year,
             slug
         );
 

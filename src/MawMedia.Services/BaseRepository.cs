@@ -186,6 +186,8 @@ public class BaseRepository
                 g.Key,
                 g.First().MediaSlug,
                 g.First().CategoryId,
+                g.First().CategoryYear,
+                g.First().CategorySlug,
                 g.First().MediaType,
                 g.First().MediaIsFavorite,
                 g.Select(x => new MediaFile(
