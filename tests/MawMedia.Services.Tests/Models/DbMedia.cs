@@ -12,5 +12,6 @@ public record DbMedia(
     Guid CreatedBy,
     Instant Modified,
     Guid ModifiedBy,
-    JsonDocument Metadata
+    JsonDocument Metadata,
+    string Slug
 );
