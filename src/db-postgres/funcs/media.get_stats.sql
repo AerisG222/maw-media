@@ -18,7 +18,7 @@ BEGIN
     WITH media_stats AS
     (
         SELECT
-            CAST(EXTRACT(YEAR FROM c.effective_date) AS SMALLINT) AS year,
+            c.year,
             mt.code AS media_type,
             COUNT(DISTINCT m.id) AS media_count,
             SUM(f.bytes) AS file_size,
@@ -38,12 +38,16 @@ BEGIN
         INNER JOIN media.file f
             ON f.media_id = m.id
         GROUP BY
-            year,
+            c.year,
             media_type
     )
     SELECT
         ms.year,
-        (SELECT COUNT(cat.id) FROM media.category cat WHERE ms.year = CAST(EXTRACT(YEAR FROM cat.effective_date) AS SMALLINT)) AS category_count,
+        (
+            SELECT COUNT(cat.id)
+            FROM media.category cat
+            WHERE ms.year = cat.year
+        ) AS category_count,
         ms.media_type,
         ms.media_count,
         ms.file_size,

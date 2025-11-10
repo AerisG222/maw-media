@@ -43,7 +43,7 @@ BEGIN
             ON uc.category_id = c.id
             AND uc.user_id = _user_id
         WHERE
-            EXTRACT(YEAR FROM c.effective_date) = _year
+            c.year = _year
     )
     SELECT
         ms.category_id,

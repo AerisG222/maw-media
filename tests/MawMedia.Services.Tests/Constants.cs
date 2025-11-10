@@ -101,7 +101,8 @@ public static class Constants
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
-        USER_ADMIN
+        USER_ADMIN,
+        "nature"
     );
 
     public static readonly DbCategory CATEGORY_TRAVEL = new(
@@ -111,7 +112,8 @@ public static class Constants
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
-        USER_ADMIN
+        USER_ADMIN,
+        "travel"
     );
 
     public static readonly DbCategory CATEGORY_FOOD = new(
@@ -121,7 +123,8 @@ public static class Constants
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
-        USER_ADMIN
+        USER_ADMIN,
+        "food"
     );
 
     public static readonly DbMedia MEDIA_NATURE_1 = new(
@@ -133,7 +136,8 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        GetTestMetadata("media_nature_1")
+        GetTestMetadata("media_nature_1"),
+        "media-nature-1"
     );
 
     public static readonly DbMedia MEDIA_NATURE_2 = new(
@@ -145,7 +149,8 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        GetTestMetadata("media_nature_2")
+        GetTestMetadata("media_nature_2"),
+        "media-nature-2"
     );
 
     public static readonly DbMedia MEDIA_TRAVEL_1 = new(
@@ -157,7 +162,8 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        GetTestMetadata("media_travel_1")
+        GetTestMetadata("media_travel_1"),
+        "media-travel-1"
     );
 
     public static readonly DbMedia MEDIA_FOOD_1 = new(
@@ -169,7 +175,8 @@ public static class Constants
         USER_ADMIN,
         Instant.FromDateTimeUtc(DateTime.UtcNow),
         USER_ADMIN,
-        GetTestMetadata("media_food_1")
+        GetTestMetadata("media_food_1"),
+        "media-food-1"
     );
 
     public static readonly DbFile FILE_NATURE_1 = new(

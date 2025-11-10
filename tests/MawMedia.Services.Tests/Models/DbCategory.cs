@@ -9,5 +9,6 @@ public record DbCategory(
     Instant Created,
     Guid CreatedBy,
     Instant Modified,
-    Guid ModifiedBy
+    Guid ModifiedBy,
+    string Slug
 );

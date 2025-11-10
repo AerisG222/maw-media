@@ -36,11 +36,11 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
         <PackageReference Include="Npgsql" Version="9.0.4" />
         <PackageReference Include="Npgsql.NodaTime" Version="9.0.4" />
-        <PackageReference Include="xunit.v3" Version="3.1.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.0" />
     </ItemGroup>
 
     <ItemGroup>

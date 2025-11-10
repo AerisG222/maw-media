@@ -1,3 +1,6 @@
+-- 2025-11-04 - add slug to return
+DROP FUNCTION IF EXISTS media.get_media;
+
 CREATE OR REPLACE FUNCTION media.get_media
 (
     _user_id UUID,
@@ -7,7 +10,10 @@ CREATE OR REPLACE FUNCTION media.get_media
 RETURNS TABLE
 (
     category_id UUID,
+    category_year SMALLINT,
+    category_slug TEXT,
     media_id UUID,
+    media_slug TEXT,
     media_type TEXT,
     media_is_favorite BOOLEAN,
     file_id UUID,
@@ -20,7 +26,10 @@ BEGIN
     RETURN QUERY
     SELECT
         um.category_id,
+        c.year AS category_year,
+        c.slug AS category_slug,
         md.media_id,
+        um.media_slug,
         md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true
@@ -33,6 +42,8 @@ BEGIN
     FROM media.media m
     INNER JOIN media.user_media um
         ON um.media_id = m.id
+    INNER JOIN media.category c
+        ON c.id = um.category_id
     INNER JOIN media.media_detail md
         ON md.media_id = m.id
         AND (

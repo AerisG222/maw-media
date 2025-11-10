@@ -210,9 +210,9 @@ public class DatabaseSeeder
 
         await conn.ExecuteAsync(
             """
-            INSERT INTO media.category (id, name, effective_date, created, created_by, modified, modified_by)
+            INSERT INTO media.category (id, name, effective_date, created, created_by, modified, modified_by, slug)
             VALUES
-            (@id, @name, @effectiveDate, @created, @createdBy, @modified, @modifiedBy);
+            (@id, @name, @effectiveDate, @created, @createdBy, @modified, @modifiedBy, @slug);
             """,
             categories
         );
@@ -323,7 +323,8 @@ public class DatabaseSeeder
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
                 modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_NATURE_1.Slug
             },
             new {
                 category_id = Constants.CATEGORY_NATURE.Id,
@@ -332,7 +333,8 @@ public class DatabaseSeeder
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
                 modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_NATURE_2.Slug
             },
             new {
                 category_id = Constants.CATEGORY_TRAVEL.Id,
@@ -341,7 +343,8 @@ public class DatabaseSeeder
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
                 modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_TRAVEL_1.Slug
             },
             new {
                 category_id = Constants.CATEGORY_FOOD.Id,
@@ -350,15 +353,16 @@ public class DatabaseSeeder
                 created = DateTime.UtcNow,
                 created_by = Constants.USER_ADMIN,
                 modified = DateTime.UtcNow,
-                modified_by = Constants.USER_ADMIN
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_FOOD_1.Slug
             }
         ];
 
         await conn.ExecuteAsync(
             """
-            INSERT INTO media.category_media (category_id, media_id, is_teaser, created, created_by, modified, modified_by)
+            INSERT INTO media.category_media (category_id, media_id, is_teaser, created, created_by, modified, modified_by, slug)
             VALUES
-            (@category_id, @media_id, @is_teaser, @created, @created_by, @modified, @modified_by);
+            (@category_id, @media_id, @is_teaser, @created, @created_by, @modified, @modified_by, @slug);
             """,
             categoryMedia
         );

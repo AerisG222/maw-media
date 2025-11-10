@@ -205,13 +205,18 @@ public class CategoryRepository
             })
             .Select(g => new Category(
                 g.Key,
+                g.First().Year,
+                g.First().Slug,
                 g.First().Name,
                 g.First().EffectiveDate,
                 g.First().Modified,
                 g.First().IsFavorite,
                 new Media(
                     g.First().MediaId,
+                    g.First().MediaSlug,
                     g.Key,
+                    g.First().Year,
+                    g.First().Slug,
                     g.First().MediaType,
                     g.First().MediaIsFavorite,
                     g.Select(x => new MediaFile(

@@ -25,7 +25,7 @@ BEGIN
     WHERE
         _year IS NULL
         OR
-        EXTRACT(YEAR FROM c.effective_date) = _year;
+        c.year = _year;
 END;
 $$ LANGUAGE plpgsql;
 

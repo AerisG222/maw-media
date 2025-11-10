@@ -1,3 +1,6 @@
+-- 2025-11-04 - add slug to return
+DROP FUNCTION IF EXISTS media.get_random_media;
+
 CREATE OR REPLACE FUNCTION media.get_random_media
 (
     _user_id UUID,
@@ -7,7 +10,10 @@ CREATE OR REPLACE FUNCTION media.get_random_media
 RETURNS TABLE
 (
     category_id UUID,
+    category_year SMALLINT,
+    category_slug TEXT,
     media_id UUID,
+    media_slug TEXT,
     media_type TEXT,
     media_is_favorite BOOLEAN,
     file_id UUID,
@@ -29,15 +35,23 @@ BEGIN
     (
         SELECT
             um.category_id,
-            um.media_id
+            c.year AS category_year,
+            c.slug AS category_slug,
+            um.media_id,
+            um.media_slug
         FROM media.user_media um
+        INNER JOIN media.category c
+            ON c.id = um.category_id
         WHERE um.user_id = _user_id
         ORDER BY RANDOM()
         LIMIT _count
     )
     SELECT
         r.category_id,
+        r.category_year,
+        r.category_slug,
         md.media_id,
+        r.media_slug,
         md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true
