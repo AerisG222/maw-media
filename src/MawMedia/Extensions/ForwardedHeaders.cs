@@ -24,7 +24,7 @@ public static class ForwardedHeadersExtensions
                 {
                     foreach (var network in knownNetworks)
                     {
-                        opts.KnownNetworks.Add(IPNetwork.Parse(network));
+                        opts.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
                     }
                 }
             });

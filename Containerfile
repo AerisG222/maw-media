@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 WORKDIR /maw-media
 
 # restore
-COPY maw-media.sln .
+COPY maw-media.slnx .
 COPY nuget.config .
 COPY src/MawMedia/MawMedia.csproj src/MawMedia/
 COPY src/MawMedia.Authorization/MawMedia.Authorization.csproj src/MawMedia.Authorization/
@@ -23,7 +23,7 @@ RUN dotnet publish \
 
 
 # build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless-extra
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra-amd64
 WORKDIR /maw-media
 
 COPY --from=build /build .

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Routing.Constraints;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
 namespace MawMedia.Extensions;
@@ -27,20 +27,13 @@ public static class OpenApiExtensions
                     {
                         BearerFormat = "JSON Web Token",
                         Description = "Bearer authentication using a JWT.",
-                        Scheme = "bearer",
-                        Type = SecuritySchemeType.Http,
-                        Reference = new()
-                        {
-                            Id = "Bearer",
-                            Type = ReferenceType.SecurityScheme,
-                        },
+                        Scheme = "Bearer",
+                        Type = SecuritySchemeType.Http
                     };
 
                     document.Components ??= new();
-                    document.Components.SecuritySchemes ??= new Dictionary<string, OpenApiSecurityScheme>();
-                    document.Components.SecuritySchemes[scheme.Reference.Id] = scheme;
-                    document.SecurityRequirements ??= [];
-                    document.SecurityRequirements.Add(new() { [scheme] = [] });
+                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+                    document.Components.SecuritySchemes[scheme.Scheme] = scheme;
 
                     return Task.CompletedTask;
                 });

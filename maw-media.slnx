@@ -1,0 +1,12 @@
+<Solution>
+    <Folder Name="/src/">
+        <Project Path="src/MawMedia.Authorization/MawMedia.Authorization.csproj" />
+        <Project Path="src/MawMedia.Models/MawMedia.Models.csproj" />
+        <Project Path="src/MawMedia.Services.Abstractions/MawMedia.Services.Abstractions.csproj" />
+        <Project Path="src/MawMedia.Services/MawMedia.Services.csproj" />
+        <Project Path="src/MawMedia/MawMedia.csproj" />
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/MawMedia.Services.Tests/MawMedia.Services.Tests.csproj" />
+    </Folder>
+</Solution>
