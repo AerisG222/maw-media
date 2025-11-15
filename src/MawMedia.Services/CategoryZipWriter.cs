@@ -34,23 +34,22 @@ public class CategoryZipFileWriter
         return Task.FromResult((FileInfo?)null);
     }
 
-    // todo: there may be proper async methods in .net10
-    public Task<FileInfo> WriteZipFile(string filename, IEnumerable<string> filePaths)
+    public async Task<FileInfo> WriteZipFile(string filename, IEnumerable<string> filePaths)
     {
         var archivePath = BuildDownloadFilePath(filename);
 
-        using var zip = ZipFile.Open(archivePath, ZipArchiveMode.Create);
+        using var zip = await ZipFile.OpenAsync(archivePath, ZipArchiveMode.Create);
 
         foreach (var path in filePaths)
         {
-            zip.CreateEntryFromFile(
+            await zip.CreateEntryFromFileAsync(
                 Path.Combine(_assetRootDir, TrimAssetsPathPrefix(path)),
                 Path.GetFileName(path),
                 CompressionLevel.NoCompression  // media assets already compressed so don't waste cpu
             );
         }
 
-        return Task.FromResult(new FileInfo(archivePath));
+        return new FileInfo(archivePath);
     }
 
     string BuildDownloadFilePath(string filename)
@@ -64,13 +63,6 @@ public class CategoryZipFileWriter
         {
             throw new ArgumentOutOfRangeException(nameof(urlPath));
         }
-
-        // todo: TEMP - remove once media migrated
-        urlPath = urlPath
-            .Replace("-", "_")
-            .Replace("/qvg/", "/lg/")
-            .Replace(".avif", ".jpg");
-        // TEMP END
 
         return urlPath[Constants.AssetBaseUrlWithSlash.Length..];
     }

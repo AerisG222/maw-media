@@ -25,21 +25,12 @@ public static class StaticFilesExtensions
         app
             .UseStaticFiles(new StaticFileOptions()
             {
-                ContentTypeProvider = new MyExt(),
+                ContentTypeProvider = new FileExtensionContentTypeProvider(),
                 FileProvider = new PhysicalFileProvider(assetDir),
                 HttpsCompression = HttpsCompressionMode.DoNotCompress,  // images/videos already optimized, ensure this doesn't trigger
                 RequestPath = Constants.AssetBaseUrl
             });
 
         return app;
-    }
-}
-
-// todo: this should be included by default in net10, so remove this then
-public class MyExt : FileExtensionContentTypeProvider
-{
-    public MyExt()
-    {
-        Mappings.Add(".avif", "image/avif");
     }
 }
