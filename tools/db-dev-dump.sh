@@ -3,7 +3,7 @@ PSQLUSER=postgres
 DB=maw_media
 
 podman run --rm \
-    --pod dev-media-pod \
+    --pod pod-maw-media \
     --name dev-media-pg-dumpall \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-secrets:/secrets" \
@@ -15,7 +15,7 @@ podman run --rm \
     > roles.dev.dump
 
 podman run --rm \
-    --pod dev-media-pod \
+    --pod pod-maw-media \
     --name dev-media-pg-dump \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-secrets:/secrets" \

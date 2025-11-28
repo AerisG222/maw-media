@@ -3,7 +3,7 @@ PSQLUSER=postgres
 DB=maw_media
 
 podman run --rm \
-    --pod dev-media-pod \
+    --pod pod-maw-media \
     --name dev-media-pg-load \
     --security-opt label=disable \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
@@ -17,7 +17,7 @@ podman run --rm \
             -f /input/roles.dev.dump
 
 podman run --rm \
-    --pod dev-media-pod \
+    --pod pod-maw-media \
     --name dev-media-pg-load \
     --security-opt label=disable \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \

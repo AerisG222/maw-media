@@ -3,12 +3,12 @@ import os
 import subprocess
 from podman import PodmanClient
 
-POD = 'dev-media-pod'
+POD = 'pod-maw-media'
+PG_IMG = 'docker.io/aerisg222/maw-media-postgres:latest'
 PG_CONTAINER = 'dev-media-pg'
 DATADIR = '/home/mmorano/maw-media/dev'
 PGDATA = f"{DATADIR}/pg-data"
 PGPWD = f"{DATADIR}/pg-secrets"
-PG_IMG = 'docker.io/aerisg222/maw-media-postgres:latest'
 
 # make sure we start the podman service which is needed by the python api
 subprocess.run(['systemctl', '--user', 'start', 'podman.socket'])
@@ -32,7 +32,6 @@ pod.start()
 if not os.path.exists(PGDATA):
     os.makedirs(PGDATA)
 
-# always pull to make sure we get latest
 client.images.pull(PG_IMG)
 
 if not client.containers.exists(PG_CONTAINER):
