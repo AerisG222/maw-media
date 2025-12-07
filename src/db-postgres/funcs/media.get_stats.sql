@@ -15,52 +15,30 @@ RETURNS TABLE
 AS $$
 BEGIN
     RETURN QUERY
-    WITH media_stats AS
+    WITH category_counts AS
     (
         SELECT
-            c.year,
-            mt.code AS media_type,
-            COUNT(DISTINCT m.id) AS media_count,
-            SUM(f.bytes) AS file_size,
-            SUM(
-                CASE WHEN f.scale_id = (SELECT id FROM media.scale WHERE code = 'src')
-                    THEN m.duration
-                    ELSE 0
-                    END
-                ) AS duration
-        FROM media.category c
-        INNER JOIN media.category_media cm
-            ON cm.category_id = c.id
-        INNER JOIN media.media m
-            ON cm.media_id = m.id
-        INNER JOIN media.type mt
-            ON mt.id = m.type_id
-        INNER JOIN media.file f
-            ON f.media_id = m.id
-        GROUP BY
-            c.year,
-            media_type
+            cat.year,
+            COUNT(cat.id) AS cat_count
+        FROM media.category cat
+        GROUP BY cat.year
     )
     SELECT
-        ms.year,
-        (
-            SELECT COUNT(cat.id)
-            FROM media.category cat
-            WHERE ms.year = cat.year
-        ) AS category_count,
-        ms.media_type,
-        ms.media_count,
-        ms.file_size,
-        ms.duration
-    FROM media_stats ms
+        cs.year,
+        cc.cat_count AS category_count,
+        cs.media_type,
+        SUM(cs.media_count) AS media_count,
+        SUM(cs.file_size) AS file_size,
+        SUM(cs.duration) AS duration
+    FROM media.category_stats cs
+    INNER JOIN category_counts cc
+        ON cc.year = cs.year
     GROUP BY
-        ms.year,
-        ms.media_type,
-        ms.media_count,
-        ms.file_size,
-        ms.duration
+        cs.year,
+        cc.cat_count,
+        cs.media_type
     ORDER BY
-        ms.year DESC;
+        cs.year DESC;
 
 END;
 $$ LANGUAGE plpgsql;

@@ -5,5 +5,7 @@ Description=maw-media database maintenance job
 Type=oneshot
 ExecStart=podman exec {{ container_pg }} /bin/bash -c "pg_dumpall -h localhost -U postgres --roles-only --no-role-passwords > /backups/roles.$(date +%%Y%%m%%d).dump"
 ExecStart=podman exec {{ container_pg }} /bin/bash -c "pg_dump -h localhost -U postgres -Fc maw_media > /backups/maw_media.$(date +%%Y%%m%%d).dump"
+ExecStart=podman exec {{ container_pg }} psql -h localhost -U postgres -d maw_media -c 'REFRESH MATERIALIZED VIEW media.category_search;'
+ExecStart=podman exec {{ container_pg }} psql -h localhost -U postgres -d maw_media -c 'REFRESH MATERIALIZED VIEW media.category_stats;'
 ExecStart=podman exec {{ container_pg }} vacuumdb -h localhost -U postgres --all --analyze
 ExecStart=podman exec {{ container_pg }} find /backups -type f -mtime +5 -not -iname *01.dump -delete

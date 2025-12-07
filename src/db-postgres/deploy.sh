@@ -83,6 +83,7 @@ function main() {
 
     header "views"
     run_psql_script "views/media.category_search.sql"
+    run_psql_script "views/media.category_stats.sql"
     run_psql_script "views/media.file_detail.sql"
     run_psql_script "views/media.media_detail.sql"
     run_psql_script "views/media.media_gps.sql"

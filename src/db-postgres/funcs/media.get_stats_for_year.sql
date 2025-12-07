@@ -15,49 +15,38 @@ RETURNS TABLE
 AS $$
 BEGIN
     RETURN QUERY
-    WITH media_stats AS
+    WITH cat_stats AS
     (
         SELECT
             uc.category_id,
             CASE
                 WHEN uc.category_id IS NULL THEN 'Other'
-                ELSE c.name
+                ELSE cs.category_name
                 END AS category_name,
-            m.id AS media_id,
-            mt.code AS media_type,
-            f.bytes AS file_size,
-            CASE WHEN f.scale_id = (SELECT id FROM media.scale WHERE code = 'src')
-                THEN m.duration
-                ELSE 0
-                END AS duration
-        FROM media.category c
-        INNER JOIN media.category_media cm
-            ON cm.category_id = c.id
-        INNER JOIN media.media m
-            ON cm.media_id = m.id
-        INNER JOIN media.type mt
-            ON mt.id = m.type_id
-        INNER JOIN media.file f
-            ON f.media_id = m.id
+            cs.media_type,
+            cs.media_count,
+            cs.file_size,
+            cs.duration
+        FROM media.category_stats cs
         LEFT OUTER JOIN media.user_category uc
-            ON uc.category_id = c.id
+            ON uc.category_id = cs.category_id
             AND uc.user_id = _user_id
-        WHERE
-            c.year = _year
+        WHERE cs.year = _year
     )
     SELECT
-        ms.category_id,
-        ms.category_name,
-        ms.media_type,
-        COUNT(DISTINCT ms.media_id) AS media_count,
-        SUM(ms.file_size) AS file_size,
-        SUM(ms.duration) AS duration
-    FROM media_stats ms
+        cs.category_id,
+        cs.category_name,
+        cs.media_type,
+        SUM(cs.media_count) AS media_count,
+        SUM(cs.file_size) AS file_size,
+        SUM(cs.duration) AS duration
+    FROM cat_stats cs
     GROUP BY
-        ms.category_id,
-        ms.category_name,
-        ms.media_type
-    ORDER BY ms.category_name;
+        cs.category_id,
+        cs.category_name,
+        cs.media_type
+    ORDER BY cs.category_name;
+
 
 END;
 $$ LANGUAGE plpgsql;
