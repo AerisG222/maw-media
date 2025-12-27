@@ -54,6 +54,8 @@
     dir_scripts: "{{ dir_approot }}/scripts"
     dir_podman_secrets: "{{ dir_approot }}/podman-secrets"
     podman_authfile: "{{dir_podman_secrets}}/auth.json"
+    dir_kube: "{{ dir_approot }}/kube"
+    file_kube: "{{ dir_kube }}/kube.yml"
 
   tasks:
     - name: Create Directories
@@ -76,6 +78,7 @@
         - "{{ dir_rclonesecrets }}"
         - "{{ dir_scripts }}"
         - "{{ dir_podman_secrets }}"
+        - "{{ dir_kube }}"
 
     - name: Copy Files
       ansible.builtin.copy:
@@ -85,8 +88,6 @@
       loop:
         - src: "{{ dir_localroot }}/pg-secrets/psql-postgres"
           dest: "{{ dir_pgsecrets }}"
-        - src: "{{ dir_localroot }}/media-env/maw-media.env"
-          dest: "{{ dir_mediaenv }}"
         - src: "{{ dir_localroot }}/media-secrets/maw-media.pfx"
           dest: "{{ dir_mediasecrets }}"
         - src: "{{ dir_localroot }}/media-secrets/npgsql-passfile-svc_maw_media"
@@ -96,6 +97,14 @@
         - src: "{{ dir_localroot }}/rclone-secrets/rclone-gdrive-serviceaccount.json"
           dest: "{{ dir_rclonesecrets }}"
 
+    - name: Process Templates
+      ansible.builtin.template:
+        dest: "{{ item.dest }}"
+        src: "{{ item.src }}"
+        mode: u+rw
+      loop:
+        - { "src": "kube.yml.j2", "dest": "{{ file_kube }}" }
+
     - name: Establish Login to registry
       containers.podman.podman_login:
         registry: docker.io
@@ -103,84 +112,21 @@
         username: "{{ dockerhub_username }}"
         password: "{{ dockerhub_password }}"
 
-    - name: Pull Container Images
-      containers.podman.podman_image:
-        authfile: "{{ podman_authfile }}"
-        name: "{{ item }}"
-      loop:
-        - "{{ img_maw_media }}"
-        - "{{ img_postgres }}"
-        - "{{ img_rclone }}"
-
-    - name: Create Pod Quadlet
-      containers.podman.podman_pod:
-        name: "{{ pod }}"
-        state: quadlet
-        userns: "keep-id:uid=1654"
-        ports:
-          - "8090:8090"
-        quadlet_options:
-          - "ServiceName={{ pod }}"
-
-    - name: Create Postgres Quadlet
-      containers.podman.podman_container:
-        name: "{{ container_pg }}"
-        image: "{{ img_postgres }}"
-        state: quadlet
-        read_only: true
-        pod: "{{ pod }}.pod"
-        user: 1654
-        env:
-          POSTGRES_PASSWORD_FILE: "/secrets/psql-postgres"
-        volumes:
-          - "{{ dir_pgdata }}:/var/lib/postgresql:Z"
-          - "{{ dir_pgsecrets }}:/secrets:ro,Z"
-          - "{{ dir_pgbackups }}:/backups:rw,z"
-        quadlet_options:
-          - "AutoUpdate=registry"
-          - "Label=io.containers.autoupdate.authfile={{ podman_authfile }}"
-          - "Pull=newer"
-          - "ReadOnly=true"
-          - |
-
-            [Unit]
-            Description=Container for media.mikeandwan.us database
-
-            [Install]
-            WantedBy=multi-user.target default.target
-
-            [Service]
-            Restart=on-failure
-
     - name: Create maw-media Quadlet
-      containers.podman.podman_container:
-        name: "{{ container_media }}"
-        image: "{{ img_maw_media }}"
+      containers.podman.podman_play:
+        kube_file: "{{ file_kube }}"
         state: quadlet
-        read_only: true
-        pod: "{{ pod }}.pod"
-        user: 1654
-        env_files:
-          - "{{ dir_mediaenv }}/maw-media.env"
-        mounts:
-          - type=tmpfs,destination=/tmp
-        volumes:
-          - "{{ dir_mediadp }}:/media-data-protection:Z"
-          - "{{ dir_mediadownload }}:/media-download:Z"
-          - "{{ dir_mediaupload }}:/media-upload:Z"
-          - "{{ dir_mediasecrets }}:/media-secrets:ro,Z"
-          - "{{ dir_mediaassets }}:/media-assets:ro,Z"
+        recreate: true
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+        quadlet_filename: "{{ pod }}"
+        quadlet_file_mode: '0640'
         quadlet_options:
           - "AutoUpdate=registry"
-          - "Label=io.containers.autoupdate.authfile={{ podman_authfile }}"
-          - "Pull=newer"
-          - "ReadOnly=true"
           - |
 
             [Unit]
-            Description=Container for media.mikeandwan.us webserver
-            After="{{ container_pg }}.container"
-            Requires="{{ container_pg }}.container"
+            Description=Pod for maw-media database and application
 
             [Install]
             WantedBy=multi-user.target default.target
@@ -191,7 +137,7 @@
     - name: Start and Enable Pod / Containers
       ansible.builtin.systemd_service:
         daemon_reload: true
-        name: "{{ pod }}.service"
+        name: "{{ pod }}"
         scope: user
         enabled: true
         state: restarted
@@ -201,56 +147,21 @@
         dest: "{{ dir_systemd }}/{{ item.dest }}"
         src: "{{ item.src }}"
       loop:
-        - {
-            "src": "pg-maintenance.service.j2",
-            "dest": "pg-maintenance.service",
-          }
-        - { "src": "pg-maintenance.timer.j2", "dest": "pg-maintenance.timer" }
-        - { "src": "rclone-archive.timer.j2", "dest": "rclone-archive.timer" }
+        - { "src": "pg-maintenance.service.j2", "dest": "pg-maintenance.service", }
+        - { "src": "pg-maintenance.timer.j2",   "dest": "pg-maintenance.timer" }
+        - { "src": "rclone-archive.service.j2", "dest": "rclone-archive.service" }
+        - { "src": "rclone-archive.timer.j2",   "dest": "rclone-archive.timer" }
 
-    - name: Enable Postgres Maintenance Systemd Timer
+    - name: Enable Maintenance Systemd Timers
       ansible.builtin.systemd_service:
         daemon_reload: true
-        name: "pg-maintenance.timer"
+        name: "{{ item }}"
         scope: user
         enabled: true
         state: started
-
-    - name: Create rclone-archive Quadlet
-      containers.podman.podman_container:
-        name: "{{ container_rclone }}"
-        image: "{{ img_rclone }}"
-        state: quadlet
-        read_only: true
-        pod: "{{ pod }}.pod"
-        user: 1654
-        mounts:
-          - type=tmpfs,destination=/tmp
-        volumes:
-          - "{{ dir_rcloneconf }}:/config/rclone:ro,Z"
-          - "{{ dir_rclonesecrets }}:/secrets:ro,Z"
-          - "{{ dir_pgbackups }}:/backups:ro,z"
-        command: "-v --drive-impersonate mmorano@mikeandwan.us sync /backups gdrive:maw-media-{{ mawenv }}"
-        quadlet_options:
-          - "AutoUpdate=registry"
-          - "Label=io.containers.autoupdate.authfile={{ podman_authfile }}"
-          - "Pull=newer"
-          - "ReadOnly=true"
-          - |
-
-            [Unit]
-            Description=Container for maw-media rclone archive
-
-            [Service]
-            Type=oneshot
-
-    - name: Enable Rclone Archive Systemd Timer
-      ansible.builtin.systemd_service:
-        daemon_reload: true
-        name: "rclone-archive.timer"
-        scope: user
-        enabled: true
-        state: started
+      loop:
+        - "pg-maintenance.timer"
+        - "rclone-archive.timer"
 
     - name: Prepare Admin Scripts
       ansible.builtin.template:

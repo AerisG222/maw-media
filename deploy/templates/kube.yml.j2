@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    io.podman.annotations.userns: keep-id:uid=1654
+  labels:
+    app: {{ pod }}
+  name: {{ pod }}
+spec:
+  containers:
+    - image: {{ img_postgres }}
+      imagePullPolicy: IfNotPresent
+      name: {{ container_pg }}
+      args:
+        - postgres
+      env:
+        - name: POSTGRES_PASSWORD_FILE
+          value: /secrets/psql-postgres
+      securityContext:
+        readOnlyRootFilesystem: true
+        runAsGroup: 0
+        runAsUser: 1654
+      volumeMounts:
+        - mountPath: /secrets:Z
+          name: pg-secrets
+          readOnly: true
+        - mountPath: /backups:z
+          name: pg-backups
+        - mountPath: /var/lib/postgresql:Z
+          name: pg-data
+
+    - image: {{ img_maw_media }}
+      imagePullPolicy: IfNotPresent
+      name: {{ container_media }}
+      env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: {{ aspnet_env }}
+        - name: MAW_MEDIA_Kestrel__Certificates__Default__Password
+          value: {{ kestrel_cert_password }}
+      ports:
+        - containerPort: 8090
+          hostPort: 8090
+      securityContext:
+        readOnlyRootFilesystem: true
+        runAsGroup: 0
+        runAsUser: 1654
+      volumeMounts:
+        - mountPath: /media-secrets:Z
+          name: media-secrets
+          readOnly: true
+        - mountPath: /media-assets:Z
+          name: media-assets
+          readOnly: true
+        - mountPath: /tmp
+          name: temp
+        - mountPath: /media-data-protection:Z
+          name: media-data-protection
+        - mountPath: /media-download:Z
+          name: media-download
+        - mountPath: /media-upload:Z
+          name: media-upload
+
+  volumes:
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-secrets
+        type: Directory
+      name: media-secrets
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-data-protection
+        type: Directory
+      name: media-data-protection
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-download
+        type: Directory
+      name: media-download
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-upload
+        type: Directory
+      name: media-upload
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/pg-secrets
+        type: Directory
+      name: pg-secrets
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/pg-backups
+        type: Directory
+      name: pg-backups
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/pg-data
+        type: Directory
+      name: pg-data
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-assets
+        type: Directory
+      name: media-assets
+    - emptyDir:
+        medium: Memory
+      name: temp
