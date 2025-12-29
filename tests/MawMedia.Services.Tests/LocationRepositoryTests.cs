@@ -71,7 +71,11 @@ public class LocationRepositoryTests
             "Premise",
             "Route",
             "StreetNumber",
-            "SubPremise"
+            "SubPremise",
+            [
+                new("typeA", "nameA"),
+                new("typeB", "nameB"),
+            ]
         ));
 
         Assert.True(result);

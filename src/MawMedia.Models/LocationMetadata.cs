@@ -19,5 +19,6 @@ public record LocationMetadata(
     string? Premise,
     string? Route,
     string? StreetNumber,
-    string? SubPremise
+    string? SubPremise,
+    IEnumerable<PointOfInterest> PointsOfInterest
 );
