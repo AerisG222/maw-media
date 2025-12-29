@@ -1,12 +1,10 @@
 using NodaTime;
 
-namespace MawMedia.Services.Tests.Models;
+namespace MawMedia.Models;
 
-public record DbLocation(
-    Guid Id,
-    decimal Latitude,
-    decimal Longitude,
-    Instant? LookupDate,
+public record LocationMetadata(
+    Guid LocationId,
+    Instant LookupDate,
     string? FormattedAddress,
     string? AdministrativeAreaLevel1,
     string? AdministrativeAreaLevel2,

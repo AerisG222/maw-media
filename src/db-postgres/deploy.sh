@@ -106,6 +106,7 @@ function main() {
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
     run_psql_script "funcs/media.get_is_admin.sql"
+    run_psql_script "funcs/media.get_locations_without_metadata.sql"
     run_psql_script "funcs/media.get_media.sql"
     run_psql_script "funcs/media.get_media_file.sql"
     run_psql_script "funcs/media.get_media_gps.sql"
@@ -117,6 +118,7 @@ function main() {
     run_psql_script "funcs/media.get_user_state.sql"
     run_psql_script "funcs/media.search_categories.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"
+    run_psql_script "funcs/media.set_location_metadata.sql"
     run_psql_script "funcs/media.set_media_gps_override.sql"
 
     header "completed ${DBNAME}"

@@ -432,7 +432,8 @@ public class DatabaseSeeder
     async Task PopulateLocations(NpgsqlConnection conn)
     {
         List<object> locations = [
-            Constants.LOCATION_NY
+            Constants.LOCATION_NY,
+            Constants.LOCATION_UNK
         ];
 
         await conn.ExecuteAsync(
@@ -458,5 +459,6 @@ public class DatabaseSeeder
     async Task RefreshMaterializedViews(NpgsqlConnection conn)
     {
         await conn.ExecuteAsync("REFRESH MATERIALIZED VIEW media.category_search;");
+        await conn.ExecuteAsync("REFRESH MATERIALIZED VIEW media.category_stats;");
     }
 }

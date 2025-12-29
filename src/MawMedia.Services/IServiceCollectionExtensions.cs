@@ -25,6 +25,7 @@ public static class IServiceCollectionExtensions
             .AddScoped<IAuthRepository, AuthRepository>()
             .AddScoped<ICategoryRepository, CategoryRepository>()
             .AddScoped<IConfigRepository, ConfigRepository>()
+            .AddScoped<ILocationRepository, LocationRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()
             .AddSingleton<IAssetPathBuilder, AssetPathBuilder>()

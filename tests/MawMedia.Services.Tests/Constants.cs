@@ -69,6 +69,28 @@ public static class Constants
         null
     );
 
+    public static readonly DbLocation LOCATION_UNK = new(
+        Guid.CreateVersion7(),
+        41,
+        -74,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+    );
+
     public static readonly Guid ROLE_ADMIN = Guid.CreateVersion7();
     public static readonly Guid ROLE_FRIEND = Guid.CreateVersion7();
 
