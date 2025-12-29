@@ -125,7 +125,7 @@ public class BaseRepository
         }
     }
 
-    protected async Task<T?> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command, bool runInTransaction = false)
+    protected async Task<T?> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command)
     {
         NpgsqlTransaction? tran = null;
 
