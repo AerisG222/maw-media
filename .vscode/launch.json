@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/MawMedia/bin/Debug/net9.0/MawMedia.dll",
+            "program": "${workspaceFolder}/src/MawMedia/bin/Debug/net10.0/MawMedia.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/MawMedia",
             "stopAtEntry": false,
