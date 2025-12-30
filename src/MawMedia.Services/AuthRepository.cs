@@ -56,7 +56,6 @@ public class AuthRepository
             _log.LogError(ex, "Error obtaining user profile from auth0: {ERROR}", ex.Message);
         }
 
-
         if (userInfo == null)
         {
             return new NonExistentUser();

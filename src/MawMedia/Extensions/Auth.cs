@@ -74,6 +74,18 @@ public static class AuthExtensions
                     );
 
                 opts.AddPolicy(
+                    AuthorizationPolicies.LocationReader, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/location:read")
+                    );
+
+                opts.AddPolicy(
+                    AuthorizationPolicies.LocationWriter, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope($"{audience}/location:write")
+                    );
+
+                opts.AddPolicy(
                     AuthorizationPolicies.StatsReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/stats:read")

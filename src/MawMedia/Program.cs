@@ -50,6 +50,7 @@ app
 app.MapGroup("/auth").MapAuthRoutes();
 app.MapGroup("/categories").MapCategoryRoutes();
 app.MapGroup("/config").MapConfigRoutes();
+app.MapGroup("/locations").MapLocationRoutes();
 app.MapGroup("/media").MapMediaRoutes();
 app.MapGroup("/stats").MapStatRoutes();
 app.MapGroup("/upload").MapUploadRoutes();
