@@ -33,9 +33,11 @@
     img_maw_media: "docker.io/aerisg222/maw-media:latest"
     img_postgres: "docker.io/aerisg222/maw-media-postgres:latest"
     img_rclone: "docker.io/rclone/rclone:v1.71-stable"
+    img_revgeo: "docker.io/aerisg222/maw-reverse-geocode:latest"
     container_pg: maw-media-postgres
     container_media: maw-media
     container_rclone: rclone-archive
+    container_revgeo: maw-reverse-geocode
     dir_localroot: "{{ lookup('env', 'HOME') }}/maw-media/{{ mawenv }}"
     dir_root: "/home/{{ svcacct_name }}"
     dir_systemd: "{{ dir_root }}/.config/systemd/user"
@@ -46,7 +48,6 @@
     dir_mediaassets: "{{ dir_approot }}/media-assets"
     dir_mediadp: "{{ dir_approot }}/media-data-protection"
     dir_mediadownload: "{{ dir_approot }}/media-download"
-    dir_mediaenv: "{{ dir_approot }}/media-env"
     dir_mediasecrets: "{{ dir_approot }}/media-secrets"
     dir_mediaupload: "{{ dir_approot }}/media-upload"
     dir_rcloneconf: "{{ dir_approot }}/rclone-config"
@@ -71,7 +72,6 @@
         - "{{ dir_mediaassets }}"
         - "{{ dir_mediasecrets }}"
         - "{{ dir_mediadp }}"
-        - "{{ dir_mediaenv }}"
         - "{{ dir_mediadownload }}"
         - "{{ dir_mediaupload }}"
         - "{{ dir_rcloneconf }}"
@@ -142,15 +142,17 @@
         enabled: true
         state: restarted
 
-    - name: Copy DB Maintenance systemd services/timers
+    - name: Copy DB Maintenance and Reverse Geocode systemd services/timers
       ansible.builtin.template:
         dest: "{{ dir_systemd }}/{{ item.dest }}"
         src: "{{ item.src }}"
       loop:
-        - { "src": "pg-maintenance.service.j2", "dest": "pg-maintenance.service", }
-        - { "src": "pg-maintenance.timer.j2",   "dest": "pg-maintenance.timer" }
-        - { "src": "rclone-archive.service.j2", "dest": "rclone-archive.service" }
-        - { "src": "rclone-archive.timer.j2",   "dest": "rclone-archive.timer" }
+        - { "src": "pg-maintenance.service.j2",  "dest": "pg-maintenance.service", }
+        - { "src": "pg-maintenance.timer.j2",    "dest": "pg-maintenance.timer" }
+        - { "src": "rclone-archive.service.j2",  "dest": "rclone-archive.service" }
+        - { "src": "rclone-archive.timer.j2",    "dest": "rclone-archive.timer" }
+        - { "src": "reverse-geocode.service.j2", "dest": "reverse-geocode.service" }
+        - { "src": "reverse-geocode.timer.j2",   "dest": "reverse-geocode.timer" }
 
     - name: Enable Maintenance Systemd Timers
       ansible.builtin.systemd_service:
@@ -162,6 +164,7 @@
       loop:
         - "pg-maintenance.timer"
         - "rclone-archive.timer"
+        - "reverse-geocode.timer"
 
     - name: Prepare Admin Scripts
       ansible.builtin.template:

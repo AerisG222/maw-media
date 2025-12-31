@@ -1,0 +1,6 @@
+[Unit]
+Description=maw-reverse-geocode job
+
+[Service]
+Type=oneshot
+ExecStart=podman run -it --rm --authfile {{ podman_authfile }} --pull newer --pod {{ pod }} --name {{ container_revgeo }} --user 1654 --read-only {{ img_revgeo }} --login-url {{ revgeo_login_url }} --audience {{ revgeo_audience }} --client-id {{ revgeo_client_id }} --client-secret {{ revgeo_client_secret }} --media-api-url {{ revgeo_api_url }} --google-api-key {{ revgeo_google_api_key }}
