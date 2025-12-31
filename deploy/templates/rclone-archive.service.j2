@@ -3,4 +3,4 @@ Description=maw-media maintenance job to remotely backup database archives
 
 [Service]
 Type=oneshot
-ExecStart=podman run -it --rm --authfile {{ podman_authfile }} --pull newer --pod {{ pod }} --name {{ container_rclone }} --user 1654 --tmpfs /tmp --read-only --volume {{ dir_rcloneconf }}:/config/rclone:ro,Z --volume {{ dir_rclonesecrets }}:/secrets:ro,Z --volume {{ dir_pgbackups }}:/backups:ro,z {{ img_rclone }} -v --drive-impersonate mmorano@mikeandwan.us sync /backups gdrive:maw-www-{{ mawenv }}
+ExecStart=podman run -it --rm --authfile {{ podman_authfile }} --pull newer --pod {{ pod }} --name {{ container_rclone }} --user 1654 --tmpfs /tmp --read-only --volume {{ dir_rcloneconf }}:/config/rclone:ro,Z --volume {{ dir_rclonesecrets }}:/secrets:ro,Z --volume {{ dir_pgbackups }}:/backups:ro,z {{ img_rclone }} -v --drive-impersonate mmorano@mikeandwan.us sync /backups gdrive:maw-media-{{ mawenv }}
