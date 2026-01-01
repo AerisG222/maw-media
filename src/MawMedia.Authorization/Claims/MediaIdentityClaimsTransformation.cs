@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using MawMedia.Models;
 using MawMedia.Services;
 
@@ -8,12 +9,18 @@ namespace MawMedia.Authorization.Claims;
 public class MediaIdentityClaimsTransformation
     : IClaimsTransformation
 {
+    readonly ILogger _log;
     readonly IAuthRepository _repo;
 
-    public MediaIdentityClaimsTransformation(IAuthRepository authRepo)
+    public MediaIdentityClaimsTransformation(
+        ILogger<MediaIdentityClaimsTransformation> log,
+        IAuthRepository authRepo
+    )
     {
+        ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(authRepo);
 
+        _log = log;
         _repo = authRepo;
     }
 
@@ -34,10 +41,14 @@ public class MediaIdentityClaimsTransformation
         }
         else if (userState is NonActivatedUser)
         {
+            _log.LogInformation("User with external id {EXTERNAL_ID} is not activated yet!", subClaim);
+
             AddMediaIdentityClaims(principal, null, Constants.USER_STATUS_INACTIVE, false);
         }
         else if (userState is NonExistentUser)
         {
+            _log.LogInformation("User with external id {EXTERNAL_ID} has not been onboarded yet!", subClaim);
+
             userState = await _repo.OnboardExternalIdentity();
 
             if (userState is ActivatedUser newlyActivatedUser)
