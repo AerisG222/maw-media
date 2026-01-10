@@ -1,4 +1,4 @@
-namespace MawMedia.Services;
+namespace MawMedia.Services.Abstractions;
 
 public interface IAssetPathBuilder
 {

@@ -2,7 +2,7 @@ using NodaTime;
 
 namespace MawMedia.Services.Models;
 
-public record class UserStateRecord(
+public record UserStateRecord(
     string ExternalId,
     Instant? ExternalProfileLastUpdated,
     Guid? UserId,

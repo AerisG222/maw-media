@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using MawMedia.Models;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 
 namespace MawMedia.Authorization.Claims;
 

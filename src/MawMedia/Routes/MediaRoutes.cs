@@ -2,7 +2,7 @@ using System.Security.Claims;
 using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Routes.Extensions;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 using MawMedia.ViewModels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;

@@ -1,7 +1,8 @@
 using MawMedia.Authorization.Claims;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Constants = MawMedia.Services.Abstractions.Constants;
 
 namespace MawMedia.Authorization;
 
@@ -29,7 +30,7 @@ public class MediaStaticAssetAuthorizationHandler
             return;
         }
 
-        if (!ctx.Request.Path.StartsWithSegments(Services.Constants.AssetBaseUrl))
+        if (!ctx.Request.Path.StartsWithSegments(Constants.AssetBaseUrl))
         {
             return;
         }

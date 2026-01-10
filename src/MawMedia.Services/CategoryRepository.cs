@@ -1,4 +1,5 @@
 using MawMedia.Models;
+using MawMedia.Services.Abstractions;
 using MawMedia.Services.Models;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -61,9 +62,7 @@ public class CategoryRepository
             }
         );
 
-        return recs == null
-            ? []
-            : recs.Select(r => r.ToGps());
+        return recs.Select(r => r.ToGps());
     }
 
     public async Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)

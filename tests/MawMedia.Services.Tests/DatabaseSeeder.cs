@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Dapper;
 using MawMedia.Services.Tests.Models;
 using Npgsql;
@@ -184,8 +183,8 @@ public class DatabaseSeeder
         var userRoles = Constants.UserRoles
             .Select(role => new
             {
-                user_id = role.user_id,
-                role_id = role.role_id,
+                role.user_id,
+                role.role_id,
                 created = DateTime.Now,
                 created_by = Constants.USER_ADMIN
             });

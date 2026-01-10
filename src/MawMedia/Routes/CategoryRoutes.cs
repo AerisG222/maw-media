@@ -2,7 +2,7 @@ using System.Security.Claims;
 using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Routes.Extensions;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 using MawMedia.ViewModels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -328,7 +328,7 @@ public static class CategoryRoutes
     {
         var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId);
 
-        if (media == null || !media.Any())
+        if (!media.Any())
         {
             return null;
         }

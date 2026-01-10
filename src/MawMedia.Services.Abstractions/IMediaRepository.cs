@@ -1,7 +1,7 @@
 using System.Text.Json;
 using MawMedia.Models;
 
-namespace MawMedia.Services;
+namespace MawMedia.Services.Abstractions;
 
 public interface IMediaRepository
 {

@@ -1,7 +1,7 @@
 using MawMedia.Models;
 using NodaTime;
 
-namespace MawMedia.Services;
+namespace MawMedia.Services.Abstractions;
 
 public interface ICategoryRepository
 {

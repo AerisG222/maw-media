@@ -1,4 +1,5 @@
 using MawMedia.Models;
+using MawMedia.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 

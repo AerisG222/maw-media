@@ -1,5 +1,5 @@
 using MawMedia.Models;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace MawMedia.Routes;

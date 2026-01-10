@@ -1,3 +1,5 @@
+namespace MawMedia.Services.Models;
+
 public record YearStatRecord(
     short Year,
     long CategoryCount,

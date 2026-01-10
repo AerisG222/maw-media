@@ -1,5 +1,6 @@
 using Dapper;
 using MawMedia.Models;
+using MawMedia.Services.Abstractions;
 using MawMedia.Services.Models;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -118,10 +119,7 @@ public class BaseRepository
         }
         finally
         {
-            if (_conn != null)
-            {
-                await _conn.CloseAsync();
-            }
+            await _conn.CloseAsync();
         }
     }
 
@@ -156,10 +154,7 @@ public class BaseRepository
                 await tran.DisposeAsync();
             }
 
-            if (_conn != null)
-            {
-                await _conn.CloseAsync();
-            }
+            await _conn.CloseAsync();
         }
     }
 

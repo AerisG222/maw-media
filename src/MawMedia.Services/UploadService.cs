@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using MawMedia.Models;
+using MawMedia.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -40,7 +41,7 @@ public class UploadService
         CheckFilename(filename);
 
         var file = BuildPhysicalFilename(userId, filename);
-        using var fs = new FileStream(file, FileMode.CreateNew);
+        await using var fs = new FileStream(file, FileMode.CreateNew);
         await fileStream.CopyToAsync(fs);
         await fs.FlushAsync();
         fs.Close();

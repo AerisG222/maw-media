@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using MawMedia.Authorization;
 using MawMedia.Authorization.Claims;
 using MawMedia.Services;
+using MawMedia.Services.Abstractions;
 
 namespace MawMedia.Extensions;
 

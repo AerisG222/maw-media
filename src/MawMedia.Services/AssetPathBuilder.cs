@@ -1,3 +1,5 @@
+using MawMedia.Services.Abstractions;
+
 namespace MawMedia.Services;
 
 public class AssetPathBuilder

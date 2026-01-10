@@ -1,6 +1,6 @@
 using MawMedia.Models;
 
-namespace MawMedia.Services;
+namespace MawMedia.Services.Abstractions;
 
 public interface IUserInfoClient
 {

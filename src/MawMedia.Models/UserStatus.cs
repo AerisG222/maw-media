@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record class UserStatus(
+public record UserStatus(
     string Status,
     bool IsAdmin
 );

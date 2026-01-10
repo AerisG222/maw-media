@@ -5,11 +5,6 @@ public static class HttpRequestExtensions
     // credit: https://blog.elmah.io/how-to-get-base-url-in-asp-net-core/
     public static string GetBaseUrl(this HttpRequest req)
     {
-        if (req == null)
-        {
-            return string.Empty;
-        }
-
         var uriBuilder = new UriBuilder(
             req.Scheme,
             req.Host.Host,

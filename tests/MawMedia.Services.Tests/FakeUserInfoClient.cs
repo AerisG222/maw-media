@@ -1,5 +1,7 @@
 using MawMedia.Models;
-using MawMedia.Services;
+using MawMedia.Services.Abstractions;
+
+namespace MawMedia.Services.Tests;
 
 public class FakeUserInfoClient
     : IUserInfoClient

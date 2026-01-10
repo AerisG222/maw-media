@@ -2,7 +2,7 @@ using MawMedia.Models;
 
 namespace MawMedia.ViewModels;
 
-public record class BulkUpdateGpsRequest(
+public record BulkUpdateGpsRequest(
     Guid[] MediaIds,
     GpsCoordinate GpsCoordinate
 );

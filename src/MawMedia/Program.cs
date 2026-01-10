@@ -30,7 +30,7 @@ builder.Services
         .Services
     .AddCustomOpenApi()
     .AddCustomAuth(builder.Configuration)
-    .AddSingleton<IClock>(services => SystemClock.Instance)
+    .AddSingleton<IClock>(SystemClock.Instance)
     .AddMediaAuthorizationHandler()
     .AddMediaServices(builder.Configuration);
 

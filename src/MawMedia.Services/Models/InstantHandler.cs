@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Dapper;
 using NodaTime;
 
-[assembly: InternalsVisibleToAttribute("MawMedia.Services.Tests")]
+[assembly: InternalsVisibleTo("MawMedia.Services.Tests")]
 
 namespace MawMedia.Services.Models;
 
