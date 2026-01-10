@@ -70,6 +70,7 @@ public class DatabaseSeeder
         await PopulateFiles(conn);
         await PopulateComments(conn);
         await PopulateFavorites(conn);
+        await PopulateCategoryFavorites(conn);
 
         await RefreshMaterializedViews(conn);
     }
@@ -293,20 +294,16 @@ public class DatabaseSeeder
                 VALUES
                 ($1, $2, $3, $4, $5, $6, $7, $8, $9);
                 """,
-                conn)
-            {
-                Parameters = {
-                    new() { Value = m.Id },
-                    new() { Value = m.TypeId },
-                    new() { Value = m.LocationId },
-                    new() { Value = (object?)m.LocationOverrideId ?? DBNull.Value, NpgsqlDbType = NpgsqlDbType.Uuid },
-                    new() { Value = m.Created },
-                    new() { Value = m.CreatedBy },
-                    new() { Value = m.Modified },
-                    new() { Value = m.ModifiedBy },
-                    new() { Value = m.Metadata }
-                }
-            };
+                conn);
+            cmd.Parameters.Add(new() { Value = m.Id });
+            cmd.Parameters.Add(new() { Value = m.TypeId });
+            cmd.Parameters.Add(new() { Value = m.LocationId });
+            cmd.Parameters.Add(new() { Value = (object?)m.LocationOverrideId ?? DBNull.Value, NpgsqlDbType = NpgsqlDbType.Uuid });
+            cmd.Parameters.Add(new() { Value = m.Created });
+            cmd.Parameters.Add(new() { Value = m.CreatedBy });
+            cmd.Parameters.Add(new() { Value = m.Modified });
+            cmd.Parameters.Add(new() { Value = m.ModifiedBy });
+            cmd.Parameters.Add(new() { Value = m.Metadata });
 
             await cmd.ExecuteNonQueryAsync();
         }

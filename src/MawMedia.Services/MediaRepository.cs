@@ -81,14 +81,9 @@ public class MediaRepository
     {
         return await RunCommand(async conn =>
         {
-            await using var cmd = new NpgsqlCommand("SELECT * FROM media.get_metadata($1, $2);", conn)
-            {
-                Parameters =
-                {
-                    new() { Value = userId },
-                    new() { Value = mediaId }
-                }
-            };
+            await using var cmd = new NpgsqlCommand("SELECT * FROM media.get_metadata($1, $2);", conn);
+            cmd.Parameters.Add(new() { Value = userId });
+            cmd.Parameters.Add(new() { Value = mediaId });
 
             await using var reader = await cmd.ExecuteReaderAsync();
 
