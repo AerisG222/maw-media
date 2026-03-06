@@ -71,7 +71,7 @@ BEGIN
     WHERE
         (_id IS NULL OR c.id = _id)
         AND (_year IS NULL OR c.year = _year)
-        AND (_modified_after IS NULL OR c.modified::timestamptz(3) > _modified_after::timestamptz(3))
+        AND (_modified_after IS NULL OR c.modified::timestamptz(3) > (_modified_after::timestamptz(3) + INTERVAL '1 seconds'))
     ORDER BY c.effective_date DESC;
 END;
 $$ LANGUAGE plpgsql;
