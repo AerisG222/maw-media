@@ -16,6 +16,8 @@ function run_psql_script() {
     local script=$1
     local db=$2
 
+    echo "    - $script"
+
     if [ "${db}" == "" ]
     then
         db="${DBNAME}"
@@ -25,7 +27,7 @@ function run_psql_script() {
     then
         psql -d "${db}" -q -f "${script}";
     else
-        podman run -it --rm \
+        podman run --rm \
             --pod "${PODNAME}" \
             --env "POSTGRES_PASSWORD_FILE=/secrets/psql-postgres" \
             --volume "${PWDFILEDIR}":/secrets:ro \
@@ -38,6 +40,8 @@ function run_psql_script() {
                     -d "${db}" \
                     -q \
                     -f "/tmp/context/${script}"
+
+        sleep 1
     fi
 }
 
