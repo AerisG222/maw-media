@@ -19,4 +19,5 @@ class CategoryAndTeaser
     public required string FilePath { get; set; }
     public required string FileType { get; set; }
     public required string FileScale { get; set; }
+    public required string[] MediaTypes { get; set; }
 }

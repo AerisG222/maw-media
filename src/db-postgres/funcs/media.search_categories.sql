@@ -25,7 +25,8 @@ RETURNS TABLE
     file_id UUID,
     file_path TEXT,
     file_type TEXT,
-    file_scale TEXT
+    file_scale TEXT,
+    media_types TEXT[]
 )
 AS $$
 BEGIN
@@ -67,7 +68,14 @@ BEGIN
         md.file_id,
         md.file_path,
         md.file_type,
-        md.file_scale
+        md.file_scale,
+        (
+            SELECT array_agg(DISTINCT xt.code ORDER BY xt.code)
+                FROM media.category_media xcm
+                INNER JOIN media.media xm ON xcm.media_id = xm.id
+                INNER JOIN media.type xt ON xm.type_id = xt.id
+                WHERE xcm.category_id = c.id
+        ) AS media_types
     FROM media.category c
     INNER JOIN search_results sr
         ON c.id = sr.category_id

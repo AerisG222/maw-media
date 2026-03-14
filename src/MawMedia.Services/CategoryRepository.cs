@@ -224,7 +224,8 @@ public class CategoryRepository
                         x.FileType,
                         _assetPathBuilder.Build(baseUrl, x.FilePath)
                     )).ToList()
-                )
+                ),
+                g.First().MediaTypes
             ))
             .ToList();
 

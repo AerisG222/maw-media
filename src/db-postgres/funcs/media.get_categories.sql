@@ -23,7 +23,8 @@ RETURNS TABLE
     media_is_favorite BOOLEAN,
     file_path TEXT,
     file_type TEXT,
-    file_scale TEXT
+    file_scale TEXT,
+    media_types TEXT[]
 )
 AS $$
 BEGIN
@@ -47,7 +48,14 @@ BEGIN
             END AS media_is_favorite,
         md.file_path,
         md.file_type,
-        md.file_scale
+        md.file_scale,
+        (
+            SELECT array_agg(DISTINCT xt.code ORDER BY xt.code)
+                FROM media.category_media xcm
+                INNER JOIN media.media xm ON xcm.media_id = xm.id
+                INNER JOIN media.type xt ON xm.type_id = xt.id
+                WHERE xcm.category_id = c.id
+        ) AS media_types
     FROM media.category c
     INNER JOIN media.user_category uc
         ON c.id = uc.category_id

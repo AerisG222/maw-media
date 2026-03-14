@@ -10,5 +10,6 @@ public record Category(
     LocalDate EffectiveDate,
     Instant Modified,
     bool IsFavorite,
-    Media Teaser
+    Media Teaser,
+    string[] MediaTypes
 );
