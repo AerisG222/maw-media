@@ -168,7 +168,7 @@ public class CategoryRepositoryTests
     public async Task UpdateCategoryTeaser_Then_ObserveChanges()
     {
         var repo = GetRepo();
-        var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow);
+        var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow.AddSeconds(-5));
 
         var success = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id);
 

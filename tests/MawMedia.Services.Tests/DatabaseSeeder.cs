@@ -262,7 +262,7 @@ public class DatabaseSeeder
         List<object> favorites = [
             new {
                 created_by = Constants.USER_JOHNDOE,
-                category_id = Constants.CATEGORY_NATURE,
+                category_id = Constants.CATEGORY_NATURE.Id,
                 created = DateTime.UtcNow
             }
         ];
@@ -428,6 +428,7 @@ public class DatabaseSeeder
     async Task PopulateLocations(NpgsqlConnection conn)
     {
         List<object> locations = [
+            Constants.LOCATION_MA,
             Constants.LOCATION_NY,
             Constants.LOCATION_UNK
         ];
