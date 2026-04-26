@@ -23,9 +23,7 @@ public class MediaStaticAssetAuthorizationHandler
         MediaStaticAssetRequirement requirement
     )
     {
-        var ctx = context.Resource as HttpContext;
-
-        if (ctx == null)
+        if (context.Resource is not HttpContext ctx)
         {
             return;
         }
