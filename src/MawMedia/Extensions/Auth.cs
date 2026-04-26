@@ -43,60 +43,50 @@ public static class AuthExtensions
                 opts.MapInboundClaims = false;
             })
             .Services
-            .AddAuthorization(opts =>
-            {
-                opts.AddPolicy(
+            .AddAuthorizationBuilder()
+                .AddPolicy(
                     AuthorizationPolicies.User, p => p
                         .RequireAuthenticatedUser()
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.MediaReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/media:read")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.MediaWriter, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/media:write")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.CommentReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/comments:read")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.CommentWriter, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/comments:write")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.LocationReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/location:read")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.LocationWriter, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/location:write")
-                    );
-
-                opts.AddPolicy(
+                )
+                .AddPolicy(
                     AuthorizationPolicies.StatsReader, p => p
                         .RequireAuthenticatedUser()
                         .RequireScope($"{audience}/stats:read")
-                    );
-
-                opts.FallbackPolicy = new AuthorizationPolicyBuilder()
+                )
+                .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddRequirements(new MediaStaticAssetRequirement())
-                    .Build();
-            });
+                    .Build());
 
         return services;
     }
