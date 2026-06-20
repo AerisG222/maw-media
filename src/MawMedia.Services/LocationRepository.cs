@@ -17,63 +17,67 @@ public class LocationRepository
 
     }
 
-    public async Task<IEnumerable<Location>> GetLocationsWithoutMetadata(Guid userId) =>
+    public async Task<IEnumerable<Location>> GetLocationsWithoutMetadata(Guid userId, CancellationToken token = default) =>
         await Query<Location>(
             "SELECT * FROM media.get_locations_without_metadata(@userId);",
             new
             {
                 userId
-            }
+            },
+            token
         );
 
-    public async Task<bool> SetLocationMetadata(Guid userId, LocationMetadata metadata)
+    public async Task<bool> SetLocationMetadata(Guid userId, LocationMetadata metadata, CancellationToken token = default)
     {
         return await RunTransaction(
             async conn => {
                 var result = await conn.ExecuteScalarAsync<int>(
-                    """
-                    SELECT * FROM media.set_location_metadata(
-                        @userId,
-                        @locationId,
-                        @lookupDate,
-                        @formattedAddress,
-                        @administrativeAreaLevel1,
-                        @administrativeAreaLevel2,
-                        @administrativeAreaLevel3,
-                        @country,
-                        @locality,
-                        @neighborhood,
-                        @subLocalityLevel1,
-                        @subLocalityLevel2,
-                        @postalCode,
-                        @postalCodeSuffix,
-                        @premise,
-                        @route,
-                        @streetNumber,
-                        @subPremise
-                    );
-                    """,
-                    new
-                    {
-                        userId,
-                        locationId = metadata.LocationId,
-                        lookupDate = metadata.LookupDate,
-                        formattedAddress = metadata.FormattedAddress,
-                        administrativeAreaLevel1 = metadata.AdministrativeAreaLevel1,
-                        administrativeAreaLevel2 = metadata.AdministrativeAreaLevel2,
-                        administrativeAreaLevel3 = metadata.AdministrativeAreaLevel3,
-                        country = metadata.Country,
-                        locality = metadata.Locality,
-                        neighborhood = metadata.Neighborhood,
-                        subLocalityLevel1 = metadata.SubLocalityLevel1,
-                        subLocalityLevel2 = metadata.SubLocalityLevel2,
-                        postalCode = metadata.PostalCode,
-                        postalCodeSuffix = metadata.PostalCodeSuffix,
-                        premise = metadata.Premise,
-                        route = metadata.Route,
-                        streetNumber = metadata.StreetNumber,
-                        subPremise = metadata.SubPremise
-                    }
+                    new CommandDefinition(
+                        """
+                        SELECT * FROM media.set_location_metadata(
+                            @userId,
+                            @locationId,
+                            @lookupDate,
+                            @formattedAddress,
+                            @administrativeAreaLevel1,
+                            @administrativeAreaLevel2,
+                            @administrativeAreaLevel3,
+                            @country,
+                            @locality,
+                            @neighborhood,
+                            @subLocalityLevel1,
+                            @subLocalityLevel2,
+                            @postalCode,
+                            @postalCodeSuffix,
+                            @premise,
+                            @route,
+                            @streetNumber,
+                            @subPremise
+                        );
+                        """,
+                        new
+                        {
+                            userId,
+                            locationId = metadata.LocationId,
+                            lookupDate = metadata.LookupDate,
+                            formattedAddress = metadata.FormattedAddress,
+                            administrativeAreaLevel1 = metadata.AdministrativeAreaLevel1,
+                            administrativeAreaLevel2 = metadata.AdministrativeAreaLevel2,
+                            administrativeAreaLevel3 = metadata.AdministrativeAreaLevel3,
+                            country = metadata.Country,
+                            locality = metadata.Locality,
+                            neighborhood = metadata.Neighborhood,
+                            subLocalityLevel1 = metadata.SubLocalityLevel1,
+                            subLocalityLevel2 = metadata.SubLocalityLevel2,
+                            postalCode = metadata.PostalCode,
+                            postalCodeSuffix = metadata.PostalCodeSuffix,
+                            premise = metadata.Premise,
+                            route = metadata.Route,
+                            streetNumber = metadata.StreetNumber,
+                            subPremise = metadata.SubPremise
+                        },
+                        cancellationToken: token
+                    )
                 );
 
                 switch(result)
@@ -89,21 +93,24 @@ public class LocationRepository
                 foreach(var poi in metadata.PointsOfInterest)
                 {
                     result = await conn.ExecuteScalarAsync<int>(
-                        """
-                        SELECT * FROM media.set_point_of_interest(
-                            @userId,
-                            @locationId,
-                            @type,
-                            @name
-                        );
-                        """,
-                        new
-                        {
-                            userId,
-                            locationId = metadata.LocationId,
-                            type = poi.Type,
-                            name = poi.Name
-                        }
+                        new CommandDefinition(
+                            """
+                            SELECT * FROM media.set_point_of_interest(
+                                @userId,
+                                @locationId,
+                                @type,
+                                @name
+                            );
+                            """,
+                            new
+                            {
+                                userId,
+                                locationId = metadata.LocationId,
+                                type = poi.Type,
+                                name = poi.Name
+                            },
+                            cancellationToken: token
+                        )
                     );
 
                     if(result != 0)
@@ -113,7 +120,8 @@ public class LocationRepository
                 }
 
                 return true;
-            }
+            },
+            token
         );
     }
 }

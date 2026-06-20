@@ -17,14 +17,15 @@ public class StatRepository
 
     }
 
-    public async Task<IEnumerable<YearStat>> GetStats(Guid userId)
+    public async Task<IEnumerable<YearStat>> GetStats(Guid userId, CancellationToken token = default)
     {
         var stats = await Query<YearStatRecord>(
             "SELECT * FROM media.get_stats(@userId);",
             new
             {
                 userId
-            }
+            },
+            token
         );
 
         return stats
@@ -41,7 +42,7 @@ public class StatRepository
             ));
     }
 
-    public async Task<IEnumerable<CategoryStat>> GetStatsForYear(Guid userId, short year)
+    public async Task<IEnumerable<CategoryStat>> GetStatsForYear(Guid userId, short year, CancellationToken token = default)
     {
         var stats = await Query<CategoryStatRecord>(
             "SELECT * FROM media.get_stats_for_year(@userId, @year);",
@@ -49,7 +50,8 @@ public class StatRepository
             {
                 userId,
                 year
-            }
+            },
+            token
         );
 
         return stats

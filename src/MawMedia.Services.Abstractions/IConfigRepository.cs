@@ -4,5 +4,5 @@ namespace MawMedia.Services.Abstractions;
 
 public interface IConfigRepository
 {
-    Task<IEnumerable<Scale>> GetScales();
+    Task<IEnumerable<Scale>> GetScales(CancellationToken token = default);
 }

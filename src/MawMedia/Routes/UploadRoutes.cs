@@ -52,13 +52,14 @@ public static class UploadRoutes
     static async Task<Results<Ok<UploadedFile>, NotFound, ForbidHttpResult>> UploadFile(
         IUploadService svc,
         ClaimsPrincipal user,
-        IFormFile file
+        IFormFile file,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName))
+            ? TypedResults.Ok(await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName, token))
             : TypedResults.NotFound();
     }
 

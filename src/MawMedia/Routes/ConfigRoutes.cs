@@ -18,6 +18,6 @@ public static class ConfigRoutes
         return group;
     }
 
-    static async Task<Results<Ok<IEnumerable<Scale>>, ForbidHttpResult>> GetScales(IConfigRepository repo) =>
-        TypedResults.Ok(await repo.GetScales());
+    static async Task<Results<Ok<IEnumerable<Scale>>, ForbidHttpResult>> GetScales(IConfigRepository repo, CancellationToken token) =>
+        TypedResults.Ok(await repo.GetScales(token));
 }

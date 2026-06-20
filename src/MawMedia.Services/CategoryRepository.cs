@@ -30,28 +30,29 @@ public class CategoryRepository
         _assetPathBuilder = assetPathBuilder;
     }
 
-    public async Task<IEnumerable<short>> GetCategoryYears(Guid userId)
+    public async Task<IEnumerable<short>> GetCategoryYears(Guid userId, CancellationToken token = default)
     {
         return await Query<short>(
             "SELECT * FROM media.get_category_years(@userId);",
             new
             {
                 userId
-            }
+            },
+            token
         );
     }
 
-    public async Task<IEnumerable<Category>> GetCategories(Guid userId, string baseUrl, short? year = null) =>
-        await InternalGetCategories(userId, baseUrl, year: year);
+    public async Task<IEnumerable<Category>> GetCategories(Guid userId, string baseUrl, short? year = null, CancellationToken token = default) =>
+        await InternalGetCategories(userId, baseUrl, year: year, token: token);
 
-    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date, string baseUrl) =>
-        await InternalGetCategories(userId, baseUrl, modifiedAfter: date);
+    public async Task<IEnumerable<Category>> GetCategoryUpdates(Guid userId, Instant date, string baseUrl, CancellationToken token = default) =>
+        await InternalGetCategories(userId, baseUrl, modifiedAfter: date, token: token);
 
-    public async Task<Category?> GetCategory(Guid userId, Guid categoryId, string baseUrl) =>
-        (await InternalGetCategories(userId, baseUrl, categoryId))
+    public async Task<Category?> GetCategory(Guid userId, Guid categoryId, string baseUrl, CancellationToken token = default) =>
+        (await InternalGetCategories(userId, baseUrl, categoryId, token: token))
             .SingleOrDefault();
 
-    public async Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId)
+    public async Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId, CancellationToken token = default)
     {
         var recs = await Query<GpsRecord>(
             "SELECT * FROM media.get_media_gps(@userId, NULL, @categoryId);",
@@ -59,13 +60,14 @@ public class CategoryRepository
             {
                 userId,
                 categoryId
-            }
+            },
+            token
         );
 
         return recs.Select(r => r.ToGps());
     }
 
-    public async Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite)
+    public async Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.favorite_category(@userId, @categoryId, @isFavorite);",
@@ -74,7 +76,8 @@ public class CategoryRepository
                 userId,
                 categoryId,
                 isFavorite
-            }
+            },
+            token
         );
 
         if (result == 0)
@@ -87,7 +90,7 @@ public class CategoryRepository
         return false;
     }
 
-    public async Task<bool> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId)
+    public async Task<bool> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
@@ -96,7 +99,8 @@ public class CategoryRepository
                 userId,
                 categoryId,
                 mediaId
-            }
+            },
+            token
         );
 
         if (result == 0)
@@ -109,15 +113,16 @@ public class CategoryRepository
         return false;
     }
 
-    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, string baseUrl, Guid categoryId) =>
-        await InternalGetCategoryMedia(userId, baseUrl, categoryId);
+    public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, string baseUrl, Guid categoryId, CancellationToken token = default) =>
+        await InternalGetCategoryMedia(userId, baseUrl, categoryId, token);
 
     public async Task<SearchResult<Category>> Search(
         Guid userId,
         string baseUrl,
         string searchTerm,
         int offset,
-        int limit
+        int limit,
+        CancellationToken token = default
     )
     {
         if (offset < 0)
@@ -139,10 +144,11 @@ public class CategoryRepository
                 offset,
                 limit = limit + 1,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-        var categories = (await ConvertToCategories(userId, results, baseUrl)).ToList();
+        var categories = (await ConvertToCategories(userId, results, baseUrl, token)).ToList();
         var hasMore = categories.Count > limit;
 
         return new SearchResult<Category>(
@@ -152,14 +158,15 @@ public class CategoryRepository
         );
     }
 
-    public async Task<IEnumerable<Guid>> GetCategoriesWithoutGps(Guid userId, short? year) =>
+    public async Task<IEnumerable<Guid>> GetCategoriesWithoutGps(Guid userId, short? year, CancellationToken token = default) =>
         await Query<Guid>(
             "SELECT * FROM media.get_categories_without_gps(@userId, @year)",
             new
             {
                 userId,
                 year
-            }
+            },
+            token
         );
 
     async Task<IEnumerable<Category>> InternalGetCategories(
@@ -167,7 +174,8 @@ public class CategoryRepository
         string baseUrl,
         Guid? categoryId = null,
         short? year = null,
-        Instant? modifiedAfter = null
+        Instant? modifiedAfter = null,
+        CancellationToken token = default
     )
     {
         var results = await Query<CategoryAndTeaser>(
@@ -179,16 +187,18 @@ public class CategoryRepository
                 year,
                 modifiedAfter,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-        return await ConvertToCategories(userId, results, baseUrl);
+        return await ConvertToCategories(userId, results, baseUrl, token);
     }
 
     async Task<IEnumerable<Category>> ConvertToCategories(
         Guid userId,
         IEnumerable<CategoryAndTeaser> results,
-        string baseUrl
+        string baseUrl,
+        CancellationToken token = default
     )
     {
         var uniqueCacheKeys = new HashSet<string>();
@@ -231,7 +241,7 @@ public class CategoryRepository
 
         foreach (var key in uniqueCacheKeys)
         {
-            await _cache.SetAsync(key, true);
+            await _cache.SetAsync(key, true, cancellationToken: token);
         }
 
         return cats;
@@ -240,7 +250,8 @@ public class CategoryRepository
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(
         Guid userId,
         string baseUrl,
-        Guid categoryId
+        Guid categoryId,
+        CancellationToken token = default
     )
     {
         var results = await Query<MediaAndFile>(
@@ -250,9 +261,10 @@ public class CategoryRepository
                 userId,
                 categoryId,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache);
+        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache, token);
     }
 }

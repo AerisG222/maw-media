@@ -36,13 +36,13 @@ public class UploadService
         return Task.FromResult(files);
     }
 
-    public async Task<UploadedFile> UploadFile(Guid userId, Stream fileStream, string filename)
+    public async Task<UploadedFile> UploadFile(Guid userId, Stream fileStream, string filename, CancellationToken token = default)
     {
         CheckFilename(filename);
 
         var file = BuildPhysicalFilename(userId, filename);
         await using var fs = new FileStream(file, FileMode.CreateNew);
-        await fileStream.CopyToAsync(fs);
+        await fileStream.CopyToAsync(fs, token);
         await fs.FlushAsync();
         fs.Close();
 

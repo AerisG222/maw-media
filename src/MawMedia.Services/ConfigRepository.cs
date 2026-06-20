@@ -16,6 +16,6 @@ public class ConfigRepository
 
     }
 
-    public async Task<IEnumerable<Scale>> GetScales() =>
-        await Query<Scale>("SELECT * FROM media.get_scales();");
+    public async Task<IEnumerable<Scale>> GetScales(CancellationToken token = default) =>
+        await Query<Scale>("SELECT * FROM media.get_scales();", token: token);
 }

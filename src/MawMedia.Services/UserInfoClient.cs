@@ -20,9 +20,9 @@ public class UserInfoClient
         _client = client;
     }
 
-    public async Task<UserInfo?> QueryUserInfo()
+    public async Task<UserInfo?> QueryUserInfo(CancellationToken token = default)
     {
-        var json = await _client.GetStringAsync("userinfo");
+        var json = await _client.GetStringAsync("userinfo", token);
 
         return JsonSerializer.Deserialize<UserInfo>(json, _jsonOpts);
     }

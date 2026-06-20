@@ -27,93 +27,99 @@ public class BaseRepository
 
     protected async Task Execute(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         await RunCommand(
             conn =>
                 conn.ExecuteAsync(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
     protected async Task<T?> ExecuteScalarInTransaction<T>(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         return await RunTransaction(
             conn =>
                 conn.ExecuteScalarAsync<T>(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
     protected async Task<IEnumerable<T>?> ExecuteQueryInTransaction<T>(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         return await RunTransaction(
             conn =>
                 conn.QueryAsync<T>(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
     protected async Task<T?> ExecuteScalar<T>(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         return await RunCommand(
             conn =>
                 conn.ExecuteScalarAsync<T>(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
     protected async Task<IEnumerable<T>> Query<T>(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         return await RunCommand(
             conn =>
                 conn.QueryAsync<T>(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
     protected async Task<T?> QuerySingle<T>(
         string statement,
-        object? param = null
+        object? param = null,
+        CancellationToken token = default
     )
     {
         return await RunCommand(
             conn =>
                 conn.QuerySingleOrDefaultAsync<T>(
-                    statement,
-                    param
-                )
+                    new CommandDefinition(statement, param, cancellationToken: token)
+                ),
+            token
         );
     }
 
-    protected async Task<T> RunCommand<T>(Func<NpgsqlConnection, Task<T>> command)
+    protected async Task<T> RunCommand<T>(Func<NpgsqlConnection, Task<T>> command, CancellationToken token = default)
     {
         try
         {
-            await _conn.OpenAsync();
+            await _conn.OpenAsync(token);
 
             return await command(_conn);
         }
@@ -123,18 +129,18 @@ public class BaseRepository
         }
     }
 
-    protected async Task<T?> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command)
+    protected async Task<T?> RunTransaction<T>(Func<NpgsqlConnection, Task<T>> command, CancellationToken token = default)
     {
         NpgsqlTransaction? tran = null;
 
         try
         {
-            await _conn.OpenAsync();
-            tran = await _conn.BeginTransactionAsync();
+            await _conn.OpenAsync(token);
+            tran = await _conn.BeginTransactionAsync(token);
 
             var result = await command(_conn);
 
-            await tran.CommitAsync();
+            await tran.CommitAsync(token);
 
             return result;
         }
@@ -142,7 +148,7 @@ public class BaseRepository
         {
             if (tran != null)
             {
-                await tran.RollbackAsync();
+                await tran.RollbackAsync(CancellationToken.None);
             }
 
             throw;
@@ -163,7 +169,8 @@ public class BaseRepository
         IEnumerable<MediaAndFile> mediaAndFiles,
         string baseUrl,
         IAssetPathBuilder assetPathBuilder,
-        HybridCache cache
+        HybridCache cache,
+        CancellationToken token = default
     )
     {
         var uniqueCacheKeys = new HashSet<string>();
@@ -196,7 +203,7 @@ public class BaseRepository
 
         foreach (var key in uniqueCacheKeys)
         {
-            await cache.SetAsync(key, true);
+            await cache.SetAsync(key, true, cancellationToken: token);
         }
 
         return media;

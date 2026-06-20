@@ -83,13 +83,14 @@ public static class MediaRoutes
         IMediaRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] byte count
+        [FromRoute] byte count,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetRandomMedia(userId.Value, request.GetBaseUrl(), count))
+            ? TypedResults.Ok(await repo.GetRandomMedia(userId.Value, request.GetBaseUrl(), count, token))
             : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
     }
 
@@ -97,7 +98,8 @@ public static class MediaRoutes
         IMediaRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -107,7 +109,7 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        var media = await repo.GetMedia(userId.Value, request.GetBaseUrl(), id);
+        var media = await repo.GetMedia(userId.Value, request.GetBaseUrl(), id, token);
 
         return media != null
             ? TypedResults.Ok(media)
@@ -117,7 +119,8 @@ public static class MediaRoutes
     static async Task<Results<Ok<Gps>, NotFound, ForbidHttpResult>> GetGps(
         IMediaRepository repo,
         ClaimsPrincipal user,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -127,7 +130,7 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        var gps = await repo.GetGps(userId.Value, id);
+        var gps = await repo.GetGps(userId.Value, id, token);
 
         return gps != null
             ? TypedResults.Ok(gps)
@@ -138,7 +141,8 @@ public static class MediaRoutes
         IMediaRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -148,7 +152,7 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        var metadata = await repo.GetMetadata(userId.Value, id);
+        var metadata = await repo.GetMetadata(userId.Value, id, token);
 
         return metadata != null
             ? TypedResults.Ok(metadata)
@@ -160,7 +164,8 @@ public static class MediaRoutes
         ClaimsPrincipal user,
         HttpRequest httpRequest,
         [FromRoute] Guid id,
-        [FromBody] FavoriteRequest request)
+        [FromBody] FavoriteRequest request,
+        CancellationToken token)
     {
         var userId = user.GetMediaUserId();
 
@@ -169,7 +174,7 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        var media = await repo.SetIsFavorite(userId.Value, httpRequest.GetBaseUrl(), id, request.IsFavorite);
+        var media = await repo.SetIsFavorite(userId.Value, httpRequest.GetBaseUrl(), id, request.IsFavorite, token);
 
         return media != null
             ? TypedResults.Ok(media)
@@ -179,13 +184,14 @@ public static class MediaRoutes
     static async Task<Results<Ok<IEnumerable<Comment>>, ForbidHttpResult>> GetComments(
         IMediaRepository repo,
         ClaimsPrincipal user,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetComments(userId.Value, id))
+            ? TypedResults.Ok(await repo.GetComments(userId.Value, id, token))
             : TypedResults.Ok(Array.Empty<Comment>().AsEnumerable());
     }
 
@@ -193,7 +199,8 @@ public static class MediaRoutes
         IMediaRepository repo,
         ClaimsPrincipal user,
         [FromRoute] Guid id,
-        [FromBody] AddCommentRequest request
+        [FromBody] AddCommentRequest request,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -203,10 +210,10 @@ public static class MediaRoutes
             return TypedResults.NotFound();
         }
 
-        var commentId = await repo.AddComment(userId.Value, id, request.Body);
+        var commentId = await repo.AddComment(userId.Value, id, request.Body, token);
 
         return commentId != null
-            ? TypedResults.Ok(await repo.GetComment(userId.Value, (Guid)commentId))
+            ? TypedResults.Ok(await repo.GetComment(userId.Value, (Guid)commentId, token))
             : TypedResults.NotFound();
     }
 
@@ -214,7 +221,8 @@ public static class MediaRoutes
         IMediaRepository repo,
         ClaimsPrincipal user,
         [FromRoute] Guid id,
-        [FromBody] UpdateGpsRequest request
+        [FromBody] UpdateGpsRequest request,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -232,7 +240,8 @@ public static class MediaRoutes
             id,
             newLocationId,
             request.Latitude,
-            request.Longitude
+            request.Longitude,
+            token
         );
 
         return success
@@ -243,7 +252,8 @@ public static class MediaRoutes
     static async Task<Results<Ok, NotFound, ForbidHttpResult>> BulkGpsOverride(
         IMediaRepository repo,
         ClaimsPrincipal user,
-        [FromBody] BulkUpdateGpsRequest request
+        [FromBody] BulkUpdateGpsRequest request,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -261,7 +271,8 @@ public static class MediaRoutes
             request.MediaIds,
             newLocationId,
             request.GpsCoordinate.Latitude,
-            request.GpsCoordinate.Longitude
+            request.GpsCoordinate.Longitude,
+            token
         );
 
         return success

@@ -58,7 +58,7 @@ public class AuthRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.GetIsAdmin(userId);
+        var result = await repo.GetIsAdmin(userId, TestContext.Current.CancellationToken);
 
         Assert.Equal(isAdmin, result);
     }

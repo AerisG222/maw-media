@@ -28,29 +28,30 @@ public class AuthRepository
         _client = client;
     }
 
-    public async Task<IUserState> GetUserState(string externalId, CancellationToken token) =>
+    public async Task<IUserState> GetUserState(string externalId, CancellationToken token = default) =>
         await _cache.GetOrCreateAsync(
             CacheKeyBuilder.UserState(externalId),
-            async cancel => await InternalGetUserState(externalId),
+            async cancel => await InternalGetUserState(externalId, cancel),
             cancellationToken: token
         );
 
-    public async Task<bool> GetIsAdmin(Guid userId) =>
+    public async Task<bool> GetIsAdmin(Guid userId, CancellationToken token = default) =>
         await ExecuteScalar<bool>(
             "SELECT * FROM media.get_is_admin(@userId);",
             new
             {
                 userId
-            }
+            },
+            token
         );
 
-    public async Task<IUserState> OnboardExternalIdentity()
+    public async Task<IUserState> OnboardExternalIdentity(CancellationToken token = default)
     {
         UserInfo? userInfo = null;
 
         try
         {
-            userInfo = await _client.QueryUserInfo();
+            userInfo = await _client.QueryUserInfo(token);
         }
         catch (Exception ex)
         {
@@ -62,17 +63,17 @@ public class AuthRepository
             return new NonExistentUser();
         }
 
-        var userState = await CreateExternalUser(userInfo);
+        var userState = await CreateExternalUser(userInfo, token);
 
         if (userInfo.Sub != null)
         {
-            await _cache.SetAsync(CacheKeyBuilder.UserState(userInfo.Sub), userState);
+            await _cache.SetAsync(CacheKeyBuilder.UserState(userInfo.Sub), userState, cancellationToken: token);
         }
 
         return userState;
     }
 
-    async Task<IUserState> CreateExternalUser(UserInfo userInfo)
+    async Task<IUserState> CreateExternalUser(UserInfo userInfo, CancellationToken token = default)
     {
         var userStateRecord = await ExecuteQueryInTransaction<UserStateRecord>(
             """
@@ -96,20 +97,22 @@ public class AuthRepository
                 givenName = userInfo.GivenName,
                 surname = userInfo.FamilyName,
                 picture = userInfo.Picture
-            }
+            },
+            token
         );
 
         return BuildUserState(userStateRecord?.SingleOrDefault());
     }
 
-    async Task<IUserState> InternalGetUserState(string externalId)
+    async Task<IUserState> InternalGetUserState(string externalId, CancellationToken token = default)
     {
         var userStateRecord = await QuerySingle<UserStateRecord>(
             "SELECT * FROM media.get_user_state(@external_id);",
             new
             {
                 external_id = externalId
-            }
+            },
+            token
         );
 
         return BuildUserState(userStateRecord);

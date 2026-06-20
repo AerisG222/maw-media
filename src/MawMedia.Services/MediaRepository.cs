@@ -31,7 +31,8 @@ public class MediaRepository
     public async Task<IEnumerable<Media>> GetRandomMedia(
         Guid userId,
         string baseUrl,
-        byte count
+        byte count,
+        CancellationToken token = default
     )
     {
         var results = await Query<MediaAndFile>(
@@ -41,13 +42,14 @@ public class MediaRepository
                 userId,
                 count,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache);
+        return await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache, token);
     }
 
-    public async Task<Media?> GetMedia(Guid userId, string baseUrl, Guid mediaId)
+    public async Task<Media?> GetMedia(Guid userId, string baseUrl, Guid mediaId, CancellationToken token = default)
     {
         var results = await Query<MediaAndFile>(
             "SELECT * FROM media.get_media(@userId, @mediaId, @excludeSrcFiles);",
@@ -56,14 +58,15 @@ public class MediaRepository
                 userId,
                 mediaId,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-        return (await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache))
+        return (await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache, token))
             .SingleOrDefault();
     }
 
-    public async Task<Gps?> GetGps(Guid userId, Guid mediaId)
+    public async Task<Gps?> GetGps(Guid userId, Guid mediaId, CancellationToken token = default)
     {
         var rec = await QuerySingle<GpsRecord>(
             "SELECT * FROM media.get_media_gps(@userId, @mediaId, NULL);",
@@ -71,13 +74,14 @@ public class MediaRepository
             {
                 userId,
                 mediaId
-            }
+            },
+            token
         );
 
         return rec?.ToGps();
     }
 
-    public async Task<JsonDocument?> GetMetadata(Guid userId, Guid mediaId)
+    public async Task<JsonDocument?> GetMetadata(Guid userId, Guid mediaId, CancellationToken token = default)
     {
         return await RunCommand(async conn =>
         {
@@ -85,9 +89,9 @@ public class MediaRepository
             cmd.Parameters.Add(new() { Value = userId });
             cmd.Parameters.Add(new() { Value = mediaId });
 
-            await using var reader = await cmd.ExecuteReaderAsync();
+            await using var reader = await cmd.ExecuteReaderAsync(token);
 
-            if (await reader.ReadAsync())
+            if (await reader.ReadAsync(token))
             {
                 return reader.IsDBNull(0)
                     ? null
@@ -95,10 +99,10 @@ public class MediaRepository
             }
 
             return null;
-        });
+        }, token);
     }
 
-    public async Task<Media?> SetIsFavorite(Guid userId, string baseUrl, Guid mediaId, bool isFavorite)
+    public async Task<Media?> SetIsFavorite(Guid userId, string baseUrl, Guid mediaId, bool isFavorite, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.favorite_media(@userId, @mediaId, @isFavorite);",
@@ -107,12 +111,13 @@ public class MediaRepository
                 userId,
                 mediaId,
                 isFavorite
-            }
+            },
+            token
         );
 
         if (result == 0)
         {
-            return await GetMedia(userId, baseUrl, mediaId);
+            return await GetMedia(userId, baseUrl, mediaId, token);
         }
 
         _log.LogWarning("Unable to set media favorite - user {USER} does not have access to media {MEDIA} - or media does not exist!", userId, mediaId);
@@ -120,20 +125,20 @@ public class MediaRepository
         return null;
     }
 
-    public async Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId)
+    public async Task<IEnumerable<Comment>> GetComments(Guid userId, Guid mediaId, CancellationToken token = default)
     {
-        return await InternalGetComments(userId, mediaId, null);
+        return await InternalGetComments(userId, mediaId, null, token);
     }
 
-    public async Task<Comment?> GetComment(Guid userId, Guid commentId)
+    public async Task<Comment?> GetComment(Guid userId, Guid commentId, CancellationToken token = default)
     {
-        var comments = await InternalGetComments(userId, null, commentId);
+        var comments = await InternalGetComments(userId, null, commentId, token);
 
         return comments
             .SingleOrDefault();
     }
 
-    public async Task<Guid?> AddComment(Guid userId, Guid mediaId, string body)
+    public async Task<Guid?> AddComment(Guid userId, Guid mediaId, string body, CancellationToken token = default)
     {
         var commentId = Guid.CreateVersion7();
 
@@ -145,7 +150,8 @@ public class MediaRepository
                 userId,
                 mediaId,
                 body
-            }
+            },
+            token
         );
 
         if (result == 0)
@@ -158,9 +164,9 @@ public class MediaRepository
         return null;
     }
 
-    public async Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId)
+    public async Task<MediaFile?> GetMediaFile(Guid userId, Guid assetId, CancellationToken token = default)
     {
-        var file = await InternalGetMediaFile(userId, assetId, null);
+        var file = await InternalGetMediaFile(userId, assetId, null, token);
 
         if (file == null)
         {
@@ -170,9 +176,9 @@ public class MediaRepository
         return file;
     }
 
-    public async Task<MediaFile?> GetMediaFile(Guid userId, string path)
+    public async Task<MediaFile?> GetMediaFile(Guid userId, string path, CancellationToken token = default)
     {
-        var file = await InternalGetMediaFile(userId, null, path);
+        var file = await InternalGetMediaFile(userId, null, path, token);
 
         if (file == null)
         {
@@ -185,11 +191,11 @@ public class MediaRepository
     public async ValueTask<bool> AllowAccessToAsset(Guid userId, string path, CancellationToken token) =>
         await _cache.GetOrCreateAsync(
             CacheKeyBuilder.CanAccessAsset(userId, path),
-            async cancel => (await InternalGetMediaFile(userId, null, path)) != null,
+            async cancel => (await InternalGetMediaFile(userId, null, path, cancel)) != null,
             cancellationToken: token
         );
 
-    public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude)
+    public async Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT media.set_media_gps_override(@userId, @mediaId, @newLocationId, @latitude, @longitude);",
@@ -200,13 +206,14 @@ public class MediaRepository
                 newLocationId,
                 latitude,
                 longitude
-            }
+            },
+            token
         );
 
         return result == 0;
     }
 
-    public async Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude)
+    public async Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT media.bulk_set_media_gps_override(@userId, @mediaIds, @newLocationId, @latitude, @longitude);",
@@ -217,13 +224,14 @@ public class MediaRepository
                 newLocationId,
                 latitude,
                 longitude
-            }
+            },
+            token
         );
 
         return result == 0;
     }
 
-    async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path) =>
+    async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path, CancellationToken token = default) =>
         await QuerySingle<MediaFile>(
             """
             SELECT
@@ -239,10 +247,11 @@ public class MediaRepository
                 assetId,
                 path,
                 excludeSrcFiles = true
-            }
+            },
+            token
         );
 
-    async Task<IEnumerable<Comment>> InternalGetComments(Guid userId, Guid? mediaId, Guid? commentId)
+    async Task<IEnumerable<Comment>> InternalGetComments(Guid userId, Guid? mediaId, Guid? commentId, CancellationToken token = default)
     {
         return await Query<Comment>(
             "SELECT * FROM media.get_comments(@userId, @mediaId, @commentId);",
@@ -251,7 +260,8 @@ public class MediaRepository
                 userId,
                 mediaId,
                 commentId
-            }
+            },
+            token
         );
     }
 }

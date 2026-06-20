@@ -49,7 +49,7 @@ public class MediaIdentityClaimsTransformation
         {
             _log.LogInformation("User with external id {EXTERNAL_ID} has not been onboarded yet!", subClaim);
 
-            userState = await _repo.OnboardExternalIdentity();
+            userState = await _repo.OnboardExternalIdentity(default);
 
             if (userState is ActivatedUser newlyActivatedUser)
             {

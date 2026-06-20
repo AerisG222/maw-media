@@ -29,7 +29,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var media = await repo.GetRandomMedia(userId, "http://example.com", count);
+        var media = await repo.GetRandomMedia(userId, "http://example.com", count, TestContext.Current.CancellationToken);
 
         Assert.NotNull(media);
 
@@ -58,7 +58,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var media = await repo.GetMedia(userId, "http://example.com", mediaId);
+        var media = await repo.GetMedia(userId, "http://example.com", mediaId, TestContext.Current.CancellationToken);
 
         if (expectedMedia == null)
         {
@@ -89,7 +89,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var gps = await repo.GetGps(userId, mediaId);
+        var gps = await repo.GetGps(userId, mediaId, TestContext.Current.CancellationToken);
 
         if (nullExpected)
         {
@@ -118,7 +118,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var gps = await repo.GetMetadata(userId, mediaId);
+        var gps = await repo.GetMetadata(userId, mediaId, TestContext.Current.CancellationToken);
 
         if (nullExpected)
         {
@@ -151,7 +151,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var updatedMedia = await repo.SetIsFavorite(userId, "http://example.com", mediaId, doFavorite);
+        var updatedMedia = await repo.SetIsFavorite(userId, "http://example.com", mediaId, doFavorite, TestContext.Current.CancellationToken);
 
         if (shouldReturnNull)
         {
@@ -180,7 +180,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var comments = await repo.GetComments(userId, mediaId);
+        var comments = await repo.GetComments(userId, mediaId, TestContext.Current.CancellationToken);
 
         if (expectedCount == 0)
         {
@@ -208,7 +208,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var newId = await repo.AddComment(userId, mediaId, "test comment");
+        var newId = await repo.AddComment(userId, mediaId, "test comment", TestContext.Current.CancellationToken);
 
         if (shouldAdd)
         {
@@ -235,7 +235,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var file = await repo.GetMediaFile(userId, assetId);
+        var file = await repo.GetMediaFile(userId, assetId, TestContext.Current.CancellationToken);
 
         if (expected == null)
         {
@@ -263,7 +263,7 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var file = await repo.GetMediaFile(userId, path);
+        var file = await repo.GetMediaFile(userId, path, TestContext.Current.CancellationToken);
 
         if (expected == null)
         {
@@ -291,13 +291,14 @@ public class MediaRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.SetGpsOverride(userId, mediaId, newLocationId, latitude, longitude);
+        var token = TestContext.Current.CancellationToken;
+        var result = await repo.SetGpsOverride(userId, mediaId, newLocationId, latitude, longitude, token);
 
         Assert.Equal(expectSuccess, result);
 
         if (expectSuccess)
         {
-            var loc = await repo.GetGps(userId, mediaId);
+            var loc = await repo.GetGps(userId, mediaId, token);
             Assert.Equal(latitude, loc?.Override?.Latitude);
             Assert.Equal(longitude, loc?.Override?.Longitude);
         }

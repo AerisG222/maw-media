@@ -4,5 +4,5 @@ namespace MawMedia.Services.Abstractions;
 
 public interface IUserInfoClient
 {
-    Task<UserInfo?> QueryUserInfo();
+    Task<UserInfo?> QueryUserInfo(CancellationToken token = default);
 }

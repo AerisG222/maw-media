@@ -108,26 +108,28 @@ public static class CategoryRoutes
 
     static async Task<Results<Ok<IEnumerable<short>>, ForbidHttpResult>> GetCategoryYears(
         ICategoryRepository repo,
-        ClaimsPrincipal user
+        ClaimsPrincipal user,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategoryYears(userId.Value))
+            ? TypedResults.Ok(await repo.GetCategoryYears(userId.Value, token))
             : TypedResults.Ok(Array.Empty<short>().AsEnumerable());
     }
 
     static async Task<Results<Ok<IEnumerable<Category>>, ForbidHttpResult>> GetCategories(
         ICategoryRepository repo,
         ClaimsPrincipal user,
-        HttpRequest request
+        HttpRequest request,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl()))
+            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl(), token: token))
             : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
     }
 
@@ -135,13 +137,14 @@ public static class CategoryRoutes
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] short year
+        [FromRoute] short year,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl(), year))
+            ? TypedResults.Ok(await repo.GetCategories(userId.Value, request.GetBaseUrl(), year, token))
             : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
     }
 
@@ -149,13 +152,14 @@ public static class CategoryRoutes
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] DateTime date
+        [FromRoute] DateTime date,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategoryUpdates(userId.Value, Instant.FromDateTimeUtc(date.ToUniversalTime()), request.GetBaseUrl()))
+            ? TypedResults.Ok(await repo.GetCategoryUpdates(userId.Value, Instant.FromDateTimeUtc(date.ToUniversalTime()), request.GetBaseUrl(), token))
             : TypedResults.Ok(Array.Empty<Category>().AsEnumerable());
     }
 
@@ -164,6 +168,7 @@ public static class CategoryRoutes
         ClaimsPrincipal user,
         HttpRequest request,
         [FromQuery] string s,
+        CancellationToken token,
         [FromQuery] int o = 0
     )
     {
@@ -175,7 +180,7 @@ public static class CategoryRoutes
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.Search(userId.Value, request.GetBaseUrl(), s, o, SEARCH_LIMIT))
+            ? TypedResults.Ok(await repo.Search(userId.Value, request.GetBaseUrl(), s, o, SEARCH_LIMIT, token))
             : TypedResults.Ok(new SearchResult<Category>([], false, 0));
     }
 
@@ -183,13 +188,14 @@ public static class CategoryRoutes
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] short year
+        [FromRoute] short year,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategoriesWithoutGps(userId.Value, year))
+            ? TypedResults.Ok(await repo.GetCategoriesWithoutGps(userId.Value, year, token))
             : TypedResults.Ok(Array.Empty<Guid>().AsEnumerable());
     }
 
@@ -197,7 +203,8 @@ public static class CategoryRoutes
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -207,7 +214,7 @@ public static class CategoryRoutes
             return TypedResults.NotFound();
         }
 
-        var category = await repo.GetCategory(userId.Value, id, request.GetBaseUrl());
+        var category = await repo.GetCategory(userId.Value, id, request.GetBaseUrl(), token);
 
         return category != null
             ? TypedResults.Ok(category)
@@ -219,7 +226,8 @@ public static class CategoryRoutes
         ClaimsPrincipal user,
         HttpRequest request,
         [FromRoute] Guid id,
-        [FromBody] FavoriteRequest favRequest
+        [FromBody] FavoriteRequest favRequest,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -229,10 +237,10 @@ public static class CategoryRoutes
             return TypedResults.NotFound();
         }
 
-        var success = await repo.SetIsFavorite(userId.Value, id, favRequest.IsFavorite);
+        var success = await repo.SetIsFavorite(userId.Value, id, favRequest.IsFavorite, token);
 
         return success
-            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl()))
+            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl(), token))
             : TypedResults.NotFound();
     }
 
@@ -241,7 +249,8 @@ public static class CategoryRoutes
         ClaimsPrincipal user,
         HttpRequest request,
         [FromRoute] Guid id,
-        [FromBody] CategoryTeaserRequest teaserRequest
+        [FromBody] CategoryTeaserRequest teaserRequest,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -251,10 +260,10 @@ public static class CategoryRoutes
             return TypedResults.NotFound();
         }
 
-        var success = await repo.SetTeaserMedia(userId.Value, id, teaserRequest.MediaId);
+        var success = await repo.SetTeaserMedia(userId.Value, id, teaserRequest.MediaId, token);
 
         return success
-            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl()))
+            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl(), token))
             : TypedResults.NotFound();
     }
 
@@ -262,26 +271,28 @@ public static class CategoryRoutes
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategoryMedia(userId.Value, request.GetBaseUrl(), id))
+            ? TypedResults.Ok(await repo.GetCategoryMedia(userId.Value, request.GetBaseUrl(), id, token))
             : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
     }
 
     static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(
         ICategoryRepository repo,
         ClaimsPrincipal user,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetCategoryMediaGps(userId.Value, id))
+            ? TypedResults.Ok(await repo.GetCategoryMediaGps(userId.Value, id, token))
             : TypedResults.Ok(Array.Empty<Gps>().AsEnumerable());
     }
 
@@ -290,7 +301,8 @@ public static class CategoryRoutes
         IZipFileWriter zipWriter,
         ClaimsPrincipal user,
         HttpResponse response,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -304,7 +316,7 @@ public static class CategoryRoutes
         var zipFile =
             await zipWriter.GetZipFileIfExists(filename)
             ??
-            await CreateCategoryDownloadZipFile(repo, zipWriter, userId.Value, id, filename);
+            await CreateCategoryDownloadZipFile(repo, zipWriter, userId.Value, id, filename, token);
 
         if (zipFile == null || !zipFile.Exists)
         {
@@ -323,10 +335,11 @@ public static class CategoryRoutes
         IZipFileWriter zipWriter,
         Guid userId,
         Guid categoryId,
-        string filename
+        string filename,
+        CancellationToken token
     )
     {
-        var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId);
+        var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId, token);
 
         if (!media.Any())
         {
@@ -344,6 +357,6 @@ public static class CategoryRoutes
             return null;
         }
 
-        return await zipWriter.WriteZipFile(filename, filesToInclude);
+        return await zipWriter.WriteZipFile(filename, filesToInclude, token);
     }
 }

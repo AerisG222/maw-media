@@ -26,7 +26,7 @@ public class StatRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.GetStats(userId);
+        var result = await repo.GetStats(userId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(expectedCount, result.Count());
@@ -45,7 +45,7 @@ public class StatRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.GetStatsForYear(userId, year);
+        var result = await repo.GetStatsForYear(userId, year, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(expectedCount, result.Count());

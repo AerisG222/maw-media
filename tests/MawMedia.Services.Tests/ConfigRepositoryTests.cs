@@ -18,7 +18,7 @@ public class ConfigRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.GetScales();
+        var result = await repo.GetScales(TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Contains("qqvg", result.Select(s => s.Code));

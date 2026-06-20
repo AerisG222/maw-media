@@ -28,7 +28,7 @@ public class LocationRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.GetLocationsWithoutMetadata(userId);
+        var result = await repo.GetLocationsWithoutMetadata(userId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(count, result.Count());
@@ -76,7 +76,7 @@ public class LocationRepositoryTests
                 new("typeA", "nameA"),
                 new("typeB", "nameB"),
             ]
-        ));
+        ), TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }

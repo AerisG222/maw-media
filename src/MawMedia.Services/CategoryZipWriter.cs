@@ -39,13 +39,13 @@ public class CategoryZipFileWriter
         return Task.FromResult((FileInfo?)null);
     }
 
-    public async Task<FileInfo> WriteZipFile(string filename, IEnumerable<string> filePaths)
+    public async Task<FileInfo> WriteZipFile(string filename, IEnumerable<string> filePaths, CancellationToken token = default)
     {
         var gate = _buildLocks.GetOrAdd(filename, _ => new SemaphoreSlim(1, 1));
 
         try
         {
-            await gate.WaitAsync(WAIT_TIMEOUT_MS);
+            await gate.WaitAsync(token);
 
             var archivePath = BuildDownloadFilePath(filename);
 

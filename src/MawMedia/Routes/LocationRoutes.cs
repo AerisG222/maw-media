@@ -30,13 +30,14 @@ public static class LocationRoutes
 
     static async Task<Results<Ok<IEnumerable<Location>>, ForbidHttpResult>> GetLocationsWithoutMetadata(
         ClaimsPrincipal user,
-        ILocationRepository repo
+        ILocationRepository repo,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetLocationsWithoutMetadata(userId.Value))
+            ? TypedResults.Ok(await repo.GetLocationsWithoutMetadata(userId.Value, token))
             : TypedResults.Ok(Array.Empty<Location>().AsEnumerable());
     }
 
@@ -44,7 +45,8 @@ public static class LocationRoutes
         ClaimsPrincipal user,
         ILocationRepository repo,
         [FromRoute] Guid id,
-        [FromBody] LocationMetadata metadata
+        [FromBody] LocationMetadata metadata,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
@@ -60,6 +62,6 @@ public static class LocationRoutes
         }
 
         // todo: consider returning location metadata
-        return TypedResults.Ok(await repo.SetLocationMetadata(userId.Value, metadata));
+        return TypedResults.Ok(await repo.SetLocationMetadata(userId.Value, metadata, token));
     }
 }

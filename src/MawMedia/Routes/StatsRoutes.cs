@@ -30,26 +30,28 @@ public static class StatRoutes
 
     static async Task<Results<Ok<IEnumerable<YearStat>>, ForbidHttpResult>> GetStats(
         IStatRepository repo,
-        ClaimsPrincipal user
+        ClaimsPrincipal user,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetStats(userId.Value))
+            ? TypedResults.Ok(await repo.GetStats(userId.Value, token))
             : TypedResults.Ok(Array.Empty<YearStat>().AsEnumerable());
     }
 
     static async Task<Results<Ok<IEnumerable<CategoryStat>>, ForbidHttpResult>> GetStatsForYear(
         IStatRepository repo,
         ClaimsPrincipal user,
-        [FromRoute] short year
+        [FromRoute] short year,
+        CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetStatsForYear(userId.Value, year))
+            ? TypedResults.Ok(await repo.GetStatsForYear(userId.Value, year, token))
             : TypedResults.Ok(Array.Empty<CategoryStat>().AsEnumerable());
     }
 }
