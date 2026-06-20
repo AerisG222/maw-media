@@ -62,7 +62,14 @@ public class AuthRepository
             return new NonExistentUser();
         }
 
-        return await CreateExternalUser(userInfo);
+        var userState = await CreateExternalUser(userInfo);
+
+        if (userInfo.Sub != null)
+        {
+            await _cache.SetAsync(CacheKeyBuilder.UserState(userInfo.Sub), userState);
+        }
+
+        return userState;
     }
 
     async Task<IUserState> CreateExternalUser(UserInfo userInfo)

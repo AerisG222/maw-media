@@ -1,5 +1,5 @@
 {
-    "dotnet.defaultSolution": "maw-media.sln",
+    "dotnet.defaultSolution": "maw-media.slnx",
     "workbench.colorCustomizations": {
         "activityBar.activeBackground": "#6c3089",
         "activityBar.background": "#6c3089",

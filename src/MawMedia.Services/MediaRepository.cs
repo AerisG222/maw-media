@@ -185,7 +185,7 @@ public class MediaRepository
     public async ValueTask<bool> AllowAccessToAsset(Guid userId, string path, CancellationToken token) =>
         await _cache.GetOrCreateAsync(
             CacheKeyBuilder.CanAccessAsset(userId, path),
-            async cancel => (await GetMediaFile(userId, path)) != null,
+            async cancel => (await InternalGetMediaFile(userId, null, path)) != null,
             cancellationToken: token
         );
 

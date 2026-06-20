@@ -9,6 +9,8 @@ namespace MawMedia.Services;
 public class UserInfoClient
     : IUserInfoClient
 {
+    static readonly JsonSerializerOptions _jsonOpts = BuildJsonOptions();
+
     readonly HttpClient _client;
 
     public UserInfoClient(HttpClient client)
@@ -20,15 +22,16 @@ public class UserInfoClient
 
     public async Task<UserInfo?> QueryUserInfo()
     {
-        // todo: is there an easy way to use just the line below
-        // [currently is not honoring global json options config which registers nodatime]
-        // await _client.GetFromJsonAsync<UserInfo?>("userinfo");
-
         var json = await _client.GetStringAsync("userinfo");
 
+        return JsonSerializer.Deserialize<UserInfo>(json, _jsonOpts);
+    }
+
+    static JsonSerializerOptions BuildJsonOptions()
+    {
         var opts = new JsonSerializerOptions(JsonSerializerOptions.Web);
         opts.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
 
-        return JsonSerializer.Deserialize<UserInfo>(json, opts);
+        return opts;
     }
 }
