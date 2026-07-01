@@ -37,12 +37,12 @@ BEGIN
 
     -- if we don't have valid exif data, bail
     IF exif_latitude IS NULL OR exif_longitude IS NULL THEN
-        RETURN 0;
+        RETURN 10;
     END IF;
 
     -- if already mapped correctly, no need to update
     IF exif_latitude = mapped_latitude AND exif_longitude = mapped_longitude THEN
-        RETURN 0;
+        RETURN 11;
     END IF;
 
     -- use existing location if one exists
@@ -58,7 +58,7 @@ BEGIN
         SET location_id = matching_location_id
         WHERE id = _media_id;
 
-        RETURN 0;
+        RETURN 12;
     END IF;
 
     -- see if there is a location that is very close, that has loaded metadata
@@ -123,7 +123,7 @@ BEGIN
         SET location_id = _new_location_id
         WHERE id = _media_id;
 
-        RETURN 0;
+        RETURN 13;
     END IF;
 
     -- finally, we must create a new location, so do that here
@@ -142,7 +142,7 @@ BEGIN
     SET location_id = _new_location_id
     WHERE id = _media_id;
 
-    RETURN 0;
+    RETURN 14;
 END;
 $$ LANGUAGE plpgsql;
 
