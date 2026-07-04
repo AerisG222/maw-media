@@ -31,12 +31,24 @@ BEGIN
     -- exclude media where gps data is missing or invalid
     -- or when it perfectly matches the location, as there is nothing to correct
     WHERE
-        m.exif_latitude IS NOT NULL
-        AND m.exif_latitude != 0
-        AND m.exif_longitude IS NOT NULL
-        AND m.exif_longitude != 0
-        AND m.exif_latitude != l.latitude
-        AND m.exif_longitude != l.longitude
+        (
+            m.exif_latitude IS NOT NULL
+            AND
+            m.exif_latitude != 0
+        )
+        AND
+        (
+            m.exif_longitude IS NOT NULL
+            AND
+            m.exif_longitude != 0
+        )
+        AND (
+            l.id IS NULL
+            OR
+            m.exif_latitude != l.latitude
+            OR
+            m.exif_longitude != l.longitude
+        )
     LIMIT 200;
 END;
 $$ LANGUAGE plpgsql;

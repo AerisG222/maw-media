@@ -18,4 +18,6 @@ public interface IMediaRepository
     ValueTask<bool> AllowAccessToAsset(Guid userId, string path, CancellationToken token);
     Task<bool> SetGpsOverride(Guid userId, Guid mediaId, Guid newLocationId, decimal latitude, decimal longitude, CancellationToken token = default);
     Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude, CancellationToken token = default);
+    Task<IEnumerable<InaccurateLocation>> GetInaccurateLocations(Guid userId, CancellationToken token = default);
+    Task<int> FixInaccurateLocation(Guid userId, Guid mediaId, Guid newLocationId, CancellationToken token = default);
 }

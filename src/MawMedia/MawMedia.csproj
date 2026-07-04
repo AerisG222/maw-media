@@ -27,6 +27,7 @@
     <ItemGroup>
         <ProjectReference Include="..\MawMedia.Services\MawMedia.Services.csproj" />
         <ProjectReference Include="..\MawMedia.Authorization\MawMedia.Authorization.csproj" />
+        <ProjectReference Include="..\MawMedia.LocationCorrectionWorker\MawMedia.LocationCorrectionWorker.csproj" />
     </ItemGroup>
 
 </Project>

@@ -264,4 +264,37 @@ public class MediaRepository
             token
         );
     }
+
+    public Task<IEnumerable<InaccurateLocation>> GetInaccurateLocations(Guid userId, CancellationToken token = default)
+    {
+        return Query<InaccurateLocation>(
+            "SELECT * FROM media.get_inaccurate_locations(@userId);",
+            new
+            {
+                userId
+            },
+            token
+        );
+    }
+
+    public async Task<int> FixInaccurateLocation(
+        Guid userId,
+        Guid mediaId,
+        Guid newLocationId,
+        CancellationToken token = default
+    )
+    {
+        var result = await ExecuteScalarInTransaction<int>(
+            "SELECT media.fix_inaccurate_location(@userId, @mediaId, @newLocationId);",
+            new
+            {
+                userId,
+                mediaId,
+                newLocationId
+            },
+            token
+        );
+
+        return result;
+    }
 }

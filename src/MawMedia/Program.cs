@@ -1,5 +1,6 @@
 using MawMedia.Authorization;
 using MawMedia.Extensions;
+using MawMedia.LocationCorrectionWorker;
 using MawMedia.Routes;
 using MawMedia.Services;
 using Microsoft.Net.Http.Headers;
@@ -32,6 +33,7 @@ builder.Services
     .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(SystemClock.Instance)
     .AddMediaAuthorizationHandler()
+    .AddLocationCorrectionWorker(builder.Configuration)
     .AddMediaServices(builder.Configuration);
 
 var app = builder.Build();
