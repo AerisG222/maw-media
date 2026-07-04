@@ -37,6 +37,8 @@ spec:
           value: {{ aspnet_env }}
         - name: MAW_MEDIA_Kestrel__Certificates__Default__Password
           value: {{ kestrel_cert_password }}
+        - name: MAW_MEDIA_LocationCorrection__UserId
+          value: {{ location_correction_userid }}
       ports:
         - containerPort: 8090
           hostPort: 8090
