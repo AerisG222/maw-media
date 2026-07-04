@@ -1,6 +1,7 @@
 #!/bin/bash
 
 podman run -it --rm \
+    --restart no \
     --pod pod-maw-media \
     --env POSTGRES_PASSWORD_FILE=~/maw-media/pg-secrets/psql-postgres \
     --env PSQL_HISTORY="/psqlhist/.psql_history" \
