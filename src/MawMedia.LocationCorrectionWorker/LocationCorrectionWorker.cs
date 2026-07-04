@@ -25,9 +25,12 @@ internal class LocationCorrectionWorker
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _log.LogInformation("LocationCorrectionWorker running at: {Time}", DateTimeOffset.Now);
-
         var pollTimeMinutes = 15;
+
+        // seems like we try to run before our db is available and this causes the process to cancel, try adding a small delay to avoid
+        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+
+        _log.LogInformation("LocationCorrectionWorker running at: {Time}", DateTimeOffset.Now);
 
         while (!stoppingToken.IsCancellationRequested)
         {
