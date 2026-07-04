@@ -8,20 +8,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
-        <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.9" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.7.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
-        <PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />
-        <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="1.3.1" />
-        <PackageReference Include="NodaTime.Serialization.SystemTextJson" Version="1.4.0" />
-        <PackageReference Include="Npgsql" Version="10.0.3" />
-        <PackageReference Include="Npgsql.DependencyInjection" Version="10.0.3" />
-        <PackageReference Include="Npgsql.NodaTime" Version="10.0.3" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.16.8" />
-        <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+        <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+        <PackageReference Include="Microsoft.OpenApi" />
+        <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" />
+        <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
+        <PackageReference Include="Npgsql" />
+        <PackageReference Include="Npgsql.DependencyInjection" />
+        <PackageReference Include="Npgsql.NodaTime" />
+        <PackageReference Include="Scalar.AspNetCore" />
+        <PackageReference Include="ZiggyCreatures.FusionCache" />
     </ItemGroup>
 
     <ItemGroup>
