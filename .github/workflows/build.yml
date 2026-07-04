@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IID_FILE: image.iid
 
@@ -13,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: build container image
         run: |
@@ -25,22 +32,24 @@ jobs:
       - name: populate image id variable
         run: echo "IID=$(cat $IID_FILE)" >> "$GITHUB_ENV"
 
-      - name: push image with specific tag
+      - name: compute tag
+        id: tag
+        run: echo "value=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: log in to docker hub
         env:
           DH_USER: ${{ secrets.DH_USER }}
           DH_PASS: ${{ secrets.DH_PASS }}
+        run: echo "$DH_PASS" | buildah login -u "$DH_USER" --password-stdin docker.io
+
+      - name: push image with specific tag
         run: |
           buildah push \
-            --creds "$DH_USER:$DH_PASS" \
             "${IID}" \
-            docker://aerisg222/maw-media:"$(date +%Y%m%d%H%M%S)"
+            docker://aerisg222/maw-media:"${{ steps.tag.outputs.value }}"
 
       - name: push image with latest tag
-        env:
-          DH_USER: ${{ secrets.DH_USER }}
-          DH_PASS: ${{ secrets.DH_PASS }}
         run: |
           buildah push \
-            --creds "$DH_USER:$DH_PASS" \
             "${IID}" \
             docker://aerisg222/maw-media:latest
