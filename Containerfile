@@ -2,10 +2,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 WORKDIR /maw-media
 
 # restore
+COPY Directory.Packages.props .
 COPY maw-media.slnx .
 COPY nuget.config .
 COPY src/MawMedia/MawMedia.csproj src/MawMedia/
 COPY src/MawMedia.Authorization/MawMedia.Authorization.csproj src/MawMedia.Authorization/
+COPY src/MawMedia.LocationCorrectionWorker/MawMedia.LocationCorrectionWorker.csproj src/MawMedia.LocationCorrectionWorker/
 COPY src/MawMedia.Models/MawMedia.Models.csproj src/MawMedia.Models/
 COPY src/MawMedia.Services/MawMedia.Services.csproj src/MawMedia.Services/
 COPY src/MawMedia.Services.Abstractions/MawMedia.Services.Abstractions.csproj src/MawMedia.Services.Abstractions/
