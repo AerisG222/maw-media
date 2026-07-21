@@ -49,18 +49,25 @@ public static class UploadRoutes
             : TypedResults.Ok(Array.Empty<UploadedFile>().AsEnumerable());
     }
 
-    static async Task<Results<Ok<UploadedFile>, NotFound, ForbidHttpResult>> UploadFile(
+    static async Task<Results<Created<UploadedFile>, NotFound, ForbidHttpResult>> UploadFile(
         IUploadService svc,
         ClaimsPrincipal user,
+        HttpRequest request,
         IFormFile file,
         CancellationToken token
     )
     {
         var userId = user.GetMediaUserId();
 
-        return userId != null
-            ? TypedResults.Ok(await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName, token))
-            : TypedResults.NotFound();
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var uploaded = await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName, token);
+
+        // Location points at the download route for the newly stored file
+        return TypedResults.Created($"{request.Path}/{Uri.EscapeDataString(uploaded.Name)}", uploaded);
     }
 
     static async Task<IResult> DownloadFile(

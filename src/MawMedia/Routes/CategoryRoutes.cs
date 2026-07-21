@@ -67,16 +67,15 @@ public static class CategoryRoutes
             .WithDescription("Get single category")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
-        // todo: consider replacing below 2 routes w/ a patch to /{id}
         group
-            .MapPost("/{id}/favorite", FavoriteCategory)
+            .MapPut("/{id}/favorite", FavoriteCategory)
             .WithName("category-favorite")
             .WithSummary("Favorite Category")
-            .WithDescription("Favorite specified category")
+            .WithDescription("Sets whether this category is a favorite")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
-            .MapPost("/{id}/teaser", SetCategoryTeaser)
+            .MapPut("/{id}/teaser", SetCategoryTeaser)
             .WithName("category-set-teaser")
             .WithSummary("Set Category Teaser")
             .WithDescription("Set category teaser")

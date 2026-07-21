@@ -19,7 +19,7 @@ public static class LocationRoutes
             .RequireAuthorization(AuthorizationPolicies.LocationReader);
 
         group
-            .MapPost("/{id}/metadata", UpdateMetadata)
+            .MapPut("/{id}/metadata", UpdateMetadata)
             .WithName("location-update-metadata")
             .WithSummary("Update Metadata")
             .WithDescription("Updates location reverse geocode data")

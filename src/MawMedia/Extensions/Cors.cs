@@ -22,7 +22,7 @@ public static class CorsExtensions
                 {
                     builder
                         .WithOrigins([.. allowedOrigins])
-                        .WithMethods(["GET", "POST", "OPTIONS"])
+                        .WithMethods(["GET", "POST", "PUT", "OPTIONS"])
                         .AllowCredentials()
                         .AllowAnyHeader();
                 })

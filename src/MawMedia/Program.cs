@@ -29,6 +29,7 @@ builder.Services
     .AddFusionCache()
         .AsHybridCache()
         .Services
+    .AddCustomApiVersioning()
     .AddCustomOpenApi()
     .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(SystemClock.Instance)
@@ -49,12 +50,18 @@ app
     .UseCustomStaticFiles()
     .UseCustomOpenApi();
 
-app.MapGroup("/auth").MapAuthRoutes();
-app.MapGroup("/categories").MapCategoryRoutes();
-app.MapGroup("/config").MapConfigRoutes();
-app.MapGroup("/locations").MapLocationRoutes();
-app.MapGroup("/media").MapMediaRoutes();
-app.MapGroup("/stats").MapStatRoutes();
-app.MapGroup("/upload").MapUploadRoutes();
+var versionSet = app.BuildVersionSet();
+
+var api = app
+    .MapGroup("/api/v{version:apiVersion}")
+    .WithApiVersionSet(versionSet);
+
+api.MapGroup("/auth").MapAuthRoutes();
+api.MapGroup("/categories").MapCategoryRoutes();
+api.MapGroup("/config").MapConfigRoutes();
+api.MapGroup("/locations").MapLocationRoutes();
+api.MapGroup("/media").MapMediaRoutes();
+api.MapGroup("/stats").MapStatRoutes();
+api.MapGroup("/upload").MapUploadRoutes();
 
 await app.RunAsync();

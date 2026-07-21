@@ -14,13 +14,21 @@ public static class OpenApiExtensions
     // https://github.com/martincostello/aspnetcore-openapi/blob/d87b42a236762ac32d833e6b482500b4d97f118c/src/TodoApp/OpenApi/AspNetCore/AspNetCoreOpenApiEndpoints.cs#L35-L53
     public static IServiceCollection AddCustomOpenApi(this IServiceCollection services)
     {
-        services
-            .Configure<RouteOptions>(options => options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"))
-            .AddOpenApi(opts =>
+        services.Configure<RouteOptions>(options => options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"));
+
+        // register one OpenAPI document per API version. the ApiExplorer assigns each
+        // versioned endpoint a GroupName ("v1", "v2", ...) matching the document name,
+        // so the native document filter includes only that version's endpoints.
+        foreach (var version in ApiVersioningExtensions.All)
+        {
+            var documentName = ApiVersioningExtensions.DocumentName(version);
+
+            services.AddOpenApi(documentName, opts =>
             {
                 opts.AddDocumentTransformer((document, _, _) =>
                 {
                     document.Info.Title = TITLE;
+                    document.Info.Version = documentName;
                     document.Info.Description = DESCRIPTION;
 
                     var scheme = new OpenApiSecurityScheme()
@@ -37,8 +45,10 @@ public static class OpenApiExtensions
 
                     return Task.CompletedTask;
                 });
-            })
-            .AddEndpointsApiExplorer();
+            });
+        }
+
+        services.AddEndpointsApiExplorer();
 
         return services;
     }

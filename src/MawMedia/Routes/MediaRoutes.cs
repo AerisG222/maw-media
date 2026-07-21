@@ -42,10 +42,10 @@ public static class MediaRoutes
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
-            .MapPost("/{id}/favorite", FavoriteMedia)
+            .MapPut("/{id}/favorite", FavoriteMedia)
             .WithName("favorite-media")
             .WithSummary("Favorite Media")
-            .WithDescription("Favorites media")
+            .WithDescription("Sets whether this media is a favorite")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
@@ -56,6 +56,13 @@ public static class MediaRoutes
             .RequireAuthorization(AuthorizationPolicies.CommentReader);
 
         group
+            .MapGet("/{id}/comments/{commentId}", GetComment)
+            .WithName("media-comment")
+            .WithSummary("Get Media Comment")
+            .WithDescription("Get a single media comment")
+            .RequireAuthorization(AuthorizationPolicies.CommentReader);
+
+        group
             .MapPost("/{id}/comments", AddComment)
             .WithName("add-media-comment")
             .WithSummary("Add Media Comment")
@@ -63,7 +70,7 @@ public static class MediaRoutes
             .RequireAuthorization(AuthorizationPolicies.CommentWriter);
 
         group
-            .MapPost("/{id}/gps", SetGpsOverride)
+            .MapPut("/{id}/gps", SetGpsOverride)
             .WithName("set-media-gps-override")
             .WithSummary("Set GPS Override for Media")
             .WithDescription("Set the GPS override for this media")
@@ -195,9 +202,32 @@ public static class MediaRoutes
             : TypedResults.Ok(Array.Empty<Comment>().AsEnumerable());
     }
 
-    static async Task<Results<Ok<Comment>, NotFound, ForbidHttpResult>> AddComment(
+    static async Task<Results<Ok<Comment>, NotFound, ForbidHttpResult>> GetComment(
         IMediaRepository repo,
         ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        [FromRoute] Guid commentId,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var comment = await repo.GetComment(userId.Value, commentId, token);
+
+        return comment != null
+            ? TypedResults.Ok(comment)
+            : TypedResults.NotFound();
+    }
+
+    static async Task<Results<Created<Comment>, NotFound, ForbidHttpResult>> AddComment(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest httpRequest,
         [FromRoute] Guid id,
         [FromBody] AddCommentRequest request,
         CancellationToken token
@@ -212,9 +242,15 @@ public static class MediaRoutes
 
         var commentId = await repo.AddComment(userId.Value, id, request.Body, token);
 
-        return commentId != null
-            ? TypedResults.Ok(await repo.GetComment(userId.Value, (Guid)commentId, token))
-            : TypedResults.NotFound();
+        if (commentId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var comment = await repo.GetComment(userId.Value, commentId.Value, token);
+
+        // point at the canonical single-comment resource (GetComment)
+        return TypedResults.Created($"{httpRequest.Path}/{commentId.Value}", comment);
     }
 
     static async Task<Results<Ok, NotFound, ForbidHttpResult>> SetGpsOverride(
