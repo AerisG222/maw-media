@@ -53,21 +53,21 @@ public static class MediaRoutes
             .WithName("media-comments")
             .WithSummary("Get Media Comments")
             .WithDescription("Get media comments")
-            .RequireAuthorization(AuthorizationPolicies.CommentReader);
+            .RequireAuthorization(AuthorizationPolicies.CommentsReader);
 
         group
             .MapGet("/{id}/comments/{commentId}", GetComment)
             .WithName("media-comment")
             .WithSummary("Get Media Comment")
             .WithDescription("Get a single media comment")
-            .RequireAuthorization(AuthorizationPolicies.CommentReader);
+            .RequireAuthorization(AuthorizationPolicies.CommentsReader);
 
         group
             .MapPost("/{id}/comments", AddComment)
             .WithName("add-media-comment")
             .WithSummary("Add Media Comment")
             .WithDescription("Add comment for media")
-            .RequireAuthorization(AuthorizationPolicies.CommentWriter);
+            .RequireAuthorization(AuthorizationPolicies.CommentsWriter);
 
         group
             .MapPut("/{id}/gps", SetGpsOverride)

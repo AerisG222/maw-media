@@ -30,6 +30,7 @@ builder.Services
         .AsHybridCache()
         .Services
     .AddCustomApiVersioning()
+    .AddCustomOAuthConfig(builder.Configuration)
     .AddCustomOpenApi()
     .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(SystemClock.Instance)
@@ -43,12 +44,16 @@ app
     .UseForwardedHeaders()
     .UseHeaderPropagation()
     .UseRouting()
-    .UseCustomSecurityHeaders()
+    .UseCustomSecurityHeaders(app.Environment)
     .UseCors()
     .UseAuthentication()
     .UseAuthorization()
-    .UseCustomStaticFiles()
-    .UseCustomOpenApi();
+    .UseCustomStaticFiles();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCustomOpenApi();
+}
 
 var versionSet = app.BuildVersionSet();
 

@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing.Constraints;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -9,9 +11,9 @@ public static class OpenApiExtensions
     const string TITLE = "MaW Media API";
     const string DESCRIPTION = "An API to access photos and videos from media.mikeandwan.us.";
 
-    // currently, the default openapi call does not recognize authorization requirements, so we add this ourselves
-    // https://github.com/dotnet/aspnetcore/issues/39761
-    // https://github.com/martincostello/aspnetcore-openapi/blob/d87b42a236762ac32d833e6b482500b4d97f118c/src/TodoApp/OpenApi/AspNetCore/AspNetCoreOpenApiEndpoints.cs#L35-L53
+    const string SCHEME_OAUTH2 = "OAuth2";
+    const string SCHEME_BEARER = "Bearer";
+
     public static IServiceCollection AddCustomOpenApi(this IServiceCollection services)
     {
         services.Configure<RouteOptions>(options => options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"));
@@ -25,23 +27,75 @@ public static class OpenApiExtensions
 
             services.AddOpenApi(documentName, opts =>
             {
-                opts.AddDocumentTransformer((document, _, _) =>
+                opts.AddDocumentTransformer((document, context, _) =>
                 {
+                    var oauth = context.ApplicationServices.GetRequiredService<IOptions<OAuthConfig>>().Value;
+
                     document.Info.Title = TITLE;
                     document.Info.Version = documentName;
                     document.Info.Description = DESCRIPTION;
 
-                    var scheme = new OpenApiSecurityScheme()
+                    document.Components ??= new();
+                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+                    // raw token paste - useful when you already have a JWT in hand
+                    document.Components.SecuritySchemes[SCHEME_BEARER] = new OpenApiSecurityScheme
                     {
                         BearerFormat = "JSON Web Token",
                         Description = "Bearer authentication using a JWT.",
-                        Scheme = "Bearer",
+                        Scheme = SCHEME_BEARER,
                         Type = SecuritySchemeType.Http
                     };
 
-                    document.Components ??= new();
-                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-                    document.Components.SecuritySchemes[scheme.Scheme] = scheme;
+                    // interactive login - lets Scalar drive the full authorization code + PKCE round trip
+                    document.Components.SecuritySchemes[SCHEME_OAUTH2] = new OpenApiSecurityScheme
+                    {
+                        Description = "Authorization code flow with PKCE.",
+                        Type = SecuritySchemeType.OAuth2,
+                        Flows = new OpenApiOAuthFlows
+                        {
+                            AuthorizationCode = new OpenApiOAuthFlow
+                            {
+                                AuthorizationUrl = new Uri(oauth.AuthorizationUrl),
+                                TokenUrl = new Uri(oauth.TokenUrl),
+                                Scopes = oauth.QualifiedScopes()
+                            }
+                        }
+                    };
+
+                    return Task.CompletedTask;
+                });
+
+                // attach the scope each endpoint actually requires, derived from its
+                // authorization policy. this is what makes Scalar show the padlock and
+                // request only the scopes an operation needs.
+                opts.AddOperationTransformer((operation, context, _) =>
+                {
+                    var policies = context.Description.ActionDescriptor.EndpointMetadata
+                        .OfType<IAuthorizeData>()
+                        .Select(a => a.Policy)
+                        .Where(p => !string.IsNullOrWhiteSpace(p))
+                        .ToArray();
+
+                    if (policies.Length == 0)
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    var oauth = context.ApplicationServices.GetRequiredService<IOptions<OAuthConfig>>().Value;
+
+                    var scopes = policies
+                        .Where(p => ApiScopes.ByPolicy.ContainsKey(p!))
+                        .Select(p => oauth.Qualify(ApiScopes.ByPolicy[p!]))
+                        .Distinct()
+                        .ToList();
+
+                    operation.Security ??= [];
+                    operation.Security.Add(new OpenApiSecurityRequirement
+                    {
+                        [new OpenApiSecuritySchemeReference(SCHEME_OAUTH2)] = scopes,
+                        [new OpenApiSecuritySchemeReference(SCHEME_BEARER)] = []
+                    });
 
                     return Task.CompletedTask;
                 });
@@ -56,12 +110,40 @@ public static class OpenApiExtensions
     public static IApplicationBuilder UseCustomOpenApi(this IApplicationBuilder app)
     {
         var webApp = (WebApplication)app;
+        var oauth = webApp.Services.GetRequiredService<IOptions<OAuthConfig>>().Value;
 
-        webApp.MapOpenApi();
+        // the fallback authorization policy (see AddCustomAuth) protects every
+        // endpoint by default. the docs must be reachable without a token, otherwise
+        // there is no page from which to perform the interactive login.
+        webApp.MapOpenApi().AllowAnonymous();
         webApp.MapScalarApiReference(opts =>
         {
-            opts.AddAuthorizationCodeFlow("OAuth2", flow => { });
-        });
+            opts.EnablePersistentAuthentication();
+
+            opts.AddPreferredSecuritySchemes(
+                string.IsNullOrWhiteSpace(oauth.ScalarClientId) ? SCHEME_BEARER : SCHEME_OAUTH2
+            );
+
+            if (string.IsNullOrWhiteSpace(oauth.ScalarClientId))
+            {
+                return;
+            }
+
+            opts.AddAuthorizationCodeFlow(SCHEME_OAUTH2, flow =>
+            {
+                flow.ClientId = oauth.ScalarClientId;
+                flow.Pkce = Pkce.Sha256;
+                flow.SelectedScopes = [.. oauth.QualifiedScopes().Keys];
+
+                // Auth0 only mints a JWT for a custom API when the authorize request
+                // carries the API identifier as `audience`. without it you get an
+                // opaque token that JwtBearer validation will reject.
+                flow.AdditionalQueryParameters = new Dictionary<string, string>
+                {
+                    ["audience"] = oauth.Audience
+                };
+            });
+        }).AllowAnonymous();
 
         return webApp;
     }

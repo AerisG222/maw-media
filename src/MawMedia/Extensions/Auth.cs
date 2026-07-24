@@ -15,17 +15,17 @@ public static class AuthExtensions
         IConfiguration config
     )
     {
-        var authority = config["OAuth:Authority"];
-        var audience = config["OAuth:Audience"];
+        var oauth = config.GetSection("OAuth").Get<OAuthConfig>();
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(authority);
-        ArgumentException.ThrowIfNullOrWhiteSpace(audience);
+        ArgumentNullException.ThrowIfNull(oauth);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oauth.Authority);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oauth.Audience);
 
         services
             .AddScoped<IClaimsTransformation, MediaIdentityClaimsTransformation>()
             .AddHttpClient<IUserInfoClient, UserInfoClient>(client =>
             {
-                client.BaseAddress = new Uri(authority);
+                client.BaseAddress = new Uri(oauth.Authority);
 
             })
             .AddHeaderPropagation()
@@ -38,8 +38,8 @@ public static class AuthExtensions
             })
             .AddJwtBearer(opts =>
             {
-                opts.Authority = authority;
-                opts.Audience = audience;
+                opts.Authority = oauth.Authority;
+                opts.Audience = oauth.Audience;
                 opts.MapInboundClaims = false;
             })
             .Services
@@ -51,37 +51,37 @@ public static class AuthExtensions
                 .AddPolicy(
                     AuthorizationPolicies.MediaReader, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/media:read")
+                        .RequireScope(oauth.Qualify(ApiScopes.MediaRead))
                 )
                 .AddPolicy(
                     AuthorizationPolicies.MediaWriter, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/media:write")
+                        .RequireScope(oauth.Qualify(ApiScopes.MediaWrite))
                 )
                 .AddPolicy(
-                    AuthorizationPolicies.CommentReader, p => p
+                    AuthorizationPolicies.CommentsReader, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/comments:read")
+                        .RequireScope(oauth.Qualify(ApiScopes.CommentsRead))
                 )
                 .AddPolicy(
-                    AuthorizationPolicies.CommentWriter, p => p
+                    AuthorizationPolicies.CommentsWriter, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/comments:write")
+                        .RequireScope(oauth.Qualify(ApiScopes.CommentsWrite))
                 )
                 .AddPolicy(
                     AuthorizationPolicies.LocationReader, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/location:read")
+                        .RequireScope(oauth.Qualify(ApiScopes.LocationRead))
                 )
                 .AddPolicy(
                     AuthorizationPolicies.LocationWriter, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/location:write")
+                        .RequireScope(oauth.Qualify(ApiScopes.LocationWrite))
                 )
                 .AddPolicy(
                     AuthorizationPolicies.StatsReader, p => p
                         .RequireAuthenticatedUser()
-                        .RequireScope($"{audience}/stats:read")
+                        .RequireScope(oauth.Qualify(ApiScopes.StatsRead))
                 )
                 .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
