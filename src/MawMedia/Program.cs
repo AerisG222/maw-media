@@ -43,6 +43,7 @@ var app = builder.Build();
 app
     .UseForwardedHeaders()
     .UseHeaderPropagation()
+    .UseUnversionedApiCompatibility()   // must precede UseRouting so the rewritten path is the one matched
     .UseRouting()
     .UseCustomSecurityHeaders(app.Environment)
     .UseCors()

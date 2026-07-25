@@ -23,7 +23,7 @@ public static class ApiVersioningExtensions
             .AddApiVersioning(opts =>
             {
                 opts.DefaultApiVersion = V1;
-                opts.AssumeDefaultVersionWhenUnspecified = true;   // let the SPA omit the segment during migration
+                opts.AssumeDefaultVersionWhenUnspecified = true;   // legacy callers that omit the segment are rewritten onto V1 (see UnversionedApiCompatibilityExtensions)
                 opts.ReportApiVersions = true;                      // emit api-supported-versions / api-deprecated-versions headers
                 opts.ApiVersionReader = new UrlSegmentApiVersionReader();
             })
