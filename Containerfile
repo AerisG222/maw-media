@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 WORKDIR /maw-media
 
 # restore
+COPY Directory.Build.props .
 COPY Directory.Packages.props .
 COPY maw-media.slnx .
 COPY nuget.config .
