@@ -60,7 +60,8 @@ var versionSet = app.BuildVersionSet();
 
 var api = app
     .MapGroup("/api/v{version:apiVersion}")
-    .WithApiVersionSet(versionSet);
+    .WithApiVersionSet(versionSet)
+    .RequireAuthorization();   // safety net now that no fallback policy applies; each route adds its own policy on top
 
 api.MapGroup("/auth").MapAuthRoutes();
 api.MapGroup("/categories").MapCategoryRoutes();

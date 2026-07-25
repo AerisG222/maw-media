@@ -85,9 +85,9 @@ public static class OpenApiExtensions
         var webApp = (WebApplication)app;
         var oauth = webApp.Services.GetRequiredService<IOptions<OAuthConfig>>().Value;
 
-        // the fallback authorization policy (see AddCustomAuth) protects every
-        // endpoint by default. the docs must be reachable without a token, otherwise
-        // there is no page from which to perform the interactive login.
+        // these sit outside the api group and so pick up none of its authorization. the
+        // AllowAnonymous is kept explicit: the docs must be reachable without a token,
+        // otherwise there is no page from which to perform the interactive login.
         webApp.MapOpenApi().AllowAnonymous();
         webApp.MapScalarApiReference(opts =>
         {

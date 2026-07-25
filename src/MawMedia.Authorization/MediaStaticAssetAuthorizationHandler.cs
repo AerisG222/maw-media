@@ -41,7 +41,7 @@ public class MediaStaticAssetAuthorizationHandler
         }
         else
         {
-            if (await _repo.AllowAccessToAsset(userId.Value, ctx.Request.Path, default))
+            if (await _repo.AllowAccessToAsset(userId.Value, ctx.Request.Path, ctx.RequestAborted))
             {
                 context.Succeed(requirement);
             }

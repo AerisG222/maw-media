@@ -83,10 +83,15 @@ public static class AuthExtensions
                         .RequireAuthenticatedUser()
                         .RequireScope(oauth.Qualify(ApiScopes.StatsRead))
                 )
-                .SetFallbackPolicy(new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddRequirements(new MediaStaticAssetRequirement())
-                    .Build());
+                // evaluated by hand for the static asset branch rather than by the authorization
+                // middleware, because assets are served by middleware and never match an endpoint.
+                // this was previously the fallback policy, which applied it to *every* endpointless
+                // request - including unmatched routes, which then answered 401/403 instead of 404.
+                .AddPolicy(
+                    AuthorizationPolicies.MediaStaticAsset, p => p
+                        .RequireAuthenticatedUser()
+                        .AddRequirements(new MediaStaticAssetRequirement())
+                );
 
         return services;
     }
