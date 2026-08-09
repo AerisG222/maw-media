@@ -17,8 +17,10 @@ public static class ApiVersioningExtensions
     public static string DocumentName(ApiVersion version) =>
         $"v{version.MajorVersion}";
 
-    public static IServiceCollection AddCustomApiVersioning(this IServiceCollection services)
-    {
+    // returns the versioning builder rather than the service collection so the caller can
+    // chain AddCustomOpenApi onto it - the versioned OpenAPI integration hangs off
+    // IApiVersioningBuilder, not IServiceCollection.
+    public static IApiVersioningBuilder AddCustomApiVersioning(this IServiceCollection services) =>
         services
             .AddApiVersioning(opts =>
             {
@@ -32,9 +34,6 @@ public static class ApiVersioningExtensions
                 opts.GroupNameFormat = "'v'VVV";
                 opts.SubstituteApiVersionInUrl = true;              // render /api/v1/media instead of /api/v{version}/media
             });
-
-        return services;
-    }
 
     public static ApiVersionSet BuildVersionSet(this IEndpointRouteBuilder app)
     {

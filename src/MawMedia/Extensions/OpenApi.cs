@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Routing.Constraints;
@@ -15,65 +16,65 @@ public static class OpenApiExtensions
     const string SCHEME_OAUTH2 = "OAuth2";
     const string SCHEME_BEARER = "Bearer";
 
-    public static IServiceCollection AddCustomOpenApi(this IServiceCollection services)
+    public static IServiceCollection AddCustomOpenApi(this IApiVersioningBuilder versioning)
     {
+        var services = versioning.Services;
+
         services.Configure<RouteOptions>(options => options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"));
 
-        // register one OpenAPI document per API version. the ApiExplorer assigns each
-        // versioned endpoint a GroupName ("v1", "v2", ...) matching the document name,
-        // so the native document filter includes only that version's endpoints.
-        foreach (var version in ApiVersioningExtensions.All)
+        // Asp.Versioning.OpenApi registers one OpenAPI document per API version and invokes
+        // this callback once for each. the document is named from the ApiExplorer GroupName
+        // ("v1", "v2", ...), so the native document filter includes only that version's
+        // endpoints and the route stays /openapi/v1.json.
+        versioning.AddOpenApi(options =>
         {
-            var documentName = ApiVersioningExtensions.DocumentName(version);
+            var documentName = options.Description.GroupName;
 
-            services.AddOpenApi(documentName, opts =>
+            options.Document.AddDocumentTransformer((document, context, _) =>
             {
-                opts.AddDocumentTransformer((document, context, _) =>
+                var oauth = context.ApplicationServices.GetRequiredService<IOptions<OAuthConfig>>().Value;
+
+                document.Info.Title = TITLE;
+                document.Info.Version = documentName;
+                document.Info.Description = DESCRIPTION;
+
+                document.Components ??= new();
+                document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+                // raw token paste - useful when you already have a JWT in hand
+                document.Components.SecuritySchemes[SCHEME_BEARER] = new OpenApiSecurityScheme
                 {
-                    var oauth = context.ApplicationServices.GetRequiredService<IOptions<OAuthConfig>>().Value;
+                    BearerFormat = "JSON Web Token",
+                    Description = "Bearer authentication using a JWT.",
+                    Scheme = SCHEME_BEARER,
+                    Type = SecuritySchemeType.Http
+                };
 
-                    document.Info.Title = TITLE;
-                    document.Info.Version = documentName;
-                    document.Info.Description = DESCRIPTION;
-
-                    document.Components ??= new();
-                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-
-                    // raw token paste - useful when you already have a JWT in hand
-                    document.Components.SecuritySchemes[SCHEME_BEARER] = new OpenApiSecurityScheme
+                // interactive login - lets Scalar drive the full authorization code + PKCE round trip
+                document.Components.SecuritySchemes[SCHEME_OAUTH2] = new OpenApiSecurityScheme
+                {
+                    Description = "Authorization code flow with PKCE.",
+                    Type = SecuritySchemeType.OAuth2,
+                    Flows = new OpenApiOAuthFlows
                     {
-                        BearerFormat = "JSON Web Token",
-                        Description = "Bearer authentication using a JWT.",
-                        Scheme = SCHEME_BEARER,
-                        Type = SecuritySchemeType.Http
-                    };
-
-                    // interactive login - lets Scalar drive the full authorization code + PKCE round trip
-                    document.Components.SecuritySchemes[SCHEME_OAUTH2] = new OpenApiSecurityScheme
-                    {
-                        Description = "Authorization code flow with PKCE.",
-                        Type = SecuritySchemeType.OAuth2,
-                        Flows = new OpenApiOAuthFlows
+                        AuthorizationCode = new OpenApiOAuthFlow
                         {
-                            AuthorizationCode = new OpenApiOAuthFlow
-                            {
-                                AuthorizationUrl = new Uri(oauth.AuthorizationUrl),
-                                TokenUrl = new Uri(oauth.TokenUrl),
-                                Scopes = oauth.QualifiedScopes()
-                            }
+                            AuthorizationUrl = new Uri(oauth.AuthorizationUrl),
+                            TokenUrl = new Uri(oauth.TokenUrl),
+                            Scopes = oauth.QualifiedScopes()
                         }
-                    };
+                    }
+                };
 
-                    // attach the scope each endpoint requires, derived from its authorization
-                    // policy. this must happen in the document transformer (not an operation
-                    // transformer): the scheme references need `document` as their host to
-                    // resolve, otherwise the security requirement serializes as an empty {}.
-                    ApplyOperationSecurity(document, context, oauth);
+                // attach the scope each endpoint requires, derived from its authorization
+                // policy. this must happen in the document transformer (not an operation
+                // transformer): the scheme references need `document` as their host to
+                // resolve, otherwise the security requirement serializes as an empty {}.
+                ApplyOperationSecurity(document, context, oauth);
 
-                    return Task.CompletedTask;
-                });
+                return Task.CompletedTask;
             });
-        }
+        });
 
         services.AddEndpointsApiExplorer();
 
@@ -88,7 +89,9 @@ public static class OpenApiExtensions
         // these sit outside the api group and so pick up none of its authorization. the
         // AllowAnonymous is kept explicit: the docs must be reachable without a token,
         // otherwise there is no page from which to perform the interactive login.
-        webApp.MapOpenApi().AllowAnonymous();
+        // WithDocumentPerVersion points the endpoint at the per-version documents registered
+        // above; without it the versioned documents are generated but never served.
+        webApp.MapOpenApi().WithDocumentPerVersion().AllowAnonymous();
         webApp.MapScalarApiReference(opts =>
         {
             opts.EnablePersistentAuthentication();

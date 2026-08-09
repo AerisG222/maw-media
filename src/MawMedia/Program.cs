@@ -29,9 +29,9 @@ builder.Services
     .AddFusionCache()
         .AsHybridCache()
         .Services
-    .AddCustomApiVersioning()
     .AddCustomOAuthConfig(builder.Configuration)
-    .AddCustomOpenApi()
+    .AddCustomApiVersioning()
+        .AddCustomOpenApi()
     .AddCustomAuth(builder.Configuration)
     .AddSingleton<IClock>(SystemClock.Instance)
     .AddMediaAuthorizationHandler()
