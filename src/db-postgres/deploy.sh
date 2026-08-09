@@ -12,9 +12,21 @@ function header() {
     echo "** ${1} **"
 }
 
+# runs a script with ON_ERROR_STOP so psql aborts on the first error and exits
+# non-zero.  without it psql reports success no matter what failed, which lets a
+# broken schema deploy silently - a table that already exists under a different
+# definition, for example, skips its CREATE and then fails every index and
+# constraint that follows.
+#
+# any failure aborts the whole deploy: the scripts are ordered by dependency, so
+# continuing past a failure only produces more failures against a schema that is
+# already wrong.  pass "allow_failure" as the third argument for the cases where
+# a non-zero exit is expected (creating a database that is already there).
 function run_psql_script() {
     local script=$1
     local db=$2
+    local allow_failure=$3
+    local status=0
 
     echo "    - $script"
 
@@ -25,7 +37,8 @@ function run_psql_script() {
 
     if [ "${PODNAME}" == "" ]
     then
-        psql -d "${db}" -q -f "${script}";
+        psql -d "${db}" -q -v ON_ERROR_STOP=1 -f "${script}"
+        status=$?
     else
         podman run --rm \
             --pod "${PODNAME}" \
@@ -39,10 +52,21 @@ function run_psql_script() {
                     -U postgres \
                     -d "${db}" \
                     -q \
+                    -v ON_ERROR_STOP=1 \
                     -f "/tmp/context/${script}"
+        status=$?
 
         sleep 1
     fi
+
+    if [ ${status} -ne 0 ] && [ "${allow_failure}" != "allow_failure" ]
+    then
+        echo "" >&2
+        echo "** DEPLOY FAILED: ${script} (exit ${status}) **" >&2
+        exit 1
+    fi
+
+    return 0
 }
 
 function main() {
@@ -50,7 +74,9 @@ function main() {
     # podman pull "${IMAGE}"
 
     header "database ${DBNAME}"
-    run_psql_script "database/maw_media.sql" "postgres" &> /dev/null
+    # CREATE DATABASE has no IF NOT EXISTS, so this is expected to fail on every
+    # run after the first
+    run_psql_script "database/maw_media.sql" "postgres" "allow_failure" &> /dev/null
 
     header "full text search"
     run_psql_script "full-text-search/extension-dict_xsyn.sql"
@@ -84,6 +110,9 @@ function main() {
     run_psql_script "tables/media.category_role.sql"
     run_psql_script "tables/media.comment.sql"
     run_psql_script "tables/media.favorite.sql"
+    run_psql_script "tables/media.person_status.sql"
+    run_psql_script "tables/media.person.sql"
+    run_psql_script "tables/media.face.sql"
 
     header "views"
     run_psql_script "views/media.category_search.sql"
