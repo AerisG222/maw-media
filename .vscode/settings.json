@@ -12,13 +12,20 @@
         "statusBar.background": "#4e2363",
         "statusBar.foreground": "#e7e7e7",
         "statusBarItem.hoverBackground": "#6c3089",
-        "statusBarItem.remoteBackground": "#4e2363",
+        "statusBarItem.remoteBackground": "#8d6f32",
         "statusBarItem.remoteForeground": "#e7e7e7",
         "tab.activeBorder": "#6c3089",
         "titleBar.activeBackground": "#4e2363",
         "titleBar.activeForeground": "#e7e7e7",
         "titleBar.inactiveBackground": "#4e236399",
-        "titleBar.inactiveForeground": "#e7e7e799"
+        "titleBar.inactiveForeground": "#e7e7e799",
+        "activityBarTop.activeBackground": "#6c3089",
+        "activityBarTop.background": "#6c3089",
+        "activityBarTop.foreground": "#e7e7e7",
+        "activityBarTop.inactiveForeground": "#e7e7e799",
+        "commandCenter.foreground": "#e7e7e7",
+        "statusBar.debuggingBackground": "#4e2363",
+        "statusBar.debuggingForeground": "#e7e7e7"
     },
     "peacock.color": "#4e2363",
     "ansible.python.interpreterPath": "/bin/python"
