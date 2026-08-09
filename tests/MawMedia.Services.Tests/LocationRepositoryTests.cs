@@ -15,23 +15,36 @@ public class LocationRepositoryTests
         _fixture = fixture;
     }
 
-    public static TheoryData<Guid, int> LocationsWithoutMetadataData => new()
+    public static TheoryData<Guid, bool> LocationsWithoutMetadataData => new()
     {
-        { Guid.CreateVersion7(),  0 },
-        { Constants.USER_JOHNDOE, 0 },
-        { Constants.USER_ADMIN,   1 },
+        { Guid.CreateVersion7(),  false },
+        { Constants.USER_JOHNDOE, false },
+        { Constants.USER_ADMIN,   true },
     };
 
     [Theory]
     [MemberData(nameof(LocationsWithoutMetadataData))]
-    public async Task GetLocationsWithoutMetadata(Guid userId, int count)
+    public async Task GetLocationsWithoutMetadata(Guid userId, bool isAdmin)
     {
         var repo = GetRepo();
 
         var result = await repo.GetLocationsWithoutMetadata(userId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
-        Assert.Equal(count, result.Count());
+
+        if (!isAdmin)
+        {
+            Assert.Empty(result);
+
+            return;
+        }
+
+        // asserted by identity rather than by count: test classes run in parallel and
+        // media.set_media_gps_override inserts a location with no lookup_date, so the
+        // number of un-geocoded locations is not stable across a run.
+        Assert.Contains(result, l => l.Id == Constants.LOCATION_UNK.Id);
+        Assert.DoesNotContain(result, l => l.Id == Constants.LOCATION_MA.Id);
+        Assert.DoesNotContain(result, l => l.Id == Constants.LOCATION_NY.Id);
     }
 
     [Fact]
