@@ -9,6 +9,12 @@
 -- constant, and at face volumes that is two uuids and two timestamps per row to
 -- store nothing.  `published` carries the only fact worth keeping.
 --
+-- media.person.preferred_face_id deliberately has no foreign key to this table.
+-- persons and faces are published through separate endpoints, so a person is
+-- always written in an earlier transaction than the faces it names - a
+-- constraint could never be satisfied, deferred or not.  it is a display hint,
+-- resolved with a LEFT JOIN at read time and simply absent if the face is gone.
+--
 -- no frame_time column yet.  video coverage starts with the poster frame only
 -- (which resolves to the video's media_id and renders correctly against the
 -- video's own scaled files).  sampling other frames would need a frame
@@ -84,35 +90,6 @@ BEGIN
 END
 $$;
 
--- media.person.preferred_face_id and media.face.person_id reference each other,
--- so this half of the cycle cannot be declared inline on media.person - that
--- table is created first.  added here, once both tables exist.
-DO
-$$
-BEGIN
-    IF NOT EXISTS
-    (
-        SELECT 1
-        FROM pg_constraint
-        WHERE
-            conname = 'fk_media_person$media_face$preferred'
-            AND
-            conrelid = 'media.person'::regclass
-    )
-    THEN
-        -- deferred: a sync batch upserts persons before the faces they name as
-        -- preferred, so this can only be checked once the batch commits
-        ALTER TABLE media.person
-            ADD CONSTRAINT fk_media_person$media_face$preferred
-            FOREIGN KEY (preferred_face_id)
-            REFERENCES media.face(id)
-            ON DELETE SET NULL
-            DEFERRABLE INITIALLY DEFERRED;
-    END IF;
-END
-$$;
-
--- DELETE is required because a sync deletion is a hard delete
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.face
 TO maw_media;

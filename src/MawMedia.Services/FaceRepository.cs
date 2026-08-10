@@ -1,0 +1,85 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using MawMedia.Models.FaceRecognition;
+using MawMedia.Services.Abstractions;
+using Microsoft.Extensions.Logging;
+using NodaTime;
+using NodaTime.Serialization.SystemTextJson;
+using Npgsql;
+
+namespace MawMedia.Services;
+
+public class FaceRepository
+    : BaseRepository, IFaceRepository
+{
+    // the payload is consumed by the media.sync_* functions via
+    // jsonb_to_recordset, whose column names are snake_case.  the http boundary
+    // stays camelCase like every other endpoint - this policy applies only on
+    // the way to postgres.
+    static readonly JsonSerializerOptions PayloadOptions =
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DefaultIgnoreCondition = JsonIgnoreCondition.Never
+        }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+
+    public FaceRepository(
+        ILogger<FaceRepository> log,
+        NpgsqlConnection conn
+    ) : base(log, conn)
+    {
+
+    }
+
+    public async Task<IEnumerable<FaceSyncResult>> SyncPersonStatuses(
+        Guid userId,
+        IEnumerable<PersonStatusSync> statuses,
+        CancellationToken token = default
+    ) => await Sync("media.sync_person_statuses", userId, statuses, token);
+
+    public async Task<IEnumerable<FaceSyncResult>> SyncPersons(
+        Guid userId,
+        IEnumerable<PersonSync> persons,
+        CancellationToken token = default
+    ) => await Sync("media.sync_persons", userId, persons, token);
+
+    public async Task<IEnumerable<FaceSyncResult>> SyncFaces(
+        Guid userId,
+        IEnumerable<FaceSync> faces,
+        CancellationToken token = default
+    ) => await Sync("media.sync_faces", userId, faces, token);
+
+    public async Task<IEnumerable<FaceSyncResult>> SyncDeletions(
+        Guid userId,
+        IEnumerable<EntitySyncDeletion> deletions,
+        CancellationToken token = default
+    ) => await Sync("media.sync_deletions", userId, deletions, token);
+
+    // function is a compile time constant from the callers above, never caller
+    // input, so interpolating it carries no injection risk
+    async Task<IEnumerable<FaceSyncResult>> Sync<T>(
+        string function,
+        Guid userId,
+        IEnumerable<T> items,
+        CancellationToken token
+    )
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var payload = JsonSerializer.Serialize(items, PayloadOptions);
+
+        // in a transaction so a batch lands whole: a partial apply would leave
+        // the publisher unable to tell what to resend
+        var results = await ExecuteQueryInTransaction<FaceSyncResult>(
+            $"SELECT * FROM {function}(@userId, @payload::jsonb);",
+            new
+            {
+                userId,
+                payload
+            },
+            token
+        );
+
+        return results ?? [];
+    }
+}

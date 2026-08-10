@@ -26,6 +26,7 @@ public static class IServiceCollectionExtensions
             .AddScoped<IAuthRepository, AuthRepository>()
             .AddScoped<ICategoryRepository, CategoryRepository>()
             .AddScoped<IConfigRepository, ConfigRepository>()
+            .AddScoped<IFaceRepository, FaceRepository>()
             .AddScoped<ILocationRepository, LocationRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()

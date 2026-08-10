@@ -157,7 +157,10 @@ function main() {
     run_psql_script "funcs/media.set_location_metadata.sql"
     run_psql_script "funcs/media.set_media_gps_override.sql"
     run_psql_script "funcs/media.set_point_of_interest.sql"
+    run_psql_script "funcs/media.sync_deletions.sql"
     run_psql_script "funcs/media.sync_faces.sql"
+    run_psql_script "funcs/media.sync_person_statuses.sql"
+    run_psql_script "funcs/media.sync_persons.sql"
 
     header "completed ${DBNAME}"
 }

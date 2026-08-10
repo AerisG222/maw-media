@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS media.person (
     name TEXT,                           -- null until an operator labels the cluster
     slug TEXT,                           -- null until named; drives /person/{slug}
     status_code TEXT,                    -- unknown / not_a_person; null once named
-    preferred_face_id UUID,              -- fk added in tables/media.face.sql, see note there
+    preferred_face_id UUID,              -- display hint only; no fk, see tables/media.face.sql
     face_count INTEGER NOT NULL DEFAULT 0,
     source_revision BIGINT NOT NULL,     -- monotonic revision from maw-media-ai
     source_modified TIMESTAMPTZ,         -- maw-media-ai clock; informational only, never used to drive sync
