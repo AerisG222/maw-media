@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS media.face (
     detection_score REAL NOT NULL,
     source_revision BIGINT NOT NULL,     -- monotonic revision from maw-media-ai
     published TIMESTAMPTZ NOT NULL,      -- when this row was last accepted from a publish
-    deleted TIMESTAMPTZ,                 -- soft delete
 
     CONSTRAINT pk_media_face
     PRIMARY KEY (id),
@@ -34,9 +33,13 @@ CREATE TABLE IF NOT EXISTS media.face (
     FOREIGN KEY (media_id)
     REFERENCES media.media(id),
 
+    -- SET NULL rather than cascade: when maw-media-ai drops a cluster its faces
+    -- become unassigned, they are not themselves deleted.  mirrors the same
+    -- rule on face_detection.person_id there.
     CONSTRAINT fk_media_face$media_person
     FOREIGN KEY (person_id)
     REFERENCES media.person(id)
+    ON DELETE SET NULL
 );
 
 DO
@@ -75,8 +78,7 @@ BEGIN
         -- partial: "media containing this person" never looks at unassigned faces
         CREATE INDEX ix_media_face$person_id
         ON media.face(person_id)
-        WHERE person_id IS NOT NULL
-            AND deleted IS NULL;
+        WHERE person_id IS NOT NULL;
 
     END IF;
 END
@@ -98,14 +100,19 @@ BEGIN
             conrelid = 'media.person'::regclass
     )
     THEN
+        -- deferred: a sync batch upserts persons before the faces they name as
+        -- preferred, so this can only be checked once the batch commits
         ALTER TABLE media.person
             ADD CONSTRAINT fk_media_person$media_face$preferred
             FOREIGN KEY (preferred_face_id)
-            REFERENCES media.face(id);
+            REFERENCES media.face(id)
+            ON DELETE SET NULL
+            DEFERRABLE INITIALLY DEFERRED;
     END IF;
 END
 $$;
 
-GRANT SELECT, INSERT, UPDATE
+-- DELETE is required because a sync deletion is a hard delete
+GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.face
 TO maw_media;

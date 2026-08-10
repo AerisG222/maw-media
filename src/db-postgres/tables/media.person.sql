@@ -22,8 +22,6 @@ CREATE TABLE IF NOT EXISTS media.person (
     source_revision BIGINT NOT NULL,     -- monotonic revision from maw-media-ai
     source_modified TIMESTAMPTZ,         -- maw-media-ai clock; informational only, never used to drive sync
     published TIMESTAMPTZ NOT NULL,      -- when this row was last accepted from a publish
-    deleted TIMESTAMPTZ,                 -- soft delete; keeps history referentially valid
-    merged_into_id UUID,                 -- set when a cluster is merged away
 
     CONSTRAINT pk_media_person
     PRIMARY KEY (id),
@@ -34,10 +32,6 @@ CREATE TABLE IF NOT EXISTS media.person (
     CONSTRAINT fk_media_person$media_person_status
     FOREIGN KEY (status_code)
     REFERENCES media.person_status(code),
-
-    CONSTRAINT fk_media_person$media_person$merged
-    FOREIGN KEY (merged_into_id)
-    REFERENCES media.person(id),
 
     -- the same invariant maw-media-ai enforces: a named person is not also
     -- triaged.  it can only fire on a sync defect, which is exactly when it
@@ -62,8 +56,7 @@ BEGIN
         -- partial: browsing and search only ever look at people who have a name
         CREATE INDEX ix_media_person$name
         ON media.person(name)
-        WHERE name IS NOT NULL
-            AND deleted IS NULL;
+        WHERE name IS NOT NULL;
 
     END IF;
 END
@@ -90,6 +83,7 @@ BEGIN
 END
 $$;
 
-GRANT SELECT, INSERT, UPDATE
+-- DELETE is required because a sync deletion is a hard delete
+GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.person
 TO maw_media;
