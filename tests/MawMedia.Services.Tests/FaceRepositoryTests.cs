@@ -33,8 +33,11 @@ public class FaceRepositoryTests
         Assert.Equal("forbidden", OnlyOutcome(await repo.SyncFaces(
             Constants.USER_JOHNDOE, [NewFace(Guid.CreateVersion7(), null, Constants.FILE_NATURE_1.Path, 1)], token)));
 
-        Assert.Equal("forbidden", OnlyOutcome(await repo.SyncDeletions(
-            Constants.USER_JOHNDOE, [new EntitySyncDeletion(SyncEntityType.Person, Guid.CreateVersion7())], token)));
+        Assert.Equal("forbidden", OnlyOutcome(await repo.DeletePersons(
+            Constants.USER_JOHNDOE, [Guid.CreateVersion7()], token)));
+
+        Assert.Equal("forbidden", OnlyOutcome(await repo.DeleteFaces(
+            Constants.USER_JOHNDOE, [Guid.CreateVersion7()], token)));
 
         Assert.Equal(0, await CountPersons("nope"));
     }
@@ -251,19 +254,15 @@ public class FaceRepositoryTests
         await repo.SyncFaces(
             Constants.USER_ADMIN, [NewFace(faceId, personId, Constants.FILE_NATURE_1.Path, 1)], token);
 
-        var deletions = await repo.SyncDeletions(
-            Constants.USER_ADMIN,
-            [
-                new EntitySyncDeletion(SyncEntityType.Face, faceId),
-                new EntitySyncDeletion(SyncEntityType.Person, personId),
-                new EntitySyncDeletion(SyncEntityType.Person, Guid.CreateVersion7())
-            ],
-            token
-        );
+        var deletedFaces = await repo.DeleteFaces(Constants.USER_ADMIN, [faceId], token);
 
-        Assert.Equal("deleted", OutcomeFor(deletions, personId));
-        Assert.Equal("deleted", OutcomeFor(deletions, faceId));
-        Assert.Single(deletions, r => r.Outcome == "not_found");
+        Assert.Equal("deleted", OutcomeFor(deletedFaces, faceId));
+
+        var deletedPersons = await repo.DeletePersons(
+            Constants.USER_ADMIN, [personId, Guid.CreateVersion7()], token);
+
+        Assert.Equal("deleted", OutcomeFor(deletedPersons, personId));
+        Assert.Single(deletedPersons, r => r.Outcome == "not_found");
 
         // hard delete - maw-media-ai is the system of record, nothing is kept here
         Assert.Equal(0, await CountPersons("sync-delete"));
@@ -287,8 +286,7 @@ public class FaceRepositoryTests
         await repo.SyncFaces(
             Constants.USER_ADMIN, [NewFace(faceId, personId, Constants.FILE_NATURE_1.Path, 1)], token);
 
-        await repo.SyncDeletions(
-            Constants.USER_ADMIN, [new EntitySyncDeletion(SyncEntityType.Person, personId)], token);
+        await repo.DeletePersons(Constants.USER_ADMIN, [personId], token);
 
         // ON DELETE SET NULL: dropping a cluster unassigns its faces rather than
         // deleting them, matching face_detection.person_id upstream
@@ -300,26 +298,6 @@ public class FaceRepositoryTests
         );
 
         Assert.False(stillAssigned);
-    }
-
-    [Fact]
-    public async Task SyncDeletionsStillGuardsAnUnknownEntityTypeFromAnUntypedCaller()
-    {
-        // EntitySyncDeletion.EntityType is an enum, so the repository can no longer
-        // produce this.  the guard still has to hold for callers that reach the
-        // function directly - psql, or a future worker.
-        var outcome = await QuerySingle<string>(
-            """
-            SELECT outcome
-            FROM media.sync_deletions(
-                @userId,
-                '[{"entity_type":"llama","id":"1e2d3c4b-0000-7000-8000-00000000ffff"}]'::jsonb
-            );
-            """,
-            new { userId = Constants.USER_ADMIN }
-        );
-
-        Assert.Equal("unknown_entity", outcome);
     }
 
     static PersonSync NewPerson(Guid id, string name, long revision) =>

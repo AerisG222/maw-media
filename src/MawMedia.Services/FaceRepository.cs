@@ -49,11 +49,17 @@ public class FaceRepository
         CancellationToken token = default
     ) => await Sync("media.sync_faces", userId, faces, token);
 
-    public async Task<IEnumerable<FaceSyncResult>> SyncDeletions(
+    public async Task<IEnumerable<FaceSyncResult>> DeletePersons(
         Guid userId,
-        IEnumerable<EntitySyncDeletion> deletions,
+        IEnumerable<Guid> personIds,
         CancellationToken token = default
-    ) => await Sync("media.sync_deletions", userId, deletions, token);
+    ) => await Sync("media.delete_persons", userId, personIds, token);
+
+    public async Task<IEnumerable<FaceSyncResult>> DeleteFaces(
+        Guid userId,
+        IEnumerable<Guid> faceIds,
+        CancellationToken token = default
+    ) => await Sync("media.delete_faces", userId, faceIds, token);
 
     // function is a compile time constant from the callers above, never caller
     // input, so interpolating it carries no injection risk
