@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <PackageReference Include="CliWrap" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
         <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
         <PackageReference Include="Npgsql" />
@@ -25,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\src\MawMedia\MawMedia.csproj" />
         <ProjectReference Include="..\..\src\MawMedia.Services\MawMedia.Services.csproj" />
     </ItemGroup>
 

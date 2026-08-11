@@ -68,7 +68,13 @@ api.MapGroup("/categories").MapCategoryRoutes();
 api.MapGroup("/config").MapConfigRoutes();
 api.MapGroup("/locations").MapLocationRoutes();
 api.MapGroup("/media").MapMediaRoutes();
+api.MapGroup("/persons").MapPersonRoutes();
 api.MapGroup("/stats").MapStatRoutes();
 api.MapGroup("/upload").MapUploadRoutes();
 
 await app.RunAsync();
+
+// top level statements compile to an internal Program, which
+// WebApplicationFactory<Program> cannot reference.  this makes it public
+// without otherwise changing the entry point.
+public partial class Program;

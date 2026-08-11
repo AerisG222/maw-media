@@ -19,6 +19,10 @@ public class TestFixture
 
     public required NpgsqlDataSource DataSource { get; set; }
 
+    // NpgsqlDataSource.ConnectionString redacts the password, so the api test
+    // host cannot reuse it - it needs the full string to open its own pool
+    public string ConnectionString => BuildConnString(PGSQL_SVC_ACCT);
+
     public TestFixture(IMessageSink diagnosticMessageSink)
     {
         ArgumentNullException.ThrowIfNull(diagnosticMessageSink);
