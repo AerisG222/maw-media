@@ -1,44 +1,27 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using MawMedia;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Routes;
-using NodaTime;
-using NodaTime.Serialization.SystemTextJson;
 
 namespace MawMedia.Services.Tests.Api;
 
 public class PersonRoutesTests
-    : IDisposable
+    : ApiTestBase
 {
     const string ROUTE_SYNC = "/api/v1/persons/sync";
     const string ROUTE_DELETIONS = "/api/v1/persons/deletions";
 
-    static readonly JsonSerializerOptions JsonOptions =
-        new JsonSerializerOptions(JsonSerializerDefaults.Web)
-            .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-
-    readonly ApiFactory _factory;
-
     public PersonRoutesTests(TestFixture fixture)
+        : base(fixture)
     {
-        ArgumentNullException.ThrowIfNull(fixture);
 
-        _factory = new ApiFactory(fixture.ConnectionString);
-    }
-
-    public void Dispose()
-    {
-        _factory.Dispose();
-
-        GC.SuppressFinalize(this);
     }
 
     [Fact]
     public async Task SyncRequiresAuthentication()
     {
-        using var client = _factory.CreateClient();
+        using var client = Factory.CreateClient();
 
         var response = await client.PostAsJsonAsync(
             ROUTE_SYNC, new[] { NewPerson("api-anon") }, JsonOptions, TestContext.Current.CancellationToken);
@@ -126,16 +109,6 @@ public class PersonRoutesTests
         var result = Assert.Single(results!);
 
         Assert.Equal("not_found", result.Outcome);
-    }
-
-    HttpClient Client(string sub, string scope)
-    {
-        var client = _factory.CreateClient();
-
-        client.DefaultRequestHeaders.Add(TestAuthHandler.HEADER_SUB, sub);
-        client.DefaultRequestHeaders.Add(TestAuthHandler.HEADER_SCOPES, ApiFactory.QualifiedScope(scope));
-
-        return client;
     }
 
     static PersonSync NewPerson(string name, Guid? id = null) =>

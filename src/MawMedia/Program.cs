@@ -66,6 +66,7 @@ var api = app
 api.MapGroup("/auth").MapAuthRoutes();
 api.MapGroup("/categories").MapCategoryRoutes();
 api.MapGroup("/config").MapConfigRoutes();
+api.MapGroup("/faces").MapFaceRoutes();
 api.MapGroup("/locations").MapLocationRoutes();
 api.MapGroup("/media").MapMediaRoutes();
 api.MapGroup("/persons").MapPersonRoutes();
