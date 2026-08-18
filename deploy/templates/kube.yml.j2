@@ -59,6 +59,8 @@ spec:
           name: media-data-protection
         - mountPath: /media-download:Z
           name: media-download
+        - mountPath: /media-faces:Z
+          name: media-faces
         - mountPath: /media-upload:Z
           name: media-upload
 
@@ -75,6 +77,10 @@ spec:
         path: /home/svc_maw_media/maw-media/media-download
         type: Directory
       name: media-download
+    - hostPath:
+        path: /home/svc_maw_media/maw-media/media-faces
+        type: Directory
+      name: media-faces
     - hostPath:
         path: /home/svc_maw_media/maw-media/media-upload
         type: Directory

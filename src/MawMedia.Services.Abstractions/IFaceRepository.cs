@@ -14,4 +14,7 @@ public interface IFaceRepository
     Task<IEnumerable<FaceSyncResult>> SyncFaces(Guid userId, IEnumerable<FaceSync> faces, CancellationToken token = default);
     Task<IEnumerable<FaceSyncResult>> DeletePersons(Guid userId, IEnumerable<Guid> personIds, CancellationToken token = default);
     Task<IEnumerable<FaceSyncResult>> DeleteFaces(Guid userId, IEnumerable<Guid> faceIds, CancellationToken token = default);
+
+    // guards the published face image endpoints
+    Task<bool> FaceExists(Guid userId, Guid faceId, CancellationToken token = default);
 }

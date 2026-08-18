@@ -69,7 +69,53 @@ function run_psql_script() {
     return 0
 }
 
+# postgres may still be starting when a deploy begins - the integration test
+# harness starts a container and deploys straight after a short sleep.  the very
+# first script would then fail to connect, and since any failure now aborts the
+# run, a startup race would read as a broken deploy.
+function wait_for_postgres() {
+    local attempts=60
+    local i=1
+
+    while [ ${i} -le ${attempts} ]
+    do
+        if postgres_is_ready
+        then
+            return 0
+        fi
+
+        sleep 1
+        i=$((i + 1))
+    done
+
+    echo "" >&2
+    echo "** DEPLOY FAILED: postgres was not reachable after ${attempts} attempts **" >&2
+    exit 1
+}
+
+function postgres_is_ready() {
+    if [ "${PODNAME}" == "" ]
+    then
+        psql -d postgres -q -c "SELECT 1" > /dev/null 2>&1
+    else
+        podman run --rm \
+            --pod "${PODNAME}" \
+            --env "POSTGRES_PASSWORD_FILE=/secrets/psql-postgres" \
+            --volume "${PWDFILEDIR}":/secrets:ro \
+            --security-opt label=disable \
+            "${IMAGE}" \
+                psql \
+                    -h 127.0.0.1 \
+                    -U postgres \
+                    -d postgres \
+                    -q \
+                    -c "SELECT 1" > /dev/null 2>&1
+    fi
+}
+
 function main() {
+    wait_for_postgres
+
     # header "pull latest postgres image"
     # podman pull "${IMAGE}"
 
@@ -142,6 +188,7 @@ function main() {
     run_psql_script "funcs/media.get_category_media.sql"
     run_psql_script "funcs/media.get_category_years.sql"
     run_psql_script "funcs/media.get_comments.sql"
+    run_psql_script "funcs/media.get_face_exists.sql"
     run_psql_script "funcs/media.get_inaccurate_locations.sql"
     run_psql_script "funcs/media.get_is_admin.sql"
     run_psql_script "funcs/media.get_locations_without_metadata.sql"

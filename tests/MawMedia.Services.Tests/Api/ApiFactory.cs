@@ -38,6 +38,7 @@ public class ApiFactory
             Set("OAuth__Audience", AUDIENCE);
             Set("DataProtection__Path", dataProtection);
             Set("Assets__RootDirectory", CreateDir("assets"));
+            Set("Faces__RootDirectory", CreateDir("faces"));
             Set("Upload__RootDirectory", CreateDir("upload"));
             Set("CategoryDownload__RootDirectory", CreateDir("download"));
             Set("CategoryDownload__CleanIntervalInMinutes", "60");

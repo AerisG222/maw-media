@@ -22,6 +22,7 @@ public static class IServiceCollectionExtensions
         services
             .Configure<AssetConfig>(configuration.GetSection("Assets"))
             .Configure<CategoryDownloadConfig>(configuration.GetSection("CategoryDownload"))
+            .Configure<FaceImageConfig>(configuration.GetSection("Faces"))
             .Configure<UploadConfig>(configuration.GetSection("Upload"))
             .AddScoped<IAuthRepository, AuthRepository>()
             .AddScoped<ICategoryRepository, CategoryRepository>()
@@ -31,6 +32,7 @@ public static class IServiceCollectionExtensions
             .AddScoped<IMediaRepository, MediaRepository>()
             .AddScoped<IStatRepository, StatRepository>()
             .AddSingleton<IAssetPathBuilder, AssetPathBuilder>()
+            .AddSingleton<IFaceImageStore, FaceImageStore>()
             .AddSingleton<IZipFileWriter, CategoryZipFileWriter>()
             .AddSingleton<IUploadService, UploadService>()
             .AddHostedService<CategoryDownloadCleaner>();

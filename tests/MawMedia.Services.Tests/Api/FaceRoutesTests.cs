@@ -3,12 +3,16 @@ using System.Net.Http.Json;
 using MawMedia;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Routes;
+using MawMedia.Services;
 
 namespace MawMedia.Services.Tests.Api;
 
 public class FaceRoutesTests
     : ApiTestBase
 {
+    static readonly byte[] AVIF_HEADER =
+        [0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66];
+
     const string ROUTE_SYNC = "/api/v1/faces/sync";
     const string ROUTE_DELETIONS = "/api/v1/faces/deletions";
 
@@ -102,6 +106,125 @@ public class FaceRoutesTests
         var result = Assert.Single((await Results(response, token))!);
 
         Assert.Equal("deleted", result.Outcome);
+    }
+
+    [Fact]
+    public async Task PutImageRequiresTheFaceRecognitionPublishScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.PutAsync(
+            ImageRoute(Guid.CreateVersion7()), Avif(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutImageIsNotFoundForAFaceThatWasNeverPublished()
+    {
+        using var client = Publisher();
+
+        var response = await client.PutAsync(
+            ImageRoute(Guid.CreateVersion7()), Avif(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutImageRejectsAnUnexpectedContentType()
+    {
+        using var client = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(client, token);
+
+        var content = new ByteArrayContent([1, 2, 3]);
+        content.Headers.ContentType = new("image/jpeg");
+
+        var response = await client.PutAsync(ImageRoute(faceId), content, token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutImageRejectsAnOversizeBody()
+    {
+        using var client = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(client, token);
+
+        var response = await client.PutAsync(
+            ImageRoute(faceId), Avif(FaceRoutes.MAX_IMAGE_BYTES + 1), token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutImageStoresBytesThatCanBeReadBack()
+    {
+        using var client = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(client, token);
+        var bytes = (byte[])[.. AVIF_HEADER, 1, 2, 3, 4];
+
+        var put = await client.PutAsync(ImageRoute(faceId), Avif(bytes), token);
+
+        Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
+
+        // read back as any authenticated user - the publish scope is not needed
+        using var reader = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+
+        var get = await reader.GetAsync(ImageRoute(faceId), token);
+
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+        Assert.Equal(FaceImageStore.CONTENT_TYPE, get.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(bytes, await get.Content.ReadAsByteArrayAsync(token));
+
+        // republishing replaces rather than appends
+        var replacement = (byte[])[.. AVIF_HEADER, 9, 9];
+
+        await client.PutAsync(ImageRoute(faceId), Avif(replacement), token);
+
+        var again = await reader.GetAsync(ImageRoute(faceId), token);
+
+        Assert.Equal(replacement, await again.Content.ReadAsByteArrayAsync(token));
+    }
+
+    [Fact]
+    public async Task GetImageIsNotFoundWhenNothingWasPublished()
+    {
+        using var client = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(client, token);
+
+        var response = await client.GetAsync(ImageRoute(faceId), token);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    static string ImageRoute(Guid faceId) => $"/api/v1/faces/{faceId}/image";
+
+    static ByteArrayContent Avif(int size) => Avif(new byte[size]);
+
+    // the bytes are never decoded by the api, so these only need to be
+    // recognisable in a failure message - this is an avif ftyp box header
+    static ByteArrayContent Avif(byte[]? bytes = null)
+    {
+        var content = new ByteArrayContent(bytes ?? AVIF_HEADER);
+
+        content.Headers.ContentType = new(FaceImageStore.CONTENT_TYPE);
+
+        return content;
+    }
+
+    async Task<Guid> PublishFace(HttpClient client, CancellationToken token)
+    {
+        var faceId = Guid.CreateVersion7();
+
+        var response = await client.PostAsJsonAsync(ROUTE_SYNC, new[] { NewFace(faceId) }, JsonOptions, token);
+
+        response.EnsureSuccessStatusCode();
+
+        return faceId;
     }
 
     HttpClient Publisher() =>

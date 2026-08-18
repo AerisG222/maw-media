@@ -61,6 +61,20 @@ public class FaceRepository
         CancellationToken token = default
     ) => await Sync("media.delete_faces", userId, faceIds, token);
 
+    public async Task<bool> FaceExists(
+        Guid userId,
+        Guid faceId,
+        CancellationToken token = default
+    ) => await ExecuteScalar<bool>(
+        "SELECT * FROM media.get_face_exists(@userId, @faceId);",
+        new
+        {
+            userId,
+            faceId
+        },
+        token
+    );
+
     // function is a compile time constant from the callers above, never caller
     // input, so interpolating it carries no injection risk
     async Task<IEnumerable<FaceSyncResult>> Sync<T>(
