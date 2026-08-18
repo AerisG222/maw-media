@@ -32,7 +32,7 @@
     pod: pod-maw-media
     img_maw_media: "docker.io/aerisg222/maw-media:latest"
     img_postgres: "docker.io/aerisg222/maw-media-postgres:latest"
-    img_rclone: "docker.io/rclone/rclone:v1.71-stable"
+    img_rclone: "docker.io/rclone/rclone:1.75"
     img_revgeo: "docker.io/aerisg222/maw-reverse-geocode:latest"
     container_pg: maw-media-postgres
     container_media: maw-media
