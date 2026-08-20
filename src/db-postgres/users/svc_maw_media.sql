@@ -12,7 +12,7 @@ BEGIN
         GRANT maw_media
         TO svc_maw_media;
 
-        RAISE NOTICE '** created user svc_maw_media.  Please be sure to set the password!';
+        RAISE WARNING '** created user svc_maw_media.  Please be sure to set the password!';
 
     END IF;
 END

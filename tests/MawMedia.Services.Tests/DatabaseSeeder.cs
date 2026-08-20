@@ -68,6 +68,7 @@ public class DatabaseSeeder
         await PopulateMedia(conn);
         await PopulateCategoryMedia(conn);
         await PopulateFiles(conn);
+        await PopulatePersonsAndFaces(conn);
         await PopulateComments(conn);
         await PopulateFavorites(conn);
         await PopulateCategoryFavorites(conn);
@@ -379,6 +380,75 @@ public class DatabaseSeeder
             (@id, @mediaId, @typeId, @scaleId, @width, @height, @bytes, @path);
             """,
             files
+        );
+    }
+
+    async Task PopulatePersonsAndFaces(NpgsqlConnection conn)
+    {
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.person (id, name, slug, face_count, source_revision, published)
+            VALUES (@id, @name, @slug, @faceCount, 1, NOW());
+            """,
+            new[]
+            {
+                new
+                {
+                    id = Constants.PERSON_SHARED,
+                    name = "Shared Person",
+                    slug = "shared-person",
+                    // deliberately wrong: the published count is global, and the
+                    // api must compute a per user figure rather than echo this
+                    faceCount = 99
+                },
+                new
+                {
+                    id = Constants.PERSON_PRIVATE,
+                    name = "Private Person",
+                    slug = "private-person",
+                    faceCount = 99
+                }
+            }
+        );
+
+        await conn.ExecuteAsync(
+            """
+            UPDATE media.person SET preferred_face_id = @faceId WHERE id = @personId;
+            """,
+            new { personId = Constants.PERSON_SHARED, faceId = Constants.FACE_SHARED_TRAVEL }
+        );
+
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.face (
+                id, media_id, person_id, box_x, box_y, box_width, box_height,
+                detection_score, source_revision, published
+            )
+            VALUES (
+                @id, @mediaId, @personId, 0.1, 0.2, 0.3, 0.4, 0.9, 1, NOW()
+            );
+            """,
+            new[]
+            {
+                new
+                {
+                    id = Constants.FACE_SHARED_NATURE,
+                    mediaId = Constants.MEDIA_NATURE_1.Id,
+                    personId = Constants.PERSON_SHARED
+                },
+                new
+                {
+                    id = Constants.FACE_SHARED_TRAVEL,
+                    mediaId = Constants.MEDIA_TRAVEL_1.Id,
+                    personId = Constants.PERSON_SHARED
+                },
+                new
+                {
+                    id = Constants.FACE_PRIVATE_NATURE,
+                    mediaId = Constants.MEDIA_NATURE_1.Id,
+                    personId = Constants.PERSON_PRIVATE
+                }
+            }
         );
     }
 

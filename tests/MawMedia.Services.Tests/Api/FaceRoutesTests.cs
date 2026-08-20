@@ -170,8 +170,8 @@ public class FaceRoutesTests
 
         Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
 
-        // read back as any authenticated user - the publish scope is not needed
-        using var reader = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        // read back with the read scope rather than the publish one
+        using var reader = Reader();
 
         var get = await reader.GetAsync(ImageRoute(faceId), token);
 
@@ -187,16 +187,37 @@ public class FaceRoutesTests
         var again = await reader.GetAsync(ImageRoute(faceId), token);
 
         Assert.Equal(replacement, await again.Content.ReadAsByteArrayAsync(token));
+
+        // the face sits on a nature photo, which ROLE_FRIEND cannot reach.  404
+        // rather than 403: answering "forbidden" would confirm the face exists.
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var denied = await friend.GetAsync(ImageRoute(faceId), token);
+
+        Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetImageRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.GetAsync(
+            ImageRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
     public async Task GetImageIsNotFoundWhenNothingWasPublished()
     {
-        using var client = Publisher();
+        using var publisher = Publisher();
         var token = TestContext.Current.CancellationToken;
-        var faceId = await PublishFace(client, token);
+        var faceId = await PublishFace(publisher, token);
 
-        var response = await client.GetAsync(ImageRoute(faceId), token);
+        using var reader = Reader();
+
+        var response = await reader.GetAsync(ImageRoute(faceId), token);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -229,6 +250,9 @@ public class FaceRoutesTests
 
     HttpClient Publisher() =>
         Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionPublish);
+
+    HttpClient Reader() =>
+        Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
 
     static async Task<FaceSyncResult[]?> Results(HttpResponseMessage response, CancellationToken token) =>
         await response.Content.ReadFromJsonAsync<FaceSyncResult[]>(JsonOptions, token);

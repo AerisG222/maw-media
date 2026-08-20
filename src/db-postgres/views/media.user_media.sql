@@ -1,5 +1,5 @@
 -- 2025-11-04 - add slug to return
-DROP VIEW IF EXISTS media.user_media;
+DROP VIEW IF EXISTS media.user_media CASCADE;
 
 CREATE OR REPLACE VIEW media.user_media AS
     SELECT DISTINCT

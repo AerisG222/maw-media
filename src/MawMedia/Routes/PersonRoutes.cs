@@ -20,6 +20,15 @@ public static class PersonRoutes
 
     public static RouteGroupBuilder MapPersonRoutes(this RouteGroupBuilder group)
     {
+        // returned whole rather than paged: the set is a few hundred at most and
+        // clients filter it locally, which beats a round trip per keystroke
+        group
+            .MapGet("/", GetPersons)
+            .WithName("persons-list")
+            .WithSummary("People")
+            .WithDescription("Lists the people appearing in media the caller can access")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+
         group
             .MapPost("/sync", SyncPersons)
             .WithName("persons-sync")
@@ -35,6 +44,20 @@ public static class PersonRoutes
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionPublisher);
 
         return group;
+    }
+
+    static async Task<Results<Ok<IEnumerable<Person>>, ForbidHttpResult>> GetPersons(
+        ClaimsPrincipal user,
+        IFaceRepository repo,
+        HttpRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        return userId != null
+            ? TypedResults.Ok(await repo.GetPersons(userId.Value, request.GetBaseUrl(), token))
+            : TypedResults.Ok(Array.Empty<Person>().AsEnumerable());
     }
 
     static async Task<Results<Ok<IEnumerable<FaceSyncResult>>, BadRequest<string>, ForbidHttpResult>> SyncPersons(

@@ -16,6 +16,7 @@ public static class ApiScopes
     // spans /config/person-statuses, /persons and /faces, so it is named for the
     // capability rather than any one resource
     public const string FaceRecognitionPublish = "face-recognition:publish";
+    public const string FaceRecognitionRead = "face-recognition:read";
 
     // human readable descriptions surfaced in the Scalar authorization UI
     public static readonly IReadOnlyDictionary<string, string> Descriptions =
@@ -28,7 +29,8 @@ public static class ApiScopes
             [LocationRead] = "Read locations and reverse geocode data",
             [LocationWrite] = "Update location reverse geocode data",
             [StatsRead] = "Read media statistics",
-            [FaceRecognitionPublish] = "Publish people and faces from the recognition pipeline"
+            [FaceRecognitionPublish] = "Publish people and faces from the recognition pipeline",
+            [FaceRecognitionRead] = "Read people and faces detected in media"
         };
 
     // maps an authorization policy name to the scope it requires.
@@ -44,7 +46,8 @@ public static class ApiScopes
             [AuthorizationPolicies.LocationReader] = LocationRead,
             [AuthorizationPolicies.LocationWriter] = LocationWrite,
             [AuthorizationPolicies.StatsReader] = StatsRead,
-            [AuthorizationPolicies.FaceRecognitionPublisher] = FaceRecognitionPublish
+            [AuthorizationPolicies.FaceRecognitionPublisher] = FaceRecognitionPublish,
+            [AuthorizationPolicies.FaceRecognitionReader] = FaceRecognitionRead
         };
 
     // Auth0 issues scopes for a custom API prefixed with the API identifier (audience)

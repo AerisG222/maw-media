@@ -234,6 +234,16 @@ public static class Constants
         "/media/travel1.jpg"
     );
 
+    // face recognition.  PERSON_SHARED appears in both a nature photo (admin only)
+    // and the travel photo (admin + friend), while PERSON_PRIVATE appears only in
+    // nature - so johndoe, who holds ROLE_FRIEND, must see exactly one of them.
+    public static readonly Guid PERSON_SHARED = Guid.CreateVersion7();
+    public static readonly Guid PERSON_PRIVATE = Guid.CreateVersion7();
+
+    public static readonly Guid FACE_SHARED_NATURE = Guid.CreateVersion7();
+    public static readonly Guid FACE_SHARED_TRAVEL = Guid.CreateVersion7();
+    public static readonly Guid FACE_PRIVATE_NATURE = Guid.CreateVersion7();
+
     // NO files for FOOD category to demonstrate those will not get pulled back when querying categories
 
     static JsonDocument GetTestMetadata(string name)

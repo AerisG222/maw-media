@@ -15,6 +15,14 @@ public interface IFaceRepository
     Task<IEnumerable<FaceSyncResult>> DeletePersons(Guid userId, IEnumerable<Guid> personIds, CancellationToken token = default);
     Task<IEnumerable<FaceSyncResult>> DeleteFaces(Guid userId, IEnumerable<Guid> faceIds, CancellationToken token = default);
 
-    // guards the published face image endpoints
+    // guards the face image upload: "has this face been published at all"
     Task<bool> FaceExists(Guid userId, Guid faceId, CancellationToken token = default);
+
+    // --- read side --------------------------------------------------------
+    // everything below is filtered by media.user_face, so a caller only ever
+    // sees people appearing in media they already have access to.
+    Task<IEnumerable<Person>> GetPersons(Guid userId, string baseUrl, CancellationToken token = default);
+
+    // guards the face image download: "may this caller see this face"
+    Task<bool> CanViewFace(Guid userId, Guid faceId, CancellationToken token = default);
 }

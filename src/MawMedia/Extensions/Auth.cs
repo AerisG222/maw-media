@@ -88,6 +88,11 @@ public static class AuthExtensions
                         .RequireAuthenticatedUser()
                         .RequireScope(oauth.Qualify(ApiScopes.FaceRecognitionPublish))
                 )
+                .AddPolicy(
+                    AuthorizationPolicies.FaceRecognitionReader, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope(oauth.Qualify(ApiScopes.FaceRecognitionRead))
+                )
                 // evaluated by hand for the static asset branch rather than by the authorization
                 // middleware, because assets are served by middleware and never match an endpoint.
                 // this was previously the fallback policy, which applied it to *every* endpointless

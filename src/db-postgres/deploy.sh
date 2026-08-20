@@ -4,6 +4,12 @@ IMAGE="docker.io/library/postgres:18-trixie"
 PODNAME=$1
 PWDFILEDIR=$2
 
+# the scripts are all written to be re-runnable (CREATE ... IF NOT EXISTS), so a
+# repeat deploy emits a NOTICE for every object that is already there.  raising
+# the client threshold to warning drops that noise and leaves warnings and
+# errors standing out.
+PSQL_OPTIONS="-c client_min_messages=warning"
+
 function showUsage() {
     echo "deploy.sh <podname> <pwddir>"
 }
@@ -37,12 +43,13 @@ function run_psql_script() {
 
     if [ "${PODNAME}" == "" ]
     then
-        psql -d "${db}" -q -v ON_ERROR_STOP=1 -f "${script}"
+        PGOPTIONS="${PSQL_OPTIONS}" psql -d "${db}" -q -v ON_ERROR_STOP=1 -f "${script}"
         status=$?
     else
         podman run --rm \
             --pod "${PODNAME}" \
             --env "POSTGRES_PASSWORD_FILE=/secrets/psql-postgres" \
+            --env "PGOPTIONS=${PSQL_OPTIONS}" \
             --volume "${PWDFILEDIR}":/secrets:ro \
             --volume "$(pwd)":/tmp/context:ro \
             --security-opt label=disable \
@@ -169,6 +176,7 @@ function main() {
     run_psql_script "views/media.media_gps.sql"
     run_psql_script "views/media.user_category.sql"
     run_psql_script "views/media.user_media.sql"
+    run_psql_script "views/media.user_face.sql"
 
     header "seed"
     run_psql_script "seed/media.type.sql"
@@ -196,10 +204,12 @@ function main() {
     run_psql_script "funcs/media.get_media_file.sql"
     run_psql_script "funcs/media.get_media_gps.sql"
     run_psql_script "funcs/media.get_metadata.sql"
+    run_psql_script "funcs/media.get_persons.sql"
     run_psql_script "funcs/media.get_random_media.sql"
     run_psql_script "funcs/media.get_scales.sql"
     run_psql_script "funcs/media.get_stats.sql"
     run_psql_script "funcs/media.get_stats_for_year.sql"
+    run_psql_script "funcs/media.get_user_can_view_face.sql"
     run_psql_script "funcs/media.get_user_state.sql"
     run_psql_script "funcs/media.search_categories.sql"
     run_psql_script "funcs/media.set_category_teaser.sql"

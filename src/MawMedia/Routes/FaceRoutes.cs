@@ -54,7 +54,7 @@ public static class FaceRoutes
             .WithName("faces-get-image")
             .WithSummary("Face Image")
             .WithDescription("Returns the cropped image previously published for a face")
-            .RequireAuthorization(AuthorizationPolicies.User);
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         return group;
     }
@@ -102,15 +102,26 @@ public static class FaceRoutes
         return TypedResults.NoContent();
     }
 
-    static Results<FileStreamHttpResult, NotFound, ForbidHttpResult> GetImage(
+    static async Task<Results<FileStreamHttpResult, NotFound, ForbidHttpResult>> GetImage(
         ClaimsPrincipal user,
+        IFaceRepository repo,
         IFaceImageStore store,
-        [FromRoute] Guid id
+        [FromRoute] Guid id,
+        CancellationToken token
     )
     {
-        if (user.GetMediaUserId() == null)
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
         {
             return TypedResults.Forbid();
+        }
+
+        // 404 rather than 403 for a face the caller cannot see: answering
+        // "forbidden" would confirm the face exists, which is itself a leak
+        if (!await repo.CanViewFace(userId.Value, id, token))
+        {
+            return TypedResults.NotFound();
         }
 
         var content = store.Open(id);

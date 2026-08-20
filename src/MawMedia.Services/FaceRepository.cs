@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Services.Abstractions;
+using MawMedia.Services.Models;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 using NodaTime.Serialization.SystemTextJson;
@@ -23,12 +25,17 @@ public class FaceRepository
             DefaultIgnoreCondition = JsonIgnoreCondition.Never
         }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
 
+    readonly IAssetPathBuilder _assetPathBuilder;
+
     public FaceRepository(
         ILogger<FaceRepository> log,
-        NpgsqlConnection conn
+        NpgsqlConnection conn,
+        IAssetPathBuilder assetPathBuilder
     ) : base(log, conn)
     {
+        ArgumentNullException.ThrowIfNull(assetPathBuilder);
 
+        _assetPathBuilder = assetPathBuilder;
     }
 
     public async Task<IEnumerable<FaceSyncResult>> SyncPersonStatuses(
@@ -67,6 +74,56 @@ public class FaceRepository
         CancellationToken token = default
     ) => await ExecuteScalar<bool>(
         "SELECT * FROM media.get_face_exists(@userId, @faceId);",
+        new
+        {
+            userId,
+            faceId
+        },
+        token
+    );
+
+    public async Task<IEnumerable<Person>> GetPersons(
+        Guid userId,
+        string baseUrl,
+        CancellationToken token = default
+    )
+    {
+        var rows = await Query<PersonRow>(
+            "SELECT * FROM media.get_persons(@userId);",
+            new
+            {
+                userId
+            },
+            token
+        );
+
+        return rows
+            .Select(r => new Person(
+                r.Id,
+                r.Name,
+                r.Slug,
+                r.PreferredFaceId,
+                r.PreferredFaceId == null
+                    ? null
+                    : _assetPathBuilder.Build(
+                        baseUrl,
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            Constants.FaceImageUrlFormat,
+                            r.PreferredFaceId
+                        )
+                    ),
+                r.MediaCount
+            ))
+            .ToList();
+    }
+
+    public async Task<bool> CanViewFace(
+        Guid userId,
+        Guid faceId,
+        CancellationToken token = default
+    ) => await ExecuteScalar<bool>(
+        "SELECT * FROM media.get_user_can_view_face(@userId, @faceId);",
         new
         {
             userId,

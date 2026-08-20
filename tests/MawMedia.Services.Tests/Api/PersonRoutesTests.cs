@@ -9,6 +9,7 @@ namespace MawMedia.Services.Tests.Api;
 public class PersonRoutesTests
     : ApiTestBase
 {
+    const string ROUTE_LIST = "/api/v1/persons";
     const string ROUTE_SYNC = "/api/v1/persons/sync";
     const string ROUTE_DELETIONS = "/api/v1/persons/deletions";
 
@@ -16,6 +17,98 @@ public class PersonRoutesTests
         : base(fixture)
     {
 
+    }
+
+    [Fact]
+    public async Task ListRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.GetAsync(ROUTE_LIST, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ListReturnsOnlyPeopleTheCallerCanSee()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var response = await client.GetAsync(ROUTE_LIST, token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var people = await response.Content.ReadFromJsonAsync<Person[]>(JsonOptions, token);
+
+        Assert.Contains(people!, p => p.Id == Constants.PERSON_SHARED);
+        Assert.DoesNotContain(people!, p => p.Id == Constants.PERSON_PRIVATE);
+    }
+
+    [Fact]
+    public async Task ListReturnsAnAbsolutePreferredFaceUrl()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var response = await client.GetAsync(ROUTE_LIST, token);
+        var people = await response.Content.ReadFromJsonAsync<Person[]>(JsonOptions, token);
+        var shared = people!.Single(p => p.Id == Constants.PERSON_SHARED);
+
+        // absolute so clients do not each assemble it; the route version is part
+        // of the shape, so a v2 move surfaces here
+        Assert.NotNull(shared.PreferredFaceUrl);
+        Assert.EndsWith($"/api/v1/faces/{Constants.FACE_SHARED_TRAVEL}/image", shared.PreferredFaceUrl);
+        Assert.StartsWith("http", shared.PreferredFaceUrl);
+
+        // never the published global figure, which the seed sets to 99
+        Assert.Equal(2, shared.MediaCount);
+    }
+
+    [Fact]
+    public async Task GetPersonsRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.GetAsync(ROUTE_LIST, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetPersonsReturnsOnlyPeopleTheCallerCanSee()
+    {
+        var token = TestContext.Current.CancellationToken;
+
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var forAdmin = await admin.GetFromJsonAsync<Person[]>(ROUTE_LIST, JsonOptions, token);
+        var forFriend = await friend.GetFromJsonAsync<Person[]>(ROUTE_LIST, JsonOptions, token);
+
+        Assert.Contains(forAdmin!, p => p.Id == Constants.PERSON_PRIVATE);
+
+        // the private person appears only in a category ROLE_FRIEND cannot reach
+        Assert.DoesNotContain(forFriend!, p => p.Id == Constants.PERSON_PRIVATE);
+        Assert.Contains(forFriend!, p => p.Id == Constants.PERSON_SHARED);
+    }
+
+    [Fact]
+    public async Task GetPersonsReturnsAnAbsolutePreferredFaceUrl()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var people = await client.GetFromJsonAsync<Person[]>(
+            ROUTE_LIST, JsonOptions, TestContext.Current.CancellationToken);
+
+        var shared = Assert.Single(people!, p => p.Id == Constants.PERSON_SHARED);
+
+        // clients should not have to assemble this, and it must be reachable
+        Assert.NotNull(shared.PreferredFaceUrl);
+        Assert.EndsWith($"/api/v1/faces/{Constants.FACE_SHARED_TRAVEL}/image", shared.PreferredFaceUrl);
+
+        // the per caller count, never the published global face_count of 99
+        Assert.Equal(2, shared.MediaCount);
     }
 
     [Fact]

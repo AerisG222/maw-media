@@ -332,7 +332,8 @@ public class FaceRepositoryTests
     {
         return new FaceRepository(
             new FakeLogger<FaceRepository>(),
-            _fixture.DataSource.CreateConnection()
+            _fixture.DataSource.CreateConnection(),
+            new AssetPathBuilder()
         );
     }
 }
