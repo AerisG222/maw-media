@@ -204,6 +204,7 @@ function main() {
     run_psql_script "funcs/media.get_media_file.sql"
     run_psql_script "funcs/media.get_media_gps.sql"
     run_psql_script "funcs/media.get_metadata.sql"
+    run_psql_script "funcs/media.get_person_media.sql"
     run_psql_script "funcs/media.get_persons.sql"
     run_psql_script "funcs/media.get_random_media.sql"
     run_psql_script "funcs/media.get_scales.sql"

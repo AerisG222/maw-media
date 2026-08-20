@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using MawMedia.Authorization.Claims;
 using MawMedia.Routes.Extensions;
+using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Services.Abstractions;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -18,6 +19,10 @@ public static class PersonRoutes
     public const int MAX_PERSONS = 500;
     public const int MAX_DELETIONS = 1000;
 
+    // matches the category search page size so a client can render both result
+    // sets with the same grid and the same "load more" behaviour
+    const int MEDIA_LIMIT = 24;
+
     public static RouteGroupBuilder MapPersonRoutes(this RouteGroupBuilder group)
     {
         // returned whole rather than paged: the set is a few hundred at most and
@@ -27,6 +32,15 @@ public static class PersonRoutes
             .WithName("persons-list")
             .WithSummary("People")
             .WithDescription("Lists the people appearing in media the caller can access")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+
+        // the drill-in behind a person in the picker.  paged, unlike the list
+        // above: one person can appear in thousands of media.
+        group
+            .MapGet("/{id:guid}/media", GetPersonMedia)
+            .WithName("person-media")
+            .WithSummary("Media for a Person")
+            .WithDescription("Lists the media a person appears in that the caller can access")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         group
@@ -58,6 +72,38 @@ public static class PersonRoutes
         return userId != null
             ? TypedResults.Ok(await repo.GetPersons(userId.Value, request.GetBaseUrl(), token))
             : TypedResults.Ok(Array.Empty<Person>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<SearchResult<Media>>, NotFound, BadRequest<string>>> GetPersonMedia(
+        ClaimsPrincipal user,
+        IFaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        CancellationToken token,
+        [FromQuery] int o = 0
+    )
+    {
+        if (o < 0)
+        {
+            return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
+        }
+
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.GetPersonMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, token);
+
+        // 404 rather than an empty first page, and 404 rather than 403 for a
+        // person the caller may not see - the same rule the face image download
+        // follows, so a caller cannot probe for people the picker hid from them.
+        // an empty page past the first is a normal answer, not a missing person.
+        return o == 0 && !result.Results.Any()
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(result);
     }
 
     static async Task<Results<Ok<IEnumerable<FaceSyncResult>>, BadRequest<string>, ForbidHttpResult>> SyncPersons(

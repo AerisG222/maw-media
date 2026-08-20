@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Services.Abstractions;
 using MawMedia.Services.Models;
+using MawMedia.Models;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 using NodaTime.Serialization.SystemTextJson;
@@ -25,17 +27,26 @@ public class FaceRepository
             DefaultIgnoreCondition = JsonIgnoreCondition.Never
         }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
 
+    // a page bigger than this is almost certainly a client bug rather than a
+    // genuine request - the picker shows a grid, and nobody scrolls 250 photos
+    // in one go.  matches the ceiling category search uses.
+    public const int PERSON_MEDIA_LIMIT_MAX = 250;
+
     readonly IAssetPathBuilder _assetPathBuilder;
+    readonly HybridCache _cache;
 
     public FaceRepository(
         ILogger<FaceRepository> log,
         NpgsqlConnection conn,
-        IAssetPathBuilder assetPathBuilder
+        IAssetPathBuilder assetPathBuilder,
+        HybridCache cache
     ) : base(log, conn)
     {
         ArgumentNullException.ThrowIfNull(assetPathBuilder);
+        ArgumentNullException.ThrowIfNull(cache);
 
         _assetPathBuilder = assetPathBuilder;
+        _cache = cache;
     }
 
     public async Task<IEnumerable<FaceSyncResult>> SyncPersonStatuses(
@@ -116,6 +127,51 @@ public class FaceRepository
                 r.MediaCount
             ))
             .ToList();
+    }
+
+    public async Task<SearchResult<Media>> GetPersonMedia(
+        Guid userId,
+        string baseUrl,
+        Guid personId,
+        int offset,
+        int limit,
+        CancellationToken token = default
+    )
+    {
+        if (offset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Offset must be greater than or equal to 0.");
+        }
+
+        if (limit < 1 || limit > PERSON_MEDIA_LIMIT_MAX)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, $"Limit must be between 1 and {PERSON_MEDIA_LIMIT_MAX}.");
+        }
+
+        // one extra row tells us whether another page exists without a second
+        // count query.  the function pages over media, so the extra row is an
+        // extra media item, not an extra file.
+        var results = await Query<MediaAndFile>(
+            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles);",
+            new
+            {
+                userId,
+                personId,
+                offset,
+                limit = limit + 1,
+                excludeSrcFiles = true
+            },
+            token
+        );
+
+        var media = (await AssembleMedia(userId, results, baseUrl, _assetPathBuilder, _cache, token)).ToList();
+        var hasMore = media.Count > limit;
+
+        return new SearchResult<Media>(
+            hasMore ? media.Take(limit) : media,
+            hasMore,
+            hasMore ? offset + limit : 0
+        );
     }
 
     public async Task<bool> CanViewFace(

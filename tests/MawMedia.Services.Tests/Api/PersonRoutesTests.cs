@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using MawMedia;
+using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Routes;
 
@@ -13,56 +14,12 @@ public class PersonRoutesTests
     const string ROUTE_SYNC = "/api/v1/persons/sync";
     const string ROUTE_DELETIONS = "/api/v1/persons/deletions";
 
+    static string MediaRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/media";
+
     public PersonRoutesTests(TestFixture fixture)
         : base(fixture)
     {
 
-    }
-
-    [Fact]
-    public async Task ListRequiresTheFaceRecognitionReadScope()
-    {
-        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
-
-        var response = await client.GetAsync(ROUTE_LIST, TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task ListReturnsOnlyPeopleTheCallerCanSee()
-    {
-        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
-        var token = TestContext.Current.CancellationToken;
-
-        var response = await client.GetAsync(ROUTE_LIST, token);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var people = await response.Content.ReadFromJsonAsync<Person[]>(JsonOptions, token);
-
-        Assert.Contains(people!, p => p.Id == Constants.PERSON_SHARED);
-        Assert.DoesNotContain(people!, p => p.Id == Constants.PERSON_PRIVATE);
-    }
-
-    [Fact]
-    public async Task ListReturnsAnAbsolutePreferredFaceUrl()
-    {
-        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
-        var token = TestContext.Current.CancellationToken;
-
-        var response = await client.GetAsync(ROUTE_LIST, token);
-        var people = await response.Content.ReadFromJsonAsync<Person[]>(JsonOptions, token);
-        var shared = people!.Single(p => p.Id == Constants.PERSON_SHARED);
-
-        // absolute so clients do not each assemble it; the route version is part
-        // of the shape, so a v2 move surfaces here
-        Assert.NotNull(shared.PreferredFaceUrl);
-        Assert.EndsWith($"/api/v1/faces/{Constants.FACE_SHARED_TRAVEL}/image", shared.PreferredFaceUrl);
-        Assert.StartsWith("http", shared.PreferredFaceUrl);
-
-        // never the published global figure, which the seed sets to 99
-        Assert.Equal(2, shared.MediaCount);
     }
 
     [Fact]
@@ -109,6 +66,93 @@ public class PersonRoutesTests
 
         // the per caller count, never the published global face_count of 99
         Assert.Equal(2, shared.MediaCount);
+    }
+
+    [Fact]
+    public async Task PersonMediaRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.GetAsync(MediaRoute(Constants.PERSON_SHARED), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonMediaReturnsOnlyMediaTheCallerCanSee()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var result = await client.GetFromJsonAsync<SearchResult<Media>>(
+            MediaRoute(Constants.PERSON_SHARED), JsonOptions, token);
+
+        var media = Assert.Single(result!.Results);
+
+        Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, media.Id);
+        Assert.False(result.HasMoreResults);
+    }
+
+    [Fact]
+    public async Task PersonMediaIsNotFoundForAPersonTheCallerCannotSee()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.GetAsync(
+            MediaRoute(Constants.PERSON_PRIVATE), TestContext.Current.CancellationToken);
+
+        // 404 rather than 403: the friend must not learn this person exists,
+        // which is the same reason the face image download hides behind 404
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var forAdmin = await admin.GetAsync(
+            MediaRoute(Constants.PERSON_PRIVATE), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, forAdmin.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonMediaIsNotFoundForAnUnknownPerson()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.GetAsync(
+            MediaRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonMediaRejectsANegativeOffset()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.GetAsync(
+            $"{MediaRoute(Constants.PERSON_SHARED)}?o=-1", TestContext.Current.CancellationToken);
+
+        // caught at the route so the repository's guard clause never surfaces as
+        // a 500
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonMediaReturnsAnEmptyPagePastTheEnd()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var response = await client.GetAsync($"{MediaRoute(Constants.PERSON_SHARED)}?o=100", token);
+
+        // an exhausted page is a normal answer, not a missing person - only the
+        // first page collapses to 404
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<SearchResult<Media>>(JsonOptions, token);
+
+        Assert.Empty(result!.Results);
+        Assert.False(result.HasMoreResults);
     }
 
     [Fact]

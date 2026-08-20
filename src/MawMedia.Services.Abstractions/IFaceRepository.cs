@@ -1,3 +1,4 @@
+using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
 
 namespace MawMedia.Services.Abstractions;
@@ -22,6 +23,12 @@ public interface IFaceRepository
     // everything below is filtered by media.user_face, so a caller only ever
     // sees people appearing in media they already have access to.
     Task<IEnumerable<Person>> GetPersons(Guid userId, string baseUrl, CancellationToken token = default);
+
+    // paged, because a single person can appear in thousands of media.  lives
+    // here rather than on IMediaRepository despite returning Media: the access
+    // rule it enforces is the face one, and keeping it beside GetPersons means
+    // there is one place to look when that rule changes.
+    Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, CancellationToken token = default);
 
     // guards the face image download: "may this caller see this face"
     Task<bool> CanViewFace(Guid userId, Guid faceId, CancellationToken token = default);
