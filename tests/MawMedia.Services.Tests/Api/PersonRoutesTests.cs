@@ -62,7 +62,7 @@ public class PersonRoutesTests
 
         // clients should not have to assemble this, and it must be reachable
         Assert.NotNull(shared.PreferredFaceUrl);
-        Assert.EndsWith($"/api/v1/faces/{Constants.FACE_SHARED_TRAVEL}/image", shared.PreferredFaceUrl);
+        Assert.EndsWith($"/assets/faces/{Constants.FACE_SHARED_TRAVEL}.avif", shared.PreferredFaceUrl);
 
         // the per caller count, never the published global face_count of 99
         Assert.Equal(2, shared.MediaCount);

@@ -25,5 +25,12 @@ public static class CacheKeyBuilder
         return $"asset-{userId}-{assetPath[..second]}";
     }
 
+    // deliberately NOT routed through CanAccessAsset.  that helper strips a path
+    // to its second to last segment so one entry covers a whole category
+    // directory, and every face image lives in the same flat directory - it
+    // would collapse to a single key and let the first answer stand in for every
+    // face.  face visibility is per face, so the key is too.
+    public static string CanViewFace(Guid userId, Guid faceId) => $"face-{userId}-{faceId}";
+
     public static string UserState(string externalId) => $"user-state-{externalId}";
 }

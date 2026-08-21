@@ -49,12 +49,11 @@ public static class FaceRoutes
             .WithDescription("Stores the cropped image for a face, replacing any existing one")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionPublisher);
 
-        group
-            .MapGet("/{id:guid}/image", GetImage)
-            .WithName("faces-get-image")
-            .WithSummary("Face Image")
-            .WithDescription("Returns the cropped image previously published for a face")
-            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+        // there is deliberately no GET counterpart here.  the published crop is
+        // served as a static file under Constants.FaceAssetBaseUrl, where the
+        // static file middleware can answer a conditional GET with 304 - the
+        // picker asks for hundreds of these at once, and an api route would have
+        // resent every body every time.
 
         return group;
     }
@@ -100,35 +99,6 @@ public static class FaceRoutes
         await store.Save(id, request.Body, token);
 
         return TypedResults.NoContent();
-    }
-
-    static async Task<Results<FileStreamHttpResult, NotFound, ForbidHttpResult>> GetImage(
-        ClaimsPrincipal user,
-        IFaceRepository repo,
-        IFaceImageStore store,
-        [FromRoute] Guid id,
-        CancellationToken token
-    )
-    {
-        var userId = user.GetMediaUserId();
-
-        if (userId == null)
-        {
-            return TypedResults.Forbid();
-        }
-
-        // 404 rather than 403 for a face the caller cannot see: answering
-        // "forbidden" would confirm the face exists, which is itself a leak
-        if (!await repo.CanViewFace(userId.Value, id, token))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var content = store.Open(id);
-
-        return content == null
-            ? TypedResults.NotFound()
-            : TypedResults.File(content, FaceImageStore.CONTENT_TYPE);
     }
 
     static async Task<Results<Ok<IEnumerable<FaceSyncResult>>, BadRequest<string>, ForbidHttpResult>> SyncFaces(

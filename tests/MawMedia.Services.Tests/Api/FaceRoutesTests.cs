@@ -173,7 +173,7 @@ public class FaceRoutesTests
         // read back with the read scope rather than the publish one
         using var reader = Reader();
 
-        var get = await reader.GetAsync(ImageRoute(faceId), token);
+        var get = await reader.GetAsync(ImageAssetRoute(faceId), token);
 
         Assert.Equal(HttpStatusCode.OK, get.StatusCode);
         Assert.Equal(FaceImageStore.CONTENT_TYPE, get.Content.Headers.ContentType?.MediaType);
@@ -184,7 +184,7 @@ public class FaceRoutesTests
 
         await client.PutAsync(ImageRoute(faceId), Avif(replacement), token);
 
-        var again = await reader.GetAsync(ImageRoute(faceId), token);
+        var again = await reader.GetAsync(ImageAssetRoute(faceId), token);
 
         Assert.Equal(replacement, await again.Content.ReadAsByteArrayAsync(token));
 
@@ -192,7 +192,7 @@ public class FaceRoutesTests
         // rather than 403: answering "forbidden" would confirm the face exists.
         using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
 
-        var denied = await friend.GetAsync(ImageRoute(faceId), token);
+        var denied = await friend.GetAsync(ImageAssetRoute(faceId), token);
 
         Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
     }
@@ -203,9 +203,64 @@ public class FaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
 
         var response = await client.GetAsync(
-            ImageRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+            ImageAssetRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
 
+        // 403 rather than 404: the scope says nothing about whether this face
+        // exists, so there is nothing to hide by answering plainly
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetImageRequiresAuthentication()
+    {
+        using var client = Factory.CreateClient();
+
+        var response = await client.GetAsync(
+            ImageAssetRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/assets/faces/not-a-guid.avif")]
+    [InlineData("/assets/faces/nested/00000000-0000-0000-0000-000000000000.avif")]
+    [InlineData("/assets/faces/00000000-0000-0000-0000-000000000000.jpg")]
+    [InlineData("/assets/faces/00000000-0000-0000-0000-000000000000")]
+    public async Task GetImageRejectsAPathThatIsNotAFaceCrop(string path)
+    {
+        using var reader = Reader();
+
+        var response = await reader.GetAsync(path, TestContext.Current.CancellationToken);
+
+        // refused before the file provider sees it, so a traversal or a stray
+        // extension cannot be used to probe the faces directory
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetImageServesAConditionalRequestAsNotModified()
+    {
+        using var publisher = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(publisher, token);
+
+        await publisher.PutAsync(ImageRoute(faceId), Avif(), token);
+
+        using var reader = Reader();
+
+        var first = await reader.GetAsync(ImageAssetRoute(faceId), token);
+
+        // the whole reason these moved out of the api: the picker asks for
+        // hundreds of these at once, and an etag turns the repeat visits into
+        // 304s instead of resending every body
+        Assert.NotNull(first.Headers.ETag);
+
+        using var conditional = new HttpRequestMessage(HttpMethod.Get, ImageAssetRoute(faceId));
+        conditional.Headers.IfNoneMatch.Add(first.Headers.ETag);
+
+        var second = await reader.SendAsync(conditional, token);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
     }
 
     [Fact]
@@ -217,12 +272,17 @@ public class FaceRoutesTests
 
         using var reader = Reader();
 
-        var response = await reader.GetAsync(ImageRoute(faceId), token);
+        var response = await reader.GetAsync(ImageAssetRoute(faceId), token);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // publishing stays an api call; reading is a static asset, so the two no
+    // longer share a url
     static string ImageRoute(Guid faceId) => $"/api/v1/faces/{faceId}/image";
+
+    static string ImageAssetRoute(Guid faceId) =>
+        $"{MawMedia.Services.Abstractions.Constants.FaceAssetBaseUrl}/{faceId}{FaceImageStore.EXTENSION}";
 
     static ByteArrayContent Avif(int size) => Avif(new byte[size]);
 

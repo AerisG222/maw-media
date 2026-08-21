@@ -33,6 +33,14 @@ public class MediaStaticAssetAuthorizationHandler
             return;
         }
 
+        // face crops sit under the same prefix but are governed by
+        // FaceStaticAssetAuthorizationHandler.  declining here keeps the media
+        // rule from being asked a question about a file it knows nothing about.
+        if (ctx.Request.Path.StartsWithSegments(Constants.FaceAssetBaseUrl))
+        {
+            return;
+        }
+
         var userId = ctx.User.GetMediaUserId();
 
         if (userId == null)

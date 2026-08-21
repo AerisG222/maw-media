@@ -108,6 +108,20 @@ public class FaceRepository
             token
         );
 
+        // the picker renders one image per person, so these exact faces are about
+        // to be requested as static assets - each of which authorizes through
+        // CanViewFace.  priming here turns a few hundred round trips into none.
+        // the rows came from media.user_face, so every id is one this caller may
+        // already see.
+        foreach (var faceId in rows.Where(r => r.PreferredFaceId != null).Select(r => r.PreferredFaceId!.Value))
+        {
+            await _cache.SetAsync(
+                CacheKeyBuilder.CanViewFace(userId, faceId),
+                true,
+                cancellationToken: token
+            );
+        }
+
         return rows
             .Select(r => new Person(
                 r.Id,
@@ -174,18 +188,26 @@ public class FaceRepository
         );
     }
 
-    public async Task<bool> CanViewFace(
+    // cached because it guards a static asset: a page showing the picker asks for
+    // hundreds of face images at once, and without this each one would be its own
+    // query.  GetPersons primes the same keys, so the common path never reaches
+    // postgres at all.
+    public async ValueTask<bool> CanViewFace(
         Guid userId,
         Guid faceId,
         CancellationToken token = default
-    ) => await ExecuteScalar<bool>(
-        "SELECT * FROM media.get_user_can_view_face(@userId, @faceId);",
-        new
-        {
-            userId,
-            faceId
-        },
-        token
+    ) => await _cache.GetOrCreateAsync(
+        CacheKeyBuilder.CanViewFace(userId, faceId),
+        async cancel => await ExecuteScalar<bool>(
+            "SELECT * FROM media.get_user_can_view_face(@userId, @faceId);",
+            new
+            {
+                userId,
+                faceId
+            },
+            cancel
+        ),
+        cancellationToken: token
     );
 
     // function is a compile time constant from the callers above, never caller

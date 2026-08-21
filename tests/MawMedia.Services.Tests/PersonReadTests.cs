@@ -65,7 +65,7 @@ public class PersonReadTests
         var shared = Shared(people);
 
         Assert.Equal(
-            $"https://example.com/api/v1/faces/{Constants.FACE_SHARED_TRAVEL}/image",
+            $"https://example.com/assets/faces/{Constants.FACE_SHARED_TRAVEL}.avif",
             shared.PreferredFaceUrl
         );
 

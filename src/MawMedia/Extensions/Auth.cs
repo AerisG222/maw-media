@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using MawMedia.Authorization;
 using MawMedia.Authorization.Claims;
 using MawMedia.Services;
@@ -101,6 +100,21 @@ public static class AuthExtensions
                     AuthorizationPolicies.MediaStaticAsset, p => p
                         .RequireAuthenticatedUser()
                         .AddRequirements(new MediaStaticAssetRequirement())
+                )
+                // face crops keep the scope the api route they replaced required.
+                // without it a caller holding only media:read could pull a face
+                // crop by guid, and the point of the scope is that the whole face
+                // feature can be withdrawn from a client on its own.
+                //
+                // it carries no resource requirement, unlike MediaStaticAsset:
+                // whether the caller may see a *particular* face is settled by
+                // StaticFilesExtensions afterwards, because that answer has to be
+                // 404 rather than 403 and an authorization failure cannot say
+                // which of the two it meant.
+                .AddPolicy(
+                    AuthorizationPolicies.FaceStaticAsset, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope(oauth.Qualify(ApiScopes.FaceRecognitionRead))
                 );
 
         return services;

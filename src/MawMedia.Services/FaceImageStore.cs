@@ -16,8 +16,11 @@ public class FaceImageStore
     // database lookup and no directory probe to answer "where is this image".
     // maw-media never inspects the bytes, so supporting more formats would mean
     // recording the extension somewhere.
-    public const string EXTENSION = ".avif";
-    public const string CONTENT_TYPE = "image/avif";
+    // the values live in Constants because the static file branch that serves
+    // these images needs them too, and Abstractions is the assembly both sides
+    // can see
+    public const string EXTENSION = Constants.FaceImageExtension;
+    public const string CONTENT_TYPE = Constants.FaceImageContentType;
 
     readonly ILogger _log;
     readonly string _root;

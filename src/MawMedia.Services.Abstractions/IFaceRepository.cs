@@ -30,6 +30,8 @@ public interface IFaceRepository
     // there is one place to look when that rule changes.
     Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, CancellationToken token = default);
 
-    // guards the face image download: "may this caller see this face"
-    Task<bool> CanViewFace(Guid userId, Guid faceId, CancellationToken token = default);
+    // guards the face image download, which is served as a static asset under
+    // Constants.FaceAssetBaseUrl.  a ValueTask because the result is cached and
+    // the picker asks for hundreds of images in a burst.
+    ValueTask<bool> CanViewFace(Guid userId, Guid faceId, CancellationToken token = default);
 }
