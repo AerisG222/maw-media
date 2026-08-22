@@ -1,5 +1,6 @@
 using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
+using NodaTime;
 using MawMedia.Services;
 using Microsoft.Extensions.Logging.Testing;
 
@@ -443,6 +444,81 @@ public class PersonReadTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => GetRepo().GetPersonMedia(
             Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, offset, limit,
             token: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task MediaFacesCarryTheirBoxes()
+    {
+        var faces = await GetRepo().GetMediaFaces(
+            Constants.USER_ADMIN, Constants.MEDIA_NATURE_1.Id, TestContext.Current.CancellationToken);
+
+        var shared = Assert.Single(faces, f => f.Id == Constants.FACE_SHARED_NATURE);
+
+        Assert.Equal(Constants.PERSON_SHARED, shared.PersonId);
+        Assert.Equal(0.1m, shared.BoxX);
+        Assert.Equal(0.2m, shared.BoxY);
+        Assert.Equal(0.3m, shared.BoxWidth);
+        Assert.Equal(0.4m, shared.BoxHeight);
+
+        // both people in the nature photo come back, so the overlay is complete
+        Assert.Contains(faces, f => f.Id == Constants.FACE_PRIVATE_NATURE);
+    }
+
+    [Fact]
+    public async Task MediaFacesAreEmptyWhenTheCallerCannotSeeTheMedia()
+    {
+        // johndoe holds ROLE_FRIEND, which does not reach the nature category
+        var faces = await GetRepo().GetMediaFaces(
+            Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_1.Id, TestContext.Current.CancellationToken);
+
+        Assert.Empty(faces);
+    }
+
+    [Fact]
+    public async Task MediaFacesAreEmptyForMediaWithNoFaces()
+    {
+        var faces = await GetRepo().GetMediaFaces(
+            Constants.USER_ADMIN, Constants.MEDIA_NATURE_2.Id, TestContext.Current.CancellationToken);
+
+        Assert.Empty(faces);
+    }
+
+    [Fact]
+    public async Task MediaFacesHideThePersonBehindAnUnnamedCluster()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+        var personId = Guid.CreateVersion7();
+        var faceId = Guid.CreateVersion7();
+
+        // published without a name, which is what an unreviewed cluster looks
+        // like - media.get_persons hides it, so this must not hand back its id
+        await repo.SyncPersons(
+            Constants.USER_ADMIN,
+            [new PersonSync(personId, null, null, null, null, 1, 1, Instant.FromDateTimeUtc(DateTime.UtcNow))],
+            token);
+
+        await repo.SyncFaces(
+            Constants.USER_ADMIN,
+            [new FaceSync(faceId, Constants.FILE_TRAVEL_1.Path, personId, 0.5m, 0.5m, 0.1m, 0.1m, 0.9f, 1)],
+            token);
+
+        try
+        {
+            var faces = await repo.GetMediaFaces(Constants.USER_ADMIN, Constants.MEDIA_TRAVEL_1.Id, token);
+
+            var face = Assert.Single(faces, f => f.Id == faceId);
+
+            // the box is still drawn - there is a face there - but the cluster it
+            // belongs to stays hidden
+            Assert.Null(face.PersonId);
+            Assert.Equal(0.5m, face.BoxX);
+        }
+        finally
+        {
+            await repo.DeleteFaces(Constants.USER_ADMIN, [faceId], token);
+            await repo.DeletePersons(Constants.USER_ADMIN, [personId], token);
+        }
     }
 
     static Person Shared(IEnumerable<Person> people) =>

@@ -209,6 +209,7 @@ function main() {
     run_psql_script "funcs/media.get_locations_without_metadata.sql"
     run_psql_script "funcs/media.get_media.sql"
     run_psql_script "funcs/media.get_media_file.sql"
+    run_psql_script "funcs/media.get_media_faces.sql"
     run_psql_script "funcs/media.get_media_gps.sql"
     run_psql_script "funcs/media.get_metadata.sql"
     run_psql_script "funcs/media.get_person_media.sql"

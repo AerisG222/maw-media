@@ -255,6 +255,20 @@ public class FaceRepository
         );
     }
 
+    public async Task<IEnumerable<Face>> GetMediaFaces(
+        Guid userId,
+        Guid mediaId,
+        CancellationToken token = default
+    ) => await Query<Face>(
+        "SELECT * FROM media.get_media_faces(@userId, @mediaId);",
+        new
+        {
+            userId,
+            mediaId
+        },
+        token
+    );
+
     // cached because it guards a static asset: a page showing the picker asks for
     // hundreds of face images at once, and without this each one would be its own
     // query.  GetPersons primes the same keys, so the common path never reaches

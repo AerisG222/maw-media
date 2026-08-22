@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using MawMedia.Authorization.Claims;
 using MawMedia.Models;
+using MawMedia.Models.FaceRecognition;
 using MawMedia.Routes.Extensions;
 using MawMedia.Services.Abstractions;
 using MawMedia.ViewModels;
@@ -33,6 +34,16 @@ public static class MediaRoutes
             .WithSummary("Get Media Metadata")
             .WithDescription("Get media metadata")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
+
+        // face-recognition:read rather than media:read, like the rest of the face
+        // read side, so the feature stays revocable per client without touching
+        // media access
+        group
+            .MapGet("/{id}/faces", GetMediaFaces)
+            .WithName("media-faces")
+            .WithSummary("Get Faces for Media")
+            .WithDescription("Gets the detected faces and their bounding boxes for a media item, so a client can draw where the people are")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         group
             .MapGet("/{id}/gps", GetGps)
@@ -121,6 +132,23 @@ public static class MediaRoutes
         return media != null
             ? TypedResults.Ok(media)
             : TypedResults.NotFound();
+    }
+
+    static async Task<Ok<IEnumerable<Face>>> GetMediaFaces(
+        IFaceRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        // an empty overlay rather than a 404: a media item with no faces and one
+        // the caller cannot see are both "nothing to draw", and the media route
+        // itself already tells those apart
+        return userId != null
+            ? TypedResults.Ok(await repo.GetMediaFaces(userId.Value, id, token))
+            : TypedResults.Ok(Array.Empty<Face>().AsEnumerable());
     }
 
     static async Task<Results<Ok<Gps>, NotFound, ForbidHttpResult>> GetGps(

@@ -64,6 +64,12 @@ public interface IFaceRepository
     Task<ClanOutcome> SetClanPersons(Guid userId, Guid clanId, Guid[] personIds, CancellationToken token = default);
     Task<ClanOutcome> DeleteClan(Guid userId, Guid clanId, CancellationToken token = default);
 
+    // the faces detected in one media item, with their bounding boxes.  returns
+    // an empty collection both for a media item with no faces and for one the
+    // caller cannot see - the two need not be told apart, since the media itself
+    // already answers that.
+    Task<IEnumerable<Face>> GetMediaFaces(Guid userId, Guid mediaId, CancellationToken token = default);
+
     // guards the face image download, which is served as a static asset under
     // Constants.FaceAssetBaseUrl.  a ValueTask because the result is cached and
     // the picker asks for hundreds of images in a burst.
