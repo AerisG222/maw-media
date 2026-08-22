@@ -45,6 +45,25 @@ public interface IFaceRepository
     // produces the same order.
     Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
 
+    // the clan equivalent: media containing *any* member, with the same paging,
+    // favourites filter and seeded shuffle.  a photo holding several members
+    // still counts once.
+    Task<SearchResult<Media>> GetClanMedia(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
+
+    // --- clans ------------------------------------------------------------
+    // a clan is a caller's saved selection of people and is private to them, so
+    // every method here is scoped by userId rather than by any shared rule.
+    Task<IEnumerable<Clan>> GetClans(Guid userId, string baseUrl, CancellationToken token = default);
+    Task<Clan?> GetClan(Guid userId, string baseUrl, Guid clanId, CancellationToken token = default);
+
+    // the outcome codes the clan functions share.  distinguishing them lets the
+    // routes answer 404, 400 and 409 rather than collapsing every failure into
+    // one status.
+    Task<(Guid? ClanId, ClanOutcome Outcome)> CreateClan(Guid userId, string name, Guid[] personIds, CancellationToken token = default);
+    Task<ClanOutcome> UpdateClan(Guid userId, Guid clanId, string name, CancellationToken token = default);
+    Task<ClanOutcome> SetClanPersons(Guid userId, Guid clanId, Guid[] personIds, CancellationToken token = default);
+    Task<ClanOutcome> DeleteClan(Guid userId, Guid clanId, CancellationToken token = default);
+
     // guards the face image download, which is served as a static asset under
     // Constants.FaceAssetBaseUrl.  a ValueTask because the result is cached and
     // the picker asks for hundreds of images in a burst.

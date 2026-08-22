@@ -175,16 +175,7 @@ public class FaceRepository
                 r.Name,
                 r.Slug,
                 r.PreferredFaceId,
-                r.PreferredFaceId == null
-                    ? null
-                    : _assetPathBuilder.Build(
-                        baseUrl,
-                        string.Format(
-                            CultureInfo.InvariantCulture,
-                            Constants.FaceImageUrlFormat,
-                            r.PreferredFaceId
-                        )
-                    ),
+                FaceImageUrl(r.PreferredFaceId, baseUrl),
                 r.MediaCount,
                 r.IsFavorite
             ))
@@ -200,6 +191,29 @@ public class FaceRepository
         bool favoritesOnly = false,
         long? seed = null,
         CancellationToken token = default
+    ) => await InternalGetPersonMedia(userId, baseUrl, personId, null, offset, limit, favoritesOnly, seed, token);
+
+    public async Task<SearchResult<Media>> GetClanMedia(
+        Guid userId,
+        string baseUrl,
+        Guid clanId,
+        int offset,
+        int limit,
+        bool favoritesOnly = false,
+        long? seed = null,
+        CancellationToken token = default
+    ) => await InternalGetPersonMedia(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, seed, token);
+
+    async Task<SearchResult<Media>> InternalGetPersonMedia(
+        Guid userId,
+        string baseUrl,
+        Guid? personId,
+        Guid? clanId,
+        int offset,
+        int limit,
+        bool favoritesOnly,
+        long? seed,
+        CancellationToken token
     )
     {
         if (offset < 0)
@@ -216,7 +230,7 @@ public class FaceRepository
         // count query.  the function pages over media, so the extra row is an
         // extra media item, not an extra file.
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed);",
+            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed, @clanId);",
             new
             {
                 userId,
@@ -225,7 +239,8 @@ public class FaceRepository
                 limit = limit + 1,
                 excludeSrcFiles = true,
                 favoritesOnly,
-                seed
+                seed,
+                clanId
             },
             token
         );
@@ -261,6 +276,155 @@ public class FaceRepository
         ),
         cancellationToken: token
     );
+
+    public async Task<IEnumerable<Clan>> GetClans(
+        Guid userId,
+        string baseUrl,
+        CancellationToken token = default
+    ) => await InternalGetClans(userId, baseUrl, null, token);
+
+    public async Task<Clan?> GetClan(
+        Guid userId,
+        string baseUrl,
+        Guid clanId,
+        CancellationToken token = default
+    ) => (await InternalGetClans(userId, baseUrl, clanId, token))
+        .SingleOrDefault();
+
+    public async Task<(Guid? ClanId, ClanOutcome Outcome)> CreateClan(
+        Guid userId,
+        string name,
+        Guid[] personIds,
+        CancellationToken token = default
+    )
+    {
+        var rows = await ExecuteQueryInTransaction<CreateClanRow>(
+            "SELECT * FROM media.create_clan(@userId, @name, @personIds);",
+            new
+            {
+                userId,
+                name,
+                personIds
+            },
+            token
+        );
+
+        var row = rows?.SingleOrDefault();
+
+        return row == null
+            ? (null, ClanOutcome.NotFound)
+            : (row.ClanId, (ClanOutcome)row.Result);
+    }
+
+    public async Task<ClanOutcome> UpdateClan(
+        Guid userId,
+        Guid clanId,
+        string name,
+        CancellationToken token = default
+    ) => await Outcome(
+        "SELECT * FROM media.update_clan(@userId, @clanId, @name);",
+        new
+        {
+            userId,
+            clanId,
+            name
+        },
+        token
+    );
+
+    public async Task<ClanOutcome> SetClanPersons(
+        Guid userId,
+        Guid clanId,
+        Guid[] personIds,
+        CancellationToken token = default
+    ) => await Outcome(
+        "SELECT * FROM media.set_clan_persons(@userId, @clanId, @personIds);",
+        new
+        {
+            userId,
+            clanId,
+            personIds
+        },
+        token
+    );
+
+    public async Task<ClanOutcome> DeleteClan(
+        Guid userId,
+        Guid clanId,
+        CancellationToken token = default
+    ) => await Outcome(
+        "SELECT * FROM media.delete_clan(@userId, @clanId);",
+        new
+        {
+            userId,
+            clanId
+        },
+        token
+    );
+
+    // the clan functions all return the same integer vocabulary, so the mapping
+    // lives in one place rather than being restated at each call site
+    async Task<ClanOutcome> Outcome(string sql, object param, CancellationToken token) =>
+        (ClanOutcome)await ExecuteScalarInTransaction<int>(sql, param, token);
+
+    async Task<IEnumerable<Clan>> InternalGetClans(
+        Guid userId,
+        string baseUrl,
+        Guid? clanId,
+        CancellationToken token
+    )
+    {
+        var rows = await Query<ClanRow>(
+            "SELECT * FROM media.get_clans(@userId, @clanId);",
+            new
+            {
+                userId,
+                clanId
+            },
+            token
+        );
+
+        // one row per (clan, member), with the person columns null for a clan
+        // whose members the caller can no longer see - so the null check is what
+        // keeps an empty clan an empty clan rather than a clan with one phantom
+        // member.  the sql already ordered the rows; GroupBy preserves that.
+        return rows
+            .GroupBy(r => r.ClanId)
+            .Select(g => new Clan(
+                g.Key,
+                g.First().ClanName,
+                g.First().Created,
+                g.First().Modified,
+                g
+                    .Where(r => r.PersonId != null)
+                    .Select(r => ToPerson(r, baseUrl))
+                    .ToList()
+            ))
+            .ToList();
+    }
+
+    Person ToPerson(ClanRow row, string baseUrl) =>
+        new(
+            row.PersonId!.Value,
+            row.PersonName!,
+            row.PersonSlug,
+            row.PreferredFaceId,
+            FaceImageUrl(row.PreferredFaceId, baseUrl),
+            row.MediaCount ?? 0,
+            row.IsFavorite ?? false
+        );
+
+    string? FaceImageUrl(Guid? preferredFaceId, string baseUrl) =>
+        preferredFaceId == null
+            ? null
+            : _assetPathBuilder.Build(
+                baseUrl,
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    Constants.FaceImageUrlFormat,
+                    preferredFaceId
+                )
+            );
 
     // function is a compile time constant from the callers above, never caller
     // input, so interpolating it carries no injection risk

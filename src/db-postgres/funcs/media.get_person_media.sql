@@ -1,4 +1,5 @@
 -- 2026-08-22 - add _favorites_only and _seed
+-- 2026-08-22 - add _clan_id
 DROP FUNCTION IF EXISTS media.get_person_media;
 
 -- the media a user may see that a given person appears in.
@@ -16,6 +17,12 @@ DROP FUNCTION IF EXISTS media.get_person_media;
 -- returns no rows for a person the caller cannot see, or one that is unnamed or
 -- triaged - the same rule media.get_persons applies.  the caller cannot use this
 -- to confirm a person exists that the person list would not have shown them.
+--
+-- exactly one of _person_id and _clan_id is expected.  a clan matches media
+-- containing *any* of its members, and the DISTINCT ON below means a photo with
+-- three of them still counts once - so a page of 25 is 25 photos, not 25 face
+-- sightings.  everything else - paging, the favourites filter, the seeded
+-- shuffle - behaves identically either way.
 CREATE OR REPLACE FUNCTION media.get_person_media
 (
     _user_id UUID,
@@ -24,7 +31,8 @@ CREATE OR REPLACE FUNCTION media.get_person_media
     _limit INTEGER = 25,
     _exclude_src_files BOOLEAN = False,
     _favorites_only BOOLEAN = False,
-    _seed BIGINT = NULL
+    _seed BIGINT = NULL,
+    _clan_id UUID = NULL
 )
 RETURNS TABLE
 (
@@ -68,7 +76,21 @@ BEGIN
             ON p.id = uf.person_id
         WHERE
             uf.user_id = _user_id
-            AND uf.person_id = _person_id
+            AND (
+                (_person_id IS NOT NULL AND uf.person_id = _person_id)
+                OR
+                -- the clan's ownership is checked here rather than by the caller,
+                -- so another user's clan id simply matches nothing and reads as
+                -- "no such clan" instead of leaking whose it is
+                (_clan_id IS NOT NULL AND uf.person_id IN (
+                    SELECT cp.person_id
+                    FROM media.clan_person cp
+                    INNER JOIN media.clan cl
+                        ON cl.id = cp.clan_id
+                        AND cl.created_by = _user_id
+                    WHERE cp.clan_id = _clan_id
+                ))
+            )
             AND p.name IS NOT NULL
             AND p.status_code IS NULL
             -- EXISTS rather than a join so the filter cannot change the row
