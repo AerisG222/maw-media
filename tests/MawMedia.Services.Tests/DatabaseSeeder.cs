@@ -482,6 +482,15 @@ public class DatabaseSeeder
                 media_id = Constants.MEDIA_NATURE_1.Id,
                 created_by = Constants.USER_JOHNDOE,
                 created = DateTime.UtcNow
+            },
+            // admin favourites the travel photo, which PERSON_SHARED also appears
+            // in, so the person media favourites filter has something to find.
+            // deliberately not the nature photo: MediaRepositoryTests.FavoriteMedia
+            // toggles admin's favourite on that one, in parallel.
+            new {
+                media_id = Constants.MEDIA_TRAVEL_1.Id,
+                created_by = Constants.USER_ADMIN,
+                created = DateTime.UtcNow
             }
         ];
 

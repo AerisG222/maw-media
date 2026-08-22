@@ -1,3 +1,6 @@
+-- 2026-08-22 - add _favorites_only and _seed
+DROP FUNCTION IF EXISTS media.get_person_media;
+
 -- the media a user may see that a given person appears in.
 --
 -- paged, unlike media.get_persons: the person list is a few hundred rows, but a
@@ -19,7 +22,9 @@ CREATE OR REPLACE FUNCTION media.get_person_media
     _person_id UUID,
     _offset INTEGER = 0,
     _limit INTEGER = 25,
-    _exclude_src_files BOOLEAN = False
+    _exclude_src_files BOOLEAN = False,
+    _favorites_only BOOLEAN = False,
+    _seed BIGINT = NULL
 )
 RETURNS TABLE
 (
@@ -66,6 +71,19 @@ BEGIN
             AND uf.person_id = _person_id
             AND p.name IS NOT NULL
             AND p.status_code IS NULL
+            -- EXISTS rather than a join so the filter cannot change the row
+            -- count: favorite is keyed on (media_id, created_by), so a join
+            -- would be safe today, but the shape of this CTE should not depend
+            -- on that.
+            AND (
+                _favorites_only = FALSE
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.favorite fav
+                    WHERE fav.media_id = um.media_id
+                        AND fav.created_by = _user_id
+                )
+            )
         ORDER BY
             um.media_id,
             c.effective_date DESC,
@@ -73,13 +91,24 @@ BEGIN
     ),
     page AS
     (
-        -- media_id breaks ties so paging is stable: several photos share a
-        -- category, and therefore an effective_date, and an unordered tie can
-        -- repeat or skip rows between one page and the next.
         SELECT *
         FROM visible
         ORDER BY
-            visible.effective_date DESC,
+            -- newest first by default.  when _seed is supplied the order is a
+            -- shuffle instead - deterministic for a given seed, which is what
+            -- makes it safe to page: ORDER BY RANDOM() would reshuffle on every
+            -- request, so page 2 would repeat and skip rows from page 1.  the
+            -- caller keeps the seed for as long as it wants one ordering, and
+            -- picks a new one to reshuffle.
+            --
+            -- each CASE collapses to NULL for every row when its branch is
+            -- inactive, which makes that key a no-op rather than a second
+            -- ordering to reason about.
+            CASE WHEN _seed IS NULL THEN visible.effective_date END DESC,
+            CASE WHEN _seed IS NOT NULL THEN hashtextextended(visible.media_id::TEXT, _seed) END,
+            -- media_id breaks ties so paging is stable: several photos share a
+            -- category, and therefore an effective_date, and an unordered tie can
+            -- repeat or skip rows between one page and the next.
             visible.media_id
         LIMIT _limit
         OFFSET _offset
@@ -110,8 +139,10 @@ BEGIN
     LEFT OUTER JOIN media.favorite f
         ON f.media_id = pg.media_id
         AND f.created_by = _user_id
+    -- repeated so the file fan-out preserves the page's order
     ORDER BY
-        pg.effective_date DESC,
+        CASE WHEN _seed IS NULL THEN pg.effective_date END DESC,
+        CASE WHEN _seed IS NOT NULL THEN hashtextextended(pg.media_id::TEXT, _seed) END,
         pg.media_id;
 END;
 $$ LANGUAGE plpgsql;

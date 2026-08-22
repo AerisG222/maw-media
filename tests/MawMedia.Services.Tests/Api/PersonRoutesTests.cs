@@ -138,6 +138,56 @@ public class PersonRoutesTests
     }
 
     [Fact]
+    public async Task PersonMediaCanBeFilteredToFavorites()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var result = await client.GetFromJsonAsync<SearchResult<Media>>(
+            $"{MediaRoute(Constants.PERSON_SHARED)}?f=true", JsonOptions, token);
+
+        var media = Assert.Single(result!.Results);
+
+        Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, media.Id);
+    }
+
+    [Fact]
+    public async Task PersonMediaWithNoFavoritesIsAnEmptyPageRatherThanNotFound()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var response = await client.GetAsync($"{MediaRoute(Constants.PERSON_PRIVATE)}?f=true", token);
+
+        // the person is visible and simply has no favourites - answering 404
+        // would make an empty filter look like a broken link
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<SearchResult<Media>>(JsonOptions, token);
+
+        Assert.Empty(result!.Results);
+    }
+
+    [Fact]
+    public async Task PersonMediaAcceptsASeedForAShuffledOrder()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var first = await client.GetFromJsonAsync<SearchResult<Media>>(
+            $"{MediaRoute(Constants.PERSON_SHARED)}?seed=42", JsonOptions, token);
+
+        var again = await client.GetFromJsonAsync<SearchResult<Media>>(
+            $"{MediaRoute(Constants.PERSON_SHARED)}?seed=42", JsonOptions, token);
+
+        Assert.Equal(2, first!.Results.Count());
+        Assert.Equal(
+            first.Results.Select(m => m.Id).ToList(),
+            again!.Results.Select(m => m.Id).ToList()
+        );
+    }
+
+    [Fact]
     public async Task PersonMediaReturnsAnEmptyPagePastTheEnd()
     {
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);

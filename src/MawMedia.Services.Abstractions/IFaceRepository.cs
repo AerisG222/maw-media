@@ -28,7 +28,12 @@ public interface IFaceRepository
     // here rather than on IMediaRepository despite returning Media: the access
     // rule it enforces is the face one, and keeping it beside GetPersons means
     // there is one place to look when that rule changes.
-    Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, CancellationToken token = default);
+    //
+    // seed selects a shuffled order instead of newest first.  it is a seed rather
+    // than a bool because the result is paged: a fresh RANDOM() per request would
+    // make page 2 repeat and skip rows from page 1, while the same seed always
+    // produces the same order.
+    Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
 
     // guards the face image download, which is served as a static asset under
     // Constants.FaceAssetBaseUrl.  a ValueTask because the result is cached and

@@ -149,6 +149,8 @@ public class FaceRepository
         Guid personId,
         int offset,
         int limit,
+        bool favoritesOnly = false,
+        long? seed = null,
         CancellationToken token = default
     )
     {
@@ -166,14 +168,16 @@ public class FaceRepository
         // count query.  the function pages over media, so the extra row is an
         // extra media item, not an extra file.
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles);",
+            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed);",
             new
             {
                 userId,
                 personId,
                 offset,
                 limit = limit + 1,
-                excludeSrcFiles = true
+                excludeSrcFiles = true,
+                favoritesOnly,
+                seed
             },
             token
         );

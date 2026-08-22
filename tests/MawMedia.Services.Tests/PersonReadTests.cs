@@ -107,9 +107,9 @@ public class PersonReadTests
         var repo = GetRepo();
 
         var forAdmin = await repo.GetPersonMedia(
-            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24, token);
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24, token: token);
         var forFriend = await repo.GetPersonMedia(
-            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_SHARED, 0, 24, token);
+            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_SHARED, 0, 24, token: token);
 
         Assert.Equal(
             [Constants.MEDIA_TRAVEL_1.Id, Constants.MEDIA_NATURE_1.Id],
@@ -128,8 +128,8 @@ public class PersonReadTests
     public async Task PersonMediaIsEmptyForAPersonTheCallerCannotSee()
     {
         var result = await GetRepo().GetPersonMedia(
-            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_PRIVATE, 0, 24,
-            TestContext.Current.CancellationToken);
+            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_PRIVATE,
+            0, 24, token: TestContext.Current.CancellationToken);
 
         Assert.Empty(result.Results);
         Assert.False(result.HasMoreResults);
@@ -139,8 +139,8 @@ public class PersonReadTests
     public async Task PersonMediaIsEmptyForAPersonThatDoesNotExist()
     {
         var result = await GetRepo().GetPersonMedia(
-            Constants.USER_ADMIN, "https://example.com", Guid.CreateVersion7(), 0, 24,
-            TestContext.Current.CancellationToken);
+            Constants.USER_ADMIN, "https://example.com", Guid.CreateVersion7(),
+            0, 24, token: TestContext.Current.CancellationToken);
 
         Assert.Empty(result.Results);
     }
@@ -149,8 +149,8 @@ public class PersonReadTests
     public async Task PersonMediaCarriesItsCategoryAndFiles()
     {
         var result = await GetRepo().GetPersonMedia(
-            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_SHARED, 0, 24,
-            TestContext.Current.CancellationToken);
+            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_SHARED,
+            0, 24, token: TestContext.Current.CancellationToken);
 
         var travel = Assert.Single(result.Results);
 
@@ -172,7 +172,7 @@ public class PersonReadTests
         var repo = GetRepo();
 
         var first = await repo.GetPersonMedia(
-            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 1, token);
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 1, token: token);
 
         Assert.True(first.HasMoreResults);
         Assert.Equal(1, first.NextOffset);
@@ -186,11 +186,112 @@ public class PersonReadTests
         Assert.Single(head.Files);
 
         var second = await repo.GetPersonMedia(
-            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, first.NextOffset, 1, token);
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, first.NextOffset, 1, token: token);
 
         Assert.False(second.HasMoreResults);
         Assert.Equal(0, second.NextOffset);
         Assert.Equal(Constants.MEDIA_NATURE_1.Id, Assert.Single(second.Results).Id);
+    }
+
+    [Fact]
+    public async Task PersonMediaCanBeFilteredToFavorites()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        var all = await repo.GetPersonMedia(
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24, token: token);
+
+        var favorites = await repo.GetPersonMedia(
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24,
+            favoritesOnly: true, token: token);
+
+        Assert.Equal(2, all.Results.Count());
+
+        // only the travel photo is favourited by the admin
+        var only = Assert.Single(favorites.Results);
+
+        Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, only.Id);
+        Assert.True(only.IsFavorite);
+    }
+
+    [Fact]
+    public async Task PersonMediaFavoritesStillObeyAccess()
+    {
+        // johndoe favourited the nature photo, which ROLE_FRIEND cannot reach.
+        // the filter narrows what is already visible - it must not reach past the
+        // access rule to find it.
+        var result = await GetRepo().GetPersonMedia(
+            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_SHARED, 0, 24,
+            favoritesOnly: true, token: TestContext.Current.CancellationToken);
+
+        Assert.Empty(result.Results);
+    }
+
+    [Fact]
+    public async Task PersonMediaWithTheSameSeedReturnsTheSameOrder()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        var first = await repo.GetPersonMedia(
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24,
+            seed: 12345, token: token);
+
+        var again = await repo.GetPersonMedia(
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24,
+            seed: 12345, token: token);
+
+        Assert.Equal(
+            first.Results.Select(m => m.Id).ToList(),
+            again.Results.Select(m => m.Id).ToList()
+        );
+    }
+
+    [Fact]
+    public async Task PersonMediaWithASeedPagesWithoutRepeatingOrSkipping()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+        var seen = new List<Guid>();
+
+        // the whole reason the shuffle takes a seed rather than using RANDOM():
+        // walking the pages must visit every media exactly once
+        for (var offset = 0; offset < 2; offset++)
+        {
+            var page = await repo.GetPersonMedia(
+                Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, offset, 1,
+                seed: 999, token: token);
+
+            seen.AddRange(page.Results.Select(m => m.Id));
+        }
+
+        Assert.Equal(2, seen.Count);
+        Assert.Equal(seen.Count, seen.Distinct().Count());
+        Assert.Contains(Constants.MEDIA_TRAVEL_1.Id, seen);
+        Assert.Contains(Constants.MEDIA_NATURE_1.Id, seen);
+    }
+
+    [Fact]
+    public async Task PersonMediaSeedActuallyReordersForSomeSeeds()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+        var leaders = new HashSet<Guid>();
+
+        // hashtextextended is deterministic, so this either always passes or
+        // always fails - it is not a coin flip.  it proves the seed is doing
+        // something rather than being ignored.
+        for (var seed = 1; seed <= 20; seed++)
+        {
+            var page = await repo.GetPersonMedia(
+                Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, 0, 24,
+                seed: seed, token: token);
+
+            leaders.Add(page.Results.First().Id);
+        }
+
+        Assert.Equal(2, leaders.Count);
     }
 
     [Theory]
@@ -201,7 +302,7 @@ public class PersonReadTests
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => GetRepo().GetPersonMedia(
             Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, offset, limit,
-            TestContext.Current.CancellationToken));
+            token: TestContext.Current.CancellationToken));
     }
 
     static Person Shared(IEnumerable<Person> people) =>

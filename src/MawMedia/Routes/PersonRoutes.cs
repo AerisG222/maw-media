@@ -40,7 +40,7 @@ public static class PersonRoutes
             .MapGet("/{id:guid}/media", GetPersonMedia)
             .WithName("person-media")
             .WithSummary("Media for a Person")
-            .WithDescription("Lists the media a person appears in that the caller can access")
+            .WithDescription("Lists the media a person appears in that the caller can access. Pass f=true for favorites only, and seed=<number> for a shuffled order that stays stable across pages.")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         group
@@ -80,7 +80,9 @@ public static class PersonRoutes
         HttpRequest request,
         [FromRoute] Guid id,
         CancellationToken token,
-        [FromQuery] int o = 0
+        [FromQuery] int o = 0,
+        [FromQuery] bool f = false,
+        [FromQuery] long? seed = null
     )
     {
         if (o < 0)
@@ -95,13 +97,19 @@ public static class PersonRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetPersonMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, token);
+        var result = await repo.GetPersonMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, token);
 
         // 404 rather than an empty first page, and 404 rather than 403 for a
         // person the caller may not see - the same rule the face image download
         // follows, so a caller cannot probe for people the picker hid from them.
         // an empty page past the first is a normal answer, not a missing person.
-        return o == 0 && !result.Results.Any()
+        //
+        // a favourites filter is exempt: "this person has no favourites" is a
+        // real answer about a person the caller can see, and answering 404 would
+        // make an empty filter look like a broken link.  seed is not exempt - it
+        // reorders rather than filters, so an empty first page still means there
+        // is nothing to show.
+        return o == 0 && !f && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }
