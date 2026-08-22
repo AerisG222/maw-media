@@ -22,7 +22,17 @@ public interface IFaceRepository
     // --- read side --------------------------------------------------------
     // everything below is filtered by media.user_face, so a caller only ever
     // sees people appearing in media they already have access to.
-    Task<IEnumerable<Person>> GetPersons(Guid userId, string baseUrl, CancellationToken token = default);
+    Task<IEnumerable<Person>> GetPersons(Guid userId, string baseUrl, bool favoritesOnly = false, CancellationToken token = default);
+
+    // the same shape and the same access rule as GetPersons, narrowed to one
+    // person, so a caller holding an id does not need a second endpoint whose
+    // visibility rule could drift from the list's
+    Task<Person?> GetPerson(Guid userId, string baseUrl, Guid personId, CancellationToken token = default);
+
+    // favouriting is per user and only permitted for a person the caller can
+    // already see.  false means the person is not visible or does not exist -
+    // the caller is told those apart no more than GetPersons tells them.
+    Task<bool> SetPersonIsFavorite(Guid userId, Guid personId, bool isFavorite, CancellationToken token = default);
 
     // paged, because a single person can appear in thousands of media.  lives
     // here rather than on IMediaRepository despite returning Media: the access

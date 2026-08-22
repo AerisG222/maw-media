@@ -4,6 +4,7 @@ using MawMedia;
 using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Routes;
+using MawMedia.ViewModels;
 
 namespace MawMedia.Services.Tests.Api;
 
@@ -15,6 +16,8 @@ public class PersonRoutesTests
     const string ROUTE_DELETIONS = "/api/v1/persons/deletions";
 
     static string MediaRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/media";
+
+    static string FavoriteRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/favorite";
 
     public PersonRoutesTests(TestFixture fixture)
         : base(fixture)
@@ -66,6 +69,78 @@ public class PersonRoutesTests
 
         // the per caller count, never the published global face_count of 99
         Assert.Equal(2, shared.MediaCount);
+    }
+
+    [Fact]
+    public async Task GetPersonsFlagsAndFiltersFavorites()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var all = await client.GetFromJsonAsync<Person[]>(ROUTE_LIST, JsonOptions, token);
+
+        Assert.True(all!.Single(p => p.Id == Constants.PERSON_SHARED).IsFavorite);
+
+        var favorites = await client.GetFromJsonAsync<Person[]>($"{ROUTE_LIST}?f=true", JsonOptions, token);
+
+        Assert.Contains(favorites!, p => p.Id == Constants.PERSON_SHARED);
+        Assert.All(favorites!, p => Assert.True(p.IsFavorite));
+    }
+
+    [Fact]
+    public async Task FavoritePersonRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.PutAsJsonAsync(
+            FavoriteRoute(Constants.PERSON_TOGGLE), new FavoriteRequest(true), JsonOptions,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task FavoritePersonIsNotFoundForAPersonTheCallerCannotSee()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.PutAsJsonAsync(
+            FavoriteRoute(Constants.PERSON_PRIVATE), new FavoriteRequest(true), JsonOptions,
+            TestContext.Current.CancellationToken);
+
+        // 404 rather than 403, so favouriting cannot be used to probe for people
+        // the picker hid
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task FavoritePersonRoundTrips()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+        var route = FavoriteRoute(Constants.PERSON_TOGGLE);
+
+        try
+        {
+            var on = await client.PutAsJsonAsync(route, new FavoriteRequest(true), JsonOptions, token);
+
+            Assert.Equal(HttpStatusCode.OK, on.StatusCode);
+
+            // the updated person comes back, so a client does not have to refetch
+            // the list to redraw one row
+            var favorited = await on.Content.ReadFromJsonAsync<Person>(JsonOptions, token);
+
+            Assert.Equal(Constants.PERSON_TOGGLE, favorited!.Id);
+            Assert.True(favorited.IsFavorite);
+        }
+        finally
+        {
+            var off = await client.PutAsJsonAsync(route, new FavoriteRequest(false), JsonOptions, token);
+
+            var unfavorited = await off.Content.ReadFromJsonAsync<Person>(JsonOptions, token);
+
+            Assert.False(unfavorited!.IsFavorite);
+        }
     }
 
     [Fact]

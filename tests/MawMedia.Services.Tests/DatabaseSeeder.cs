@@ -407,6 +407,13 @@ public class DatabaseSeeder
                     name = "Private Person",
                     slug = "private-person",
                     faceCount = 99
+                },
+                new
+                {
+                    id = Constants.PERSON_TOGGLE,
+                    name = "Toggle Person",
+                    slug = "toggle-person",
+                    faceCount = 99
                 }
             }
         );
@@ -416,6 +423,17 @@ public class DatabaseSeeder
             UPDATE media.person SET preferred_face_id = @faceId WHERE id = @personId;
             """,
             new { personId = Constants.PERSON_SHARED, faceId = Constants.FACE_SHARED_TRAVEL }
+        );
+
+        // johndoe favourites the shared person.  the admin favourites nobody, so
+        // the two callers exercise both sides of the flag without either test
+        // having to mutate the other's state.
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO media.person_favorite (person_id, created_by, created)
+            VALUES (@personId, @userId, NOW());
+            """,
+            new { personId = Constants.PERSON_SHARED, userId = Constants.USER_JOHNDOE }
         );
 
         await conn.ExecuteAsync(
@@ -447,6 +465,14 @@ public class DatabaseSeeder
                     id = Constants.FACE_PRIVATE_NATURE,
                     mediaId = Constants.MEDIA_NATURE_1.Id,
                     personId = Constants.PERSON_PRIVATE
+                },
+                // on the travel photo so both the admin and the friend can see
+                // this person, and either may favourite them
+                new
+                {
+                    id = Constants.FACE_TOGGLE_TRAVEL,
+                    mediaId = Constants.MEDIA_TRAVEL_1.Id,
+                    personId = Constants.PERSON_TOGGLE
                 }
             }
         );

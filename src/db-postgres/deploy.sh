@@ -165,6 +165,7 @@ function main() {
     run_psql_script "tables/media.favorite.sql"
     run_psql_script "tables/media.person_status.sql"
     run_psql_script "tables/media.person.sql"
+    run_psql_script "tables/media.person_favorite.sql"
     run_psql_script "tables/media.face.sql"
 
     header "views"
@@ -190,6 +191,7 @@ function main() {
     run_psql_script "funcs/media.delete_persons.sql"
     run_psql_script "funcs/media.favorite_category.sql"
     run_psql_script "funcs/media.favorite_media.sql"
+    run_psql_script "funcs/media.favorite_person.sql"
     run_psql_script "funcs/media.fix_inaccurate_location.sql"
     run_psql_script "funcs/media.get_categories.sql"
     run_psql_script "funcs/media.get_categories_without_gps.sql"

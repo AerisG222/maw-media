@@ -20,7 +20,7 @@ public class PersonReadTests
     public async Task AdminSeesEveryPersonInTheirMedia()
     {
         var people = await GetRepo().GetPersons(
-            Constants.USER_ADMIN, "https://example.com", TestContext.Current.CancellationToken);
+            Constants.USER_ADMIN, "https://example.com", token: TestContext.Current.CancellationToken);
 
         Assert.Contains(people, p => p.Id == Constants.PERSON_SHARED);
         Assert.Contains(people, p => p.Id == Constants.PERSON_PRIVATE);
@@ -33,7 +33,7 @@ public class PersonReadTests
         // private person appears solely in a nature photo, so must be invisible -
         // not merely hidden, but absent from the list entirely
         var people = await GetRepo().GetPersons(
-            Constants.USER_JOHNDOE, "https://example.com", TestContext.Current.CancellationToken);
+            Constants.USER_JOHNDOE, "https://example.com", token: TestContext.Current.CancellationToken);
 
         Assert.Contains(people, p => p.Id == Constants.PERSON_SHARED);
         Assert.DoesNotContain(people, p => p.Id == Constants.PERSON_PRIVATE);
@@ -47,8 +47,8 @@ public class PersonReadTests
 
         // the shared person is seeded with face_count = 99 and appears in two
         // media: one nature (admin only) and one travel (admin + friend)
-        var forAdmin = await repo.GetPersons(Constants.USER_ADMIN, "https://example.com", token);
-        var forFriend = await repo.GetPersons(Constants.USER_JOHNDOE, "https://example.com", token);
+        var forAdmin = await repo.GetPersons(Constants.USER_ADMIN, "https://example.com", token: token);
+        var forFriend = await repo.GetPersons(Constants.USER_JOHNDOE, "https://example.com", token: token);
 
         Assert.Equal(2, Shared(forAdmin).MediaCount);
 
@@ -60,7 +60,7 @@ public class PersonReadTests
     public async Task PreferredFaceUrlIsAbsoluteAndNullWhenUnset()
     {
         var people = await GetRepo().GetPersons(
-            Constants.USER_ADMIN, "https://example.com/", TestContext.Current.CancellationToken);
+            Constants.USER_ADMIN, "https://example.com/", token: TestContext.Current.CancellationToken);
 
         var shared = Shared(people);
 
@@ -76,14 +76,24 @@ public class PersonReadTests
     }
 
     [Fact]
-    public async Task PeopleAreOrderedByMediaCountThenName()
+    public async Task PeopleAreOrderedByFavoriteThenMediaCountThenName()
     {
         var people = (await GetRepo().GetPersons(
-            Constants.USER_ADMIN, "https://example.com", TestContext.Current.CancellationToken)).ToList();
+            Constants.USER_ADMIN, "https://example.com", token: TestContext.Current.CancellationToken)).ToList();
 
-        var counts = people.Select(p => p.MediaCount).ToList();
-
-        Assert.Equal(counts.OrderByDescending(c => c), counts);
+        // asserted against the whole ordering key rather than the counts alone:
+        // favourites now sort first, and another test class may hold a favourite
+        // for this caller while this runs, which a counts-only assertion would
+        // read as a broken order
+        Assert.Equal(
+            people
+                .OrderByDescending(p => p.IsFavorite)
+                .ThenByDescending(p => p.MediaCount)
+                .ThenBy(p => p.Name, StringComparer.Ordinal)
+                .Select(p => p.Id)
+                .ToList(),
+            people.Select(p => p.Id).ToList()
+        );
     }
 
     [Fact]
@@ -98,6 +108,136 @@ public class PersonReadTests
         // fetch that face's published image even holding its id
         Assert.False(await repo.CanViewFace(Constants.USER_JOHNDOE, Constants.FACE_PRIVATE_NATURE, token));
         Assert.True(await repo.CanViewFace(Constants.USER_JOHNDOE, Constants.FACE_SHARED_TRAVEL, token));
+    }
+
+    [Fact]
+    public async Task FavoritedPeopleAreFlaggedPerCaller()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        var forFriend = await repo.GetPersons(Constants.USER_JOHNDOE, "https://example.com", token: token);
+        var forAdmin = await repo.GetPersons(Constants.USER_ADMIN, "https://example.com", token: token);
+
+        Assert.True(Shared(forFriend).IsFavorite);
+
+        // one user's favourite must not show up as anyone else's
+        Assert.False(Shared(forAdmin).IsFavorite);
+    }
+
+    [Fact]
+    public async Task FavoritedPeopleSortAheadOfMoreProlificOnes()
+    {
+        // the admin sees both people; johndoe only sees the shared one, so the
+        // admin is the caller that can demonstrate ordering.  the private person
+        // has no favourite and the shared one is favourited for johndoe, so a
+        // favourite is added here for the admin to move it ahead of a person it
+        // would otherwise tie or trail.
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        Assert.True(await repo.SetPersonIsFavorite(
+            Constants.USER_ADMIN, Constants.PERSON_PRIVATE, true, token));
+
+        try
+        {
+            var people = (await repo.GetPersons(
+                Constants.USER_ADMIN, "https://example.com", token: token)).ToList();
+
+            // the private person appears in one media, the shared one in two, so
+            // without the favourite it would sort second
+            Assert.Equal(Constants.PERSON_PRIVATE, people[0].Id);
+            Assert.True(people[0].IsFavorite);
+        }
+        finally
+        {
+            await repo.SetPersonIsFavorite(Constants.USER_ADMIN, Constants.PERSON_PRIVATE, false, token);
+        }
+    }
+
+    [Fact]
+    public async Task PeopleCanBeFilteredToFavorites()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        var favorites = await repo.GetPersons(
+            Constants.USER_JOHNDOE, "https://example.com", favoritesOnly: true, token: token);
+
+        Assert.Contains(favorites, p => p.Id == Constants.PERSON_SHARED);
+        Assert.All(favorites, p => Assert.True(p.IsFavorite));
+
+        // the admin has not favourited the shared person.  asserted by identity
+        // rather than emptiness: PERSON_TOGGLE is favourited and unfavourited by
+        // another test class running in parallel.
+        var none = await repo.GetPersons(
+            Constants.USER_ADMIN, "https://example.com", favoritesOnly: true, token: token);
+
+        Assert.DoesNotContain(none, p => p.Id == Constants.PERSON_SHARED);
+    }
+
+    [Fact]
+    public async Task APersonCannotBeFavoritedWhenItIsNotVisible()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        // the private person appears only in a category ROLE_FRIEND cannot reach
+        Assert.False(await repo.SetPersonIsFavorite(
+            Constants.USER_JOHNDOE, Constants.PERSON_PRIVATE, true, token));
+
+        Assert.False(await repo.SetPersonIsFavorite(
+            Constants.USER_ADMIN, Guid.CreateVersion7(), true, token));
+
+        // and nothing was written, so it cannot be read back
+        var people = await repo.GetPersons(
+            Constants.USER_JOHNDOE, "https://example.com", favoritesOnly: true, token: token);
+
+        Assert.DoesNotContain(people, p => p.Id == Constants.PERSON_PRIVATE);
+    }
+
+    [Fact]
+    public async Task FavoritingIsIdempotent()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        try
+        {
+            Assert.True(await repo.SetPersonIsFavorite(Constants.USER_ADMIN, Constants.PERSON_SHARED, true, token));
+
+            // a retried call means the same thing as the first, so it must not
+            // fail on the primary key
+            Assert.True(await repo.SetPersonIsFavorite(Constants.USER_ADMIN, Constants.PERSON_SHARED, true, token));
+
+            var person = await repo.GetPerson(
+                Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, token);
+
+            Assert.True(person!.IsFavorite);
+        }
+        finally
+        {
+            await repo.SetPersonIsFavorite(Constants.USER_ADMIN, Constants.PERSON_SHARED, false, token);
+        }
+
+        // unfavouriting something that is not favourited is likewise a no-op
+        Assert.True(await repo.SetPersonIsFavorite(Constants.USER_ADMIN, Constants.PERSON_SHARED, false, token));
+    }
+
+    [Fact]
+    public async Task GetPersonAppliesTheSameVisibilityRuleAsTheList()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+
+        Assert.NotNull(await repo.GetPerson(
+            Constants.USER_ADMIN, "https://example.com", Constants.PERSON_PRIVATE, token));
+
+        Assert.Null(await repo.GetPerson(
+            Constants.USER_JOHNDOE, "https://example.com", Constants.PERSON_PRIVATE, token));
+
+        Assert.Null(await repo.GetPerson(
+            Constants.USER_ADMIN, "https://example.com", Guid.CreateVersion7(), token));
     }
 
     [Fact]

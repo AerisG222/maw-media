@@ -240,9 +240,16 @@ public static class Constants
     public static readonly Guid PERSON_SHARED = Guid.CreateVersion7();
     public static readonly Guid PERSON_PRIVATE = Guid.CreateVersion7();
 
+    // exists so the favourite toggle has a person nothing else asserts on.
+    // test classes run in parallel, so a test that writes a favourite for a
+    // person another class reads would be a flake - this one is written to only
+    // by PersonRoutesTests.
+    public static readonly Guid PERSON_TOGGLE = Guid.CreateVersion7();
+
     public static readonly Guid FACE_SHARED_NATURE = Guid.CreateVersion7();
     public static readonly Guid FACE_SHARED_TRAVEL = Guid.CreateVersion7();
     public static readonly Guid FACE_PRIVATE_NATURE = Guid.CreateVersion7();
+    public static readonly Guid FACE_TOGGLE_TRAVEL = Guid.CreateVersion7();
 
     // NO files for FOOD category to demonstrate those will not get pulled back when querying categories
 

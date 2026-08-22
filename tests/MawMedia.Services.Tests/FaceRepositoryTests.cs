@@ -300,6 +300,34 @@ public class FaceRepositoryTests
         Assert.False(stillAssigned);
     }
 
+    [Fact]
+    public async Task DeletingAPersonDiscardsAnyFavoritesPointingAtIt()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repo = GetRepo();
+        var personId = Guid.CreateVersion7();
+        var faceId = Guid.CreateVersion7();
+
+        await repo.SyncPersons(Constants.USER_ADMIN, [NewPerson(personId, "sync-fav-delete", 1)], token);
+
+        // on the nature photo, so the admin can see - and therefore favourite -
+        // this person
+        await repo.SyncFaces(
+            Constants.USER_ADMIN, [NewFace(faceId, personId, Constants.FILE_NATURE_1.Path, 1)], token);
+
+        Assert.True(await repo.SetPersonIsFavorite(Constants.USER_ADMIN, personId, true, token));
+
+        // the whole reason the favourite's foreign key cascades: a person that no
+        // longer exists upstream has to be deletable, and someone having
+        // favourited them must not be able to block that
+        Assert.Equal("deleted", OnlyOutcome(await repo.DeletePersons(Constants.USER_ADMIN, [personId], token)));
+
+        Assert.Equal(0, await CountPersonFavorites(personId));
+    }
+
+    async Task<int> CountPersonFavorites(Guid personId) =>
+        await QuerySingle<int>("SELECT count(*) FROM media.person_favorite WHERE person_id = @personId;", new { personId });
+
     static PersonSync NewPerson(Guid id, string name, long revision) =>
         new(id, name, null, null, null, 1, revision, Instant.FromDateTimeUtc(DateTime.UtcNow));
 

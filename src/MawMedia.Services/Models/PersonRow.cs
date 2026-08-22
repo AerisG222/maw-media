@@ -9,5 +9,6 @@ record PersonRow(
     string Name,
     string? Slug,
     Guid? PreferredFaceId,
-    int MediaCount
+    int MediaCount,
+    bool IsFavorite
 );

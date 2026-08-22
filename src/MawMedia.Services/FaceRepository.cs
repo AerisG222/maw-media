@@ -96,14 +96,61 @@ public class FaceRepository
     public async Task<IEnumerable<Person>> GetPersons(
         Guid userId,
         string baseUrl,
+        bool favoritesOnly = false,
+        CancellationToken token = default
+    ) => await InternalGetPersons(userId, baseUrl, favoritesOnly, null, token);
+
+    public async Task<Person?> GetPerson(
+        Guid userId,
+        string baseUrl,
+        Guid personId,
+        CancellationToken token = default
+    ) => (await InternalGetPersons(userId, baseUrl, false, personId, token))
+        .SingleOrDefault();
+
+    public async Task<bool> SetPersonIsFavorite(
+        Guid userId,
+        Guid personId,
+        bool isFavorite,
         CancellationToken token = default
     )
     {
-        var rows = await Query<PersonRow>(
-            "SELECT * FROM media.get_persons(@userId);",
+        var result = await ExecuteScalarInTransaction<int>(
+            "SELECT * FROM media.favorite_person(@userId, @personId, @isFavorite);",
             new
             {
-                userId
+                userId,
+                personId,
+                isFavorite
+            },
+            token
+        );
+
+        if (result == 0)
+        {
+            return true;
+        }
+
+        _log.LogWarning("Unable to set favorite person - user {USER} does not have access to person {PERSON} or person does not exist!", userId, personId);
+
+        return false;
+    }
+
+    async Task<IEnumerable<Person>> InternalGetPersons(
+        Guid userId,
+        string baseUrl,
+        bool favoritesOnly,
+        Guid? personId,
+        CancellationToken token
+    )
+    {
+        var rows = await Query<PersonRow>(
+            "SELECT * FROM media.get_persons(@userId, @favoritesOnly, @personId);",
+            new
+            {
+                userId,
+                favoritesOnly,
+                personId
             },
             token
         );
@@ -138,7 +185,8 @@ public class FaceRepository
                             r.PreferredFaceId
                         )
                     ),
-                r.MediaCount
+                r.MediaCount,
+                r.IsFavorite
             ))
             .ToList();
     }

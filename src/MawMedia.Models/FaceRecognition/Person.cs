@@ -16,5 +16,8 @@ public record Person(
     string? Slug,
     Guid? PreferredFaceId,
     string? PreferredFaceUrl,
-    int MediaCount
+    int MediaCount,
+    // per caller, like MediaCount - one user's favourites say nothing about
+    // anyone else's
+    bool IsFavorite
 );

@@ -4,6 +4,7 @@ using MawMedia.Routes.Extensions;
 using MawMedia.Models;
 using MawMedia.Models.FaceRecognition;
 using MawMedia.Services.Abstractions;
+using MawMedia.ViewModels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,7 @@ public static class PersonRoutes
             .MapGet("/", GetPersons)
             .WithName("persons-list")
             .WithSummary("People")
-            .WithDescription("Lists the people appearing in media the caller can access")
+            .WithDescription("Lists the people appearing in media the caller can access, favorites first. Pass f=true for favorites only.")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         // the drill-in behind a person in the picker.  paged, unlike the list
@@ -41,6 +42,13 @@ public static class PersonRoutes
             .WithName("person-media")
             .WithSummary("Media for a Person")
             .WithDescription("Lists the media a person appears in that the caller can access. Pass f=true for favorites only, and seed=<number> for a shuffled order that stays stable across pages.")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+
+        group
+            .MapPut("/{id:guid}/favorite", FavoritePerson)
+            .WithName("person-favorite")
+            .WithSummary("Favorite Person")
+            .WithDescription("Sets whether this person is a favorite of the caller")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
         group
@@ -64,14 +72,45 @@ public static class PersonRoutes
         ClaimsPrincipal user,
         IFaceRepository repo,
         HttpRequest request,
-        CancellationToken token
+        CancellationToken token,
+        [FromQuery] bool f = false
     )
     {
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.GetPersons(userId.Value, request.GetBaseUrl(), token))
+            ? TypedResults.Ok(await repo.GetPersons(userId.Value, request.GetBaseUrl(), f, token))
             : TypedResults.Ok(Array.Empty<Person>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<Person>, NotFound>> FavoritePerson(
+        ClaimsPrincipal user,
+        IFaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] FavoriteRequest favRequest,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // 404 rather than 403 for a person the caller cannot see, matching the
+        // rest of the face read side - a 403 would confirm the person exists
+        if (!await repo.SetPersonIsFavorite(userId.Value, id, favRequest.IsFavorite, token))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var person = await repo.GetPerson(userId.Value, request.GetBaseUrl(), id, token);
+
+        return person == null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(person);
     }
 
     static async Task<Results<Ok<SearchResult<Media>>, NotFound, BadRequest<string>>> GetPersonMedia(
