@@ -4,7 +4,6 @@ WORKDIR /maw-media
 # restore
 COPY Directory.Build.props .
 COPY Directory.Packages.props .
-COPY maw-media.slnx .
 COPY nuget.config .
 COPY src/MawMedia/MawMedia.csproj src/MawMedia/
 COPY src/MawMedia.Authorization/MawMedia.Authorization.csproj src/MawMedia.Authorization/

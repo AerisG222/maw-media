@@ -14,3 +14,12 @@ tools
 docs
 *.md
 src/db-postgres
+
+# nothing below is needed to build the app, and deploy/.venv alone is over a
+# gigabyte of ansible virtualenv - without these the local build context is
+# ~1.2GB rather than ~1MB.  CI never noticed: .venv is gitignored, so a fresh
+# checkout was always small.
+deploy
+tests
+.github
+.idea
