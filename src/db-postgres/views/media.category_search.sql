@@ -1,6 +1,40 @@
+-- 2026-08-22 - add person names
+--
+-- dropped rather than left to CREATE ... IF NOT EXISTS, which would silently
+-- skip an existing view and leave the new column out of the vector.  the CREATE
+-- populates as it goes, so the view is queryable again by the time the deploy
+-- finishes rather than empty until the nightly refresh.
+DROP MATERIALIZED VIEW IF EXISTS media.category_search;
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS media.category_search
 AS
-WITH category_search_data AS
+WITH category_person_data AS
+(
+    -- computed apart from the main aggregate rather than joined into it.  that
+    -- query already fans out comments x locations x points of interest per
+    -- media; multiplying by faces as well would turn a category of 500 photos
+    -- into thousands of extra rows to aggregate, for a value that does not
+    -- depend on any of them.
+    --
+    -- DISTINCT because a person in 200 photos of one category should not
+    -- out-rank a category that merely names them - term frequency would
+    -- otherwise make membership count as relevance.
+    SELECT
+        cm.category_id,
+        STRING_AGG(DISTINCT p.name, ' ') AS person_names
+    FROM media.category_media cm
+    INNER JOIN media.face f
+        ON f.media_id = cm.media_id
+    INNER JOIN media.person p
+        ON p.id = f.person_id
+        -- unnamed and triaged clusters are not people to search for, matching
+        -- media.get_persons
+        AND p.name IS NOT NULL
+        AND p.status_code IS NULL
+    GROUP BY
+        cm.category_id
+),
+category_search_data AS
 (
     SELECT
         c.id AS category_id,
@@ -21,7 +55,8 @@ WITH category_search_data AS
         COALESCE(STRING_AGG(l.sub_locality_level_2, ' '), '') AS location_sub_locality_level_2,
         COALESCE(STRING_AGG(l.sub_premise, ' '), '') AS location_sub_premise,
         COALESCE(STRING_AGG(poi.type, ' '), '') AS poi_type,
-        COALESCE(STRING_AGG(poi.name, ' '), '') AS poi_name
+        COALESCE(STRING_AGG(poi.name, ' '), '') AS poi_name,
+        COALESCE(MAX(cpd.person_names), '') AS person_names
     FROM media.category c
     INNER JOIN media.category_media cm
         ON cm.category_id = c.id
@@ -33,6 +68,10 @@ WITH category_search_data AS
         ON l.id = COALESCE(m.location_override_id, m.location_id)
     LEFT OUTER JOIN media.point_of_interest poi
         ON poi.location_id = l.id
+    -- one row per category, so MAX above is just "take the single value" rather
+    -- than an aggregate with anything to choose between
+    LEFT OUTER JOIN category_person_data cpd
+        ON cpd.category_id = c.id
     GROUP BY
         c.id,
         c.name
@@ -40,6 +79,11 @@ WITH category_search_data AS
 SELECT
     category_id,
     SETWEIGHT(TO_TSVECTOR('english', category_name), 'A')
+        -- B, the tier directly below the category name: a category *named* for
+        -- someone should still beat one that merely contains them.  this shares
+        -- the tier with comments and point of interest names, since postgres
+        -- offers four weights and A is spoken for.
+        || SETWEIGHT(TO_TSVECTOR('english', person_names), 'B')
         || SETWEIGHT(TO_TSVECTOR('english', comment_text), 'B')
         || SETWEIGHT(TO_TSVECTOR('english', poi_type), 'B')
         || SETWEIGHT(TO_TSVECTOR('english', poi_name), 'B')

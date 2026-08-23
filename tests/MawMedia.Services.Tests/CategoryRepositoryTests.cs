@@ -1,3 +1,4 @@
+using Dapper;
 using MawMedia.Services.Tests.Models;
 using Microsoft.Extensions.Logging.Testing;
 using NodaTime;
@@ -251,7 +252,19 @@ public class CategoryRepositoryTests
     {
         { Guid.CreateVersion7(),  "Nature", [] },
         { Constants.USER_ADMIN,   "Nature", [Constants.CATEGORY_NATURE.Id] },
-        { Constants.USER_JOHNDOE, "Nature", [] }
+        { Constants.USER_JOHNDOE, "Nature", [] },
+
+        // people are in the index too.  "Shared Person" appears in both
+        // categories, so the admin finds both and the friend finds only the one
+        // ROLE_FRIEND reaches - the search vector is not user scoped, but
+        // media.user_category still is.
+        { Constants.USER_ADMIN,   "Shared",  [Constants.CATEGORY_NATURE.Id, Constants.CATEGORY_TRAVEL.Id] },
+        { Constants.USER_JOHNDOE, "Shared",  [Constants.CATEGORY_TRAVEL.Id] },
+
+        // "Private Person" is only in the nature category, so the friend finding
+        // nothing is the access rule holding rather than the name being absent
+        { Constants.USER_ADMIN,   "Private", [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_JOHNDOE, "Private", [] }
     };
 
     [Theory]
@@ -265,6 +278,36 @@ public class CategoryRepositoryTests
         Assert.NotNull(result);
         Assert.Equal(expectedIds.Count(), result.Results.Count());
         Assert.All(expectedIds, id => result.Results.Select(c => c.Id).Contains(id));
+    }
+
+    [Fact]
+    public async Task PersonNamesAreIndexedBelowCategoryNames()
+    {
+        // asserted against the weight itself rather than through a contrived
+        // pair of categories: a person's name must land in B, the tier under the
+        // category name, so a category *named* for someone outranks one that
+        // merely contains them
+        Assert.True(await Matches("shared:B"));
+        Assert.False(await Matches("shared:A"));
+
+        // and the category name is still an A, so the two have not swapped
+        Assert.True(await Matches("nature:A"));
+    }
+
+    async Task<bool> Matches(string weightedQuery)
+    {
+        using var conn = _fixture.DataSource.CreateConnection();
+
+        return await conn.ExecuteScalarAsync<bool>(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM media.category_search
+                WHERE search_vector @@ TO_TSQUERY('english', @weightedQuery)
+            );
+            """,
+            new { weightedQuery }
+        );
     }
 
     CategoryRepository GetRepo()
