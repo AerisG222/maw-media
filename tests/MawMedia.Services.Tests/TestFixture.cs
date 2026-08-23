@@ -2,8 +2,6 @@ using CliWrap;
 using Dapper;
 using MawMedia.Services.Models;
 using Npgsql;
-using Xunit.Runner.Common;
-using Xunit.Sdk;
 
 namespace MawMedia.Services.Tests;
 
@@ -15,20 +13,11 @@ public class TestFixture
     const string PGSQL_SVC_ACCT = "svc_maw_media";
     const int TEST_DB_PORT = 9876;
 
-    readonly IMessageSink _diagnosticMessageSink;
-
     public required NpgsqlDataSource DataSource { get; set; }
 
     // NpgsqlDataSource.ConnectionString redacts the password, so the api test
     // host cannot reuse it - it needs the full string to open its own pool
     public string ConnectionString => BuildConnString(PGSQL_SVC_ACCT);
-
-    public TestFixture(IMessageSink diagnosticMessageSink)
-    {
-        ArgumentNullException.ThrowIfNull(diagnosticMessageSink);
-
-        _diagnosticMessageSink = diagnosticMessageSink;
-    }
 
     public async ValueTask InitializeAsync()
     {
@@ -133,8 +122,10 @@ public class TestFixture
             .ExecuteAsync();
     }
 
-    void Log(string message)
+    // xunit v3 4.0 dropped IMessageSink injection into fixtures in favour of the
+    // ambient context, which reaches the same diagnostic stream
+    static void Log(string message)
     {
-        _diagnosticMessageSink.OnMessage(new DiagnosticMessage(message));
+        TestContext.Current.SendDiagnosticMessage(message);
     }
 }
