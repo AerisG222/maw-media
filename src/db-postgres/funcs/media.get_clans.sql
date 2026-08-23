@@ -32,6 +32,40 @@ RETURNS TABLE
 AS $$
 BEGIN
     RETURN QUERY
+    WITH members AS
+    (
+        -- the distinct people across the clans this call will return.  the count
+        -- below is per person, but a person can be in several clans, and the
+        -- LATERAL this replaces recomputed their count once per membership.
+        --
+        -- deliberately not repeating the named / untriaged filter applied to
+        -- media.person further down: an extra count for somebody who is then
+        -- dropped costs a little, and stating that rule twice risks the two
+        -- copies disagreeing later.
+        SELECT DISTINCT cp.person_id
+        FROM media.clan c
+        INNER JOIN media.clan_person cp
+            ON cp.clan_id = c.id
+        WHERE
+            c.created_by = _user_id
+            AND (_clan_id IS NULL OR c.id = _clan_id)
+    ),
+    counts AS MATERIALIZED
+    (
+        -- one grouped pass, which is what makes this affordable.
+        -- media.user_face is a DISTINCT over the whole permission chain, so
+        -- every visit to it is expensive and the point is to make exactly one -
+        -- MATERIALIZED says so outright, and stops a later planner decision from
+        -- quietly turning this back into a per row lookup.
+        SELECT
+            uf.person_id,
+            COUNT(DISTINCT uf.media_id)::INTEGER AS media_count
+        FROM media.user_face uf
+        INNER JOIN members m
+            ON m.person_id = uf.person_id
+        WHERE uf.user_id = _user_id
+        GROUP BY uf.person_id
+    )
     SELECT
         c.id AS clan_id,
         c.name AS clan_name,
@@ -41,7 +75,10 @@ BEGIN
         p.name AS person_name,
         p.slug AS person_slug,
         p.preferred_face_id,
-        mc.media_count,
+        -- a member with no visible media has no row in counts, where the
+        -- LATERAL - an aggregate with no GROUP BY - always produced one holding
+        -- a zero.  coalescing keeps the column exactly as it was
+        COALESCE(mc.media_count, 0)::INTEGER AS media_count,
         (pf.person_id IS NOT NULL) AS is_favorite
     FROM media.clan c
     LEFT OUTER JOIN media.clan_person cp
@@ -50,17 +87,8 @@ BEGIN
         ON p.id = cp.person_id
         AND p.name IS NOT NULL
         AND p.status_code IS NULL
-    -- LATERAL rather than a join and GROUP BY: the count is per person and the
-    -- rest of the row is not aggregated, so grouping would mean listing every
-    -- clan and person column in a GROUP BY that has nothing to do with the intent
-    LEFT OUTER JOIN LATERAL
-    (
-        SELECT COUNT(DISTINCT uf.media_id)::INTEGER AS media_count
-        FROM media.user_face uf
-        WHERE
-            uf.user_id = _user_id
-            AND uf.person_id = p.id
-    ) mc ON TRUE
+    LEFT OUTER JOIN counts mc
+        ON mc.person_id = p.id
     LEFT OUTER JOIN media.person_favorite pf
         ON pf.person_id = p.id
         AND pf.created_by = _user_id
@@ -73,7 +101,7 @@ BEGIN
     ORDER BY
         c.name ASC,
         (pf.person_id IS NOT NULL) DESC,
-        mc.media_count DESC,
+        COALESCE(mc.media_count, 0) DESC,
         p.name ASC;
 END;
 $$ LANGUAGE plpgsql;
