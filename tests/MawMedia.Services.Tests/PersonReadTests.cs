@@ -79,8 +79,21 @@ public class PersonReadTests
     [Fact]
     public async Task PeopleAreOrderedByFavoriteThenMediaCountThenName()
     {
+        Guid[] seeded = [Constants.PERSON_SHARED, Constants.PERSON_PRIVATE, Constants.PERSON_TOGGLE];
+
+        // narrowed to the seeded people, whose names this test controls.  other
+        // classes publish people against the same photos in parallel, with names
+        // like "sync-applies", and the name tiebreak cannot be reproduced here
+        // for those: postgres orders by the database collation while this sorts
+        // in .NET, and the two disagree on case and punctuation.  comparing only
+        // names that differ at the first letter keeps the assertion about the
+        // server's ordering rather than about collation.
         var people = (await GetRepo().GetPersons(
-            Constants.USER_ADMIN, "https://example.com", token: TestContext.Current.CancellationToken)).ToList();
+            Constants.USER_ADMIN, "https://example.com", token: TestContext.Current.CancellationToken))
+            .Where(p => seeded.Contains(p.Id))
+            .ToList();
+
+        Assert.Equal(seeded.Length, people.Count);
 
         // asserted against the whole ordering key rather than the counts alone:
         // favourites now sort first, and another test class may hold a favourite
