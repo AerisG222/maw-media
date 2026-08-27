@@ -17,6 +17,8 @@ public class PersonRoutesTests
 
     static string MediaRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/media";
 
+    static string CategoryRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/categories";
+
     static string FavoriteRoute(Guid personId) => $"{ROUTE_LIST}/{personId}/favorite";
 
     public PersonRoutesTests(TestFixture fixture)
@@ -141,6 +143,163 @@ public class PersonRoutesTests
 
             Assert.False(unfavorited!.IsFavorite);
         }
+    }
+
+    [Fact]
+    public async Task PersonCategoriesRequiresTheFaceRecognitionReadScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var response = await client.GetAsync(CategoryRoute(Constants.PERSON_SHARED), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesReturnsOnlyCategoriesTheCallerCanSee()
+    {
+        var token = TestContext.Current.CancellationToken;
+
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var forAdmin = await admin.GetFromJsonAsync<SearchResult<Category>>(
+            CategoryRoute(Constants.PERSON_SHARED), JsonOptions, token);
+
+        // PERSON_SHARED appears in a nature photo and the travel photo, so admin
+        // gets both categories while the friend gets only the one they can reach
+        Assert.Equal(2, forAdmin!.Results.Count());
+        Assert.Contains(forAdmin.Results, c => c.Id == Constants.CATEGORY_NATURE.Id);
+        Assert.Contains(forAdmin.Results, c => c.Id == Constants.CATEGORY_TRAVEL.Id);
+        Assert.False(forAdmin.HasMoreResults);
+
+        var forFriend = await friend.GetFromJsonAsync<SearchResult<Category>>(
+            CategoryRoute(Constants.PERSON_SHARED), JsonOptions, token);
+
+        var only = Assert.Single(forFriend!.Results);
+
+        Assert.Equal(Constants.CATEGORY_TRAVEL.Id, only.Id);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesCarryTheCategoryTeaserAndAMediaCount()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var result = await client.GetFromJsonAsync<SearchResult<Category>>(
+            CategoryRoute(Constants.PERSON_SHARED), JsonOptions, token);
+
+        var travel = Assert.Single(result!.Results, c => c.Id == Constants.CATEGORY_TRAVEL.Id);
+
+        // the category's own teaser, not a photo of the person - the tile has to
+        // look like the same category everywhere else in the app
+        Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, travel.Teaser.Id);
+        Assert.NotEmpty(travel.Teaser.Files);
+
+        // one visible travel photo holds this person
+        Assert.Equal(1, travel.MediaCount);
+
+        // nature is asserted on for its count only - CategoryRepositoryTests
+        // reassigns that category's teaser in parallel, so which media answers
+        // for it is not stable here
+        var nature = Assert.Single(result.Results, c => c.Id == Constants.CATEGORY_NATURE.Id);
+
+        Assert.Equal(1, nature.MediaCount);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesFavoritesCoverBothTheCategoryAndItsMedia()
+    {
+        var token = TestContext.Current.CancellationToken;
+
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        // admin favourited the travel *photo* and not the travel category, so the
+        // category can only come back through the media half of the filter.
+        //
+        // only Contains, never a count: admin's nature favourites - the category
+        // one and the media one - are both toggled by other test classes running
+        // in parallel, so whether nature joins this result is not stable.
+        var forAdmin = await admin.GetFromJsonAsync<SearchResult<Category>>(
+            $"{CategoryRoute(Constants.PERSON_SHARED)}?f=true", JsonOptions, token);
+
+        Assert.Contains(forAdmin!.Results, c => c.Id == Constants.CATEGORY_TRAVEL.Id);
+
+        // the friend is the mirror image: they favourited the travel *category*
+        // and none of the media in it, so this proves the category half carries
+        // the filter on its own rather than riding on a favourited photo
+        var forFriend = await friend.GetFromJsonAsync<SearchResult<Category>>(
+            $"{CategoryRoute(Constants.PERSON_SHARED)}?f=true", JsonOptions, token);
+
+        var only = Assert.Single(forFriend!.Results);
+
+        Assert.Equal(Constants.CATEGORY_TRAVEL.Id, only.Id);
+
+        // the count is the person's full visible total for the category, not the
+        // favourited subset.  this friend favourited the category and none of
+        // the photos in it, so a count that honoured the filter would say 0 here
+        // - the filter picks the categories, the count reports photos.
+        Assert.Equal(1, only.MediaCount);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesAreNotFoundForAPersonTheCallerCannotSee()
+    {
+        var token = TestContext.Current.CancellationToken;
+
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+
+        var response = await friend.GetAsync(CategoryRoute(Constants.PERSON_PRIVATE), token);
+
+        // 404 rather than 403, matching the media view: the friend must not learn
+        // this person exists
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var forAdmin = await admin.GetAsync(CategoryRoute(Constants.PERSON_PRIVATE), token);
+
+        Assert.Equal(HttpStatusCode.OK, forAdmin.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesAreNotFoundForAnUnknownPerson()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.GetAsync(
+            CategoryRoute(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesRejectANegativeOffset()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+
+        var response = await client.GetAsync(
+            $"{CategoryRoute(Constants.PERSON_SHARED)}?o=-1", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PersonCategoriesPastTheEndAreAnEmptyPageRatherThanNotFound()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var response = await client.GetAsync($"{CategoryRoute(Constants.PERSON_SHARED)}?o=100", token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<SearchResult<Category>>(JsonOptions, token);
+
+        Assert.Empty(result!.Results);
+        Assert.False(result.HasMoreResults);
     }
 
     [Fact]

@@ -76,6 +76,13 @@ public static class ClanRoutes
             .WithDescription("Lists the media any member of the clan appears in. Pass f=true for favorites only, and seed=<number> for a shuffled order that stays stable across pages.")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
+        group
+            .MapGet("/{id:guid}/categories", GetClanCategories)
+            .WithName("clan-categories")
+            .WithSummary("Categories for a Clan")
+            .WithDescription("Lists the categories any member of the clan appears in. Pass f=true for categories the caller has favorited, or that hold media they have favorited.")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+
         return group;
     }
 
@@ -296,6 +303,38 @@ public static class ClanRoutes
         // can legitimately come back empty, and a page past the end is a normal
         // answer.  an empty *clan* would also read as 404 here, which is why a
         // client that needs to tell them apart reads the clan itself.
+        return o == 0 && !f && !result.Results.Any()
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(result);
+    }
+
+    static async Task<Results<Ok<SearchResult<Category>>, NotFound, BadRequest<string>>> GetClanCategories(
+        ClaimsPrincipal user,
+        IFaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        CancellationToken token,
+        [FromQuery] int o = 0,
+        [FromQuery] bool f = false
+    )
+    {
+        if (o < 0)
+        {
+            return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
+        }
+
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.GetClanCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, token);
+
+        // the clan media view's 404 rule, including the caveat that an empty
+        // clan reads as 404 here too - a client needing to tell them apart reads
+        // the clan itself
         return o == 0 && !f && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);

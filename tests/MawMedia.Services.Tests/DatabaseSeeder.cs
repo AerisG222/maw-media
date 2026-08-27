@@ -265,6 +265,17 @@ public class DatabaseSeeder
                 created_by = Constants.USER_JOHNDOE,
                 category_id = Constants.CATEGORY_NATURE.Id,
                 created = DateTime.UtcNow
+            },
+            // johndoe favourites the travel category itself while favouriting no
+            // media inside it, which is what lets the person/clan category filter
+            // prove it honours a category favourite on its own.  it has to be
+            // johndoe: CategoryRepositoryTests.FavoriteCategory toggles admin's
+            // category favourites in parallel, so admin's are never a stable
+            // thing to assert on.
+            new {
+                created_by = Constants.USER_JOHNDOE,
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                created = DateTime.UtcNow
             }
         ];
 

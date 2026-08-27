@@ -20,4 +20,8 @@ class CategoryAndTeaser
     public required string FileType { get; set; }
     public required string FileScale { get; set; }
     public required string[] MediaTypes { get; set; }
+
+    // only media.get_person_categories returns this column; the other category
+    // functions leave it null
+    public int? MediaCount { get; set; }
 }

@@ -194,58 +194,12 @@ public class CategoryRepository
         return await ConvertToCategories(userId, results, baseUrl, token);
     }
 
-    async Task<IEnumerable<Category>> ConvertToCategories(
+    Task<IEnumerable<Category>> ConvertToCategories(
         Guid userId,
         IEnumerable<CategoryAndTeaser> results,
         string baseUrl,
         CancellationToken token = default
-    )
-    {
-        var uniqueCacheKeys = new HashSet<string>();
-
-        var cats = results
-            .GroupBy(x => x.Id)
-            .Select(g =>
-            {
-                // side effect to simplify priming the cache
-                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, g.First().FilePath));
-
-                return g;
-            })
-            .Select(g => new Category(
-                g.Key,
-                g.First().Year,
-                g.First().Slug,
-                g.First().Name,
-                g.First().EffectiveDate,
-                g.First().Modified,
-                g.First().IsFavorite,
-                new Media(
-                    g.First().MediaId,
-                    g.First().MediaSlug,
-                    g.Key,
-                    g.First().Year,
-                    g.First().Slug,
-                    g.First().MediaType,
-                    g.First().MediaIsFavorite,
-                    g.Select(x => new MediaFile(
-                        x.FileId,
-                        x.FileScale,
-                        x.FileType,
-                        _assetPathBuilder.Build(baseUrl, x.FilePath)
-                    )).ToList()
-                ),
-                g.First().MediaTypes
-            ))
-            .ToList();
-
-        foreach (var key in uniqueCacheKeys)
-        {
-            await _cache.SetAsync(key, true, cancellationToken: token);
-        }
-
-        return cats;
-    }
+    ) => AssembleCategories(userId, results, baseUrl, _assetPathBuilder, _cache, token);
 
     async Task<IEnumerable<Media>> InternalGetCategoryMedia(
         Guid userId,

@@ -44,6 +44,15 @@ public static class PersonRoutes
             .WithDescription("Lists the media a person appears in that the caller can access. Pass f=true for favorites only, and seed=<number> for a shuffled order that stays stable across pages.")
             .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
 
+        // the other half of the drill-in: the same media, rolled up to the
+        // categories holding them, so the faces screen can toggle between them
+        group
+            .MapGet("/{id:guid}/categories", GetPersonCategories)
+            .WithName("person-categories")
+            .WithSummary("Categories for a Person")
+            .WithDescription("Lists the categories a person appears in that the caller can access. Pass f=true for categories the caller has favorited, or that hold media they have favorited.")
+            .RequireAuthorization(AuthorizationPolicies.FaceRecognitionReader);
+
         group
             .MapPut("/{id:guid}/favorite", FavoritePerson)
             .WithName("person-favorite")
@@ -148,6 +157,40 @@ public static class PersonRoutes
         // make an empty filter look like a broken link.  seed is not exempt - it
         // reorders rather than filters, so an empty first page still means there
         // is nothing to show.
+        return o == 0 && !f && !result.Results.Any()
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(result);
+    }
+
+    static async Task<Results<Ok<SearchResult<Category>>, NotFound, BadRequest<string>>> GetPersonCategories(
+        ClaimsPrincipal user,
+        IFaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        CancellationToken token,
+        [FromQuery] int o = 0,
+        [FromQuery] bool f = false
+    )
+    {
+        if (o < 0)
+        {
+            return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
+        }
+
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.GetPersonCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, token);
+
+        // the media view's 404 rule, and for the same reason: an empty first page
+        // with no filter means a person the caller may not see, and answering
+        // anything else would let them probe for people the picker hid.  the
+        // favourites exemption carries over too - "this person is in nothing you
+        // have favourited" is a real answer about a person you can see.
         return o == 0 && !f && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);

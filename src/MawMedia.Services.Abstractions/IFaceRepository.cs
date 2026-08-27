@@ -50,6 +50,20 @@ public interface IFaceRepository
     // still counts once.
     Task<SearchResult<Media>> GetClanMedia(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
 
+    // the same two sets rolled up to the categories holding them, for the faces
+    // screen's "categories" toggle.  paged like the media views and returning
+    // Category so a client renders them with the category grid it already has.
+    //
+    // no seed: shuffling exists because a person's media is a browse-forever
+    // set, while these are a navigational index and want a stable order.
+    //
+    // favoritesOnly is broader here than on the media views - it keeps a
+    // category the caller favourited outright *or* one holding a media they
+    // favourited.  both are the caller saying they care about the category, and
+    // the screen drives media and categories from a single toggle.
+    Task<SearchResult<Category>> GetPersonCategories(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
+    Task<SearchResult<Category>> GetClanCategories(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
+
     // --- clans ------------------------------------------------------------
     // a clan is a caller's saved selection of people and is private to them, so
     // every method here is scoped by userId rather than by any shared rule.

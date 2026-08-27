@@ -255,6 +255,74 @@ public class FaceRepository
         );
     }
 
+    public async Task<SearchResult<Category>> GetPersonCategories(
+        Guid userId,
+        string baseUrl,
+        Guid personId,
+        int offset,
+        int limit,
+        bool favoritesOnly = false,
+        CancellationToken token = default
+    ) => await InternalGetPersonCategories(userId, baseUrl, personId, null, offset, limit, favoritesOnly, token);
+
+    public async Task<SearchResult<Category>> GetClanCategories(
+        Guid userId,
+        string baseUrl,
+        Guid clanId,
+        int offset,
+        int limit,
+        bool favoritesOnly = false,
+        CancellationToken token = default
+    ) => await InternalGetPersonCategories(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, token);
+
+    async Task<SearchResult<Category>> InternalGetPersonCategories(
+        Guid userId,
+        string baseUrl,
+        Guid? personId,
+        Guid? clanId,
+        int offset,
+        int limit,
+        bool favoritesOnly,
+        CancellationToken token
+    )
+    {
+        if (offset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Offset must be greater than or equal to 0.");
+        }
+
+        if (limit < 1 || limit > PERSON_MEDIA_LIMIT_MAX)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, $"Limit must be between 1 and {PERSON_MEDIA_LIMIT_MAX}.");
+        }
+
+        // the same extra-row trick the media view uses.  the function pages over
+        // categories, so the extra row is an extra category, not an extra file.
+        var results = await Query<CategoryAndTeaser>(
+            "SELECT * FROM media.get_person_categories(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @clanId);",
+            new
+            {
+                userId,
+                personId,
+                offset,
+                limit = limit + 1,
+                excludeSrcFiles = true,
+                favoritesOnly,
+                clanId
+            },
+            token
+        );
+
+        var categories = (await AssembleCategories(userId, results, baseUrl, _assetPathBuilder, _cache, token)).ToList();
+        var hasMore = categories.Count > limit;
+
+        return new SearchResult<Category>(
+            hasMore ? categories.Take(limit) : categories,
+            hasMore,
+            hasMore ? offset + limit : 0
+        );
+    }
+
     public async Task<IEnumerable<Face>> GetMediaFaces(
         Guid userId,
         Guid mediaId,

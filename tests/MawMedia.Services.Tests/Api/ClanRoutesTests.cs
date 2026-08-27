@@ -261,6 +261,91 @@ public class ClanRoutesTests
     }
 
     [Fact]
+    public async Task ClanCategoriesRollTheClansMediaUpAndCountEachPhotoOnce()
+    {
+        using var client = Reader();
+        var token = TestContext.Current.CancellationToken;
+
+        var clan = await Create(client, [Constants.PERSON_SHARED, Constants.PERSON_PRIVATE], token);
+
+        try
+        {
+            var all = await client.GetFromJsonAsync<SearchResult<Category>>(
+                $"{ROUTE}/{clan.Id}/categories", JsonOptions, token);
+
+            // newest category first, the same order the media view uses
+            Assert.Equal(
+                [Constants.CATEGORY_TRAVEL.Id, Constants.CATEGORY_NATURE.Id],
+                all!.Results.Select(c => c.Id).ToList()
+            );
+
+            // both clan members are on the one nature photo, so it counts once -
+            // the count is photos, not face sightings
+            Assert.Equal(1, all.Results.Single(c => c.Id == Constants.CATEGORY_NATURE.Id).MediaCount);
+            Assert.Equal(1, all.Results.Single(c => c.Id == Constants.CATEGORY_TRAVEL.Id).MediaCount);
+
+            // Contains rather than Single: admin's nature favourites are toggled
+            // by other test classes in parallel, so only travel is stable here
+            var favorites = await client.GetFromJsonAsync<SearchResult<Category>>(
+                $"{ROUTE}/{clan.Id}/categories?f=true", JsonOptions, token);
+
+            Assert.Contains(favorites!.Results, c => c.Id == Constants.CATEGORY_TRAVEL.Id);
+
+            var negative = await client.GetAsync($"{ROUTE}/{clan.Id}/categories?o=-1", token);
+
+            Assert.Equal(HttpStatusCode.BadRequest, negative.StatusCode);
+        }
+        finally
+        {
+            await client.DeleteAsync($"{ROUTE}/{clan.Id}", token);
+        }
+    }
+
+    [Fact]
+    public async Task ClanCategoriesAreHiddenFromEveryoneButTheOwner()
+    {
+        using var owner = Reader();
+        using var other = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var clan = await Create(owner, [Constants.PERSON_SHARED], token);
+
+        try
+        {
+            // a clan id guessed by someone else reads as missing, exactly as the
+            // media view answers it
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await other.GetAsync($"{ROUTE}/{clan.Id}/categories", token)).StatusCode);
+        }
+        finally
+        {
+            await owner.DeleteAsync($"{ROUTE}/{clan.Id}", token);
+        }
+    }
+
+    [Fact]
+    public async Task AnEmptyClanHasNoCategories()
+    {
+        using var client = Reader();
+        var token = TestContext.Current.CancellationToken;
+
+        var clan = await Create(client, [], token);
+
+        try
+        {
+            var response = await client.GetAsync($"{ROUTE}/{clan.Id}/categories", token);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{ROUTE}/{clan.Id}", token)).StatusCode);
+        }
+        finally
+        {
+            await client.DeleteAsync($"{ROUTE}/{clan.Id}", token);
+        }
+    }
+
+    [Fact]
     public async Task AnEmptyClanHasNoMedia()
     {
         using var client = Reader();

@@ -164,6 +164,65 @@ public class BaseRepository
         }
     }
 
+    // the category equivalent of AssembleMedia, and static for the same reason:
+    // both CategoryRepository and FaceRepository build categories out of the
+    // same (category, teaser file) fan-out, and neither should own the shape.
+    internal static async Task<IEnumerable<Category>> AssembleCategories(
+        Guid userId,
+        IEnumerable<CategoryAndTeaser> results,
+        string baseUrl,
+        IAssetPathBuilder assetPathBuilder,
+        HybridCache cache,
+        CancellationToken token = default
+    )
+    {
+        var uniqueCacheKeys = new HashSet<string>();
+
+        var cats = results
+            .GroupBy(x => x.Id)
+            .Select(g =>
+            {
+                // side effect to simplify priming the cache
+                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, g.First().FilePath));
+
+                return g;
+            })
+            .Select(g => new Category(
+                g.Key,
+                g.First().Year,
+                g.First().Slug,
+                g.First().Name,
+                g.First().EffectiveDate,
+                g.First().Modified,
+                g.First().IsFavorite,
+                new Media(
+                    g.First().MediaId,
+                    g.First().MediaSlug,
+                    g.Key,
+                    g.First().Year,
+                    g.First().Slug,
+                    g.First().MediaType,
+                    g.First().MediaIsFavorite,
+                    g.Select(x => new MediaFile(
+                        x.FileId,
+                        x.FileScale,
+                        x.FileType,
+                        assetPathBuilder.Build(baseUrl, x.FilePath)
+                    )).ToList()
+                ),
+                g.First().MediaTypes,
+                g.First().MediaCount
+            ))
+            .ToList();
+
+        foreach (var key in uniqueCacheKeys)
+        {
+            await cache.SetAsync(key, true, cancellationToken: token);
+        }
+
+        return cats;
+    }
+
     internal static async Task<IEnumerable<Media>> AssembleMedia(
         Guid userId,
         IEnumerable<MediaAndFile> mediaAndFiles,
