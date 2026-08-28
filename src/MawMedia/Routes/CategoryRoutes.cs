@@ -12,7 +12,7 @@ namespace MawMedia.Routes;
 
 public static class CategoryRoutes
 {
-    const int SEARCH_LIMIT = 24;
+    const int SEARCH_LIMIT = 50;
     const string SCALE_FULL = "full";
 
     public static RouteGroupBuilder MapCategoryRoutes(this RouteGroupBuilder group)

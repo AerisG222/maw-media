@@ -22,7 +22,7 @@ public static class PersonRoutes
 
     // matches the category search page size so a client can render both result
     // sets with the same grid and the same "load more" behaviour
-    const int MEDIA_LIMIT = 24;
+    const int MEDIA_LIMIT = 50;
 
     public static RouteGroupBuilder MapPersonRoutes(this RouteGroupBuilder group)
     {

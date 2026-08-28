@@ -20,7 +20,7 @@ public static class ClanRoutes
 
     // matches the person media and category search page sizes so a client can
     // render all three with one grid
-    const int MEDIA_LIMIT = 24;
+    const int MEDIA_LIMIT = 50;
 
     const string UNKNOWN_PERSON = "One or more of the supplied people could not be found.";
     const string DUPLICATE_NAME = "You already have a clan with that name.";
