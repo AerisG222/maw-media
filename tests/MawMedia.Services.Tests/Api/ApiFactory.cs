@@ -21,6 +21,12 @@ public class ApiFactory
 {
     public const string AUDIENCE = "https://test-media.mikeandwan.us";
 
+    // the browser origin the api is configured to trust.  without an origin
+    // configured the cors middleware disables itself entirely, which is what let
+    // a missing verb ship unnoticed - every test here speaks to the api directly
+    // and never sends an Origin header, so nothing preflighted anything.
+    public const string ORIGIN = "https://test-photos.mikeandwan.us";
+
     static readonly Lock _envLock = new();
 
     readonly string _scratchDir;
@@ -34,6 +40,7 @@ public class ApiFactory
         lock (_envLock)
         {
             Set("Npgsql__ConnectionString", connectionString);
+            Set("CorsOriginUrls__0", ORIGIN);
             Set("OAuth__Authority", "https://test-login.mikeandwan.us");
             Set("OAuth__Audience", AUDIENCE);
             Set("DataProtection__Path", dataProtection);
