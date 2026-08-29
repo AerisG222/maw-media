@@ -7,9 +7,9 @@ BEGIN
         WHERE dictname = 'english_hunspell'
     ) THEN
 
-        -- note: see Containerfile
-        -- en_us comes from the container build where hunspell-en-us is installed
-        -- these resources are then used by postgres by calling pg_updatedicts to prepare them in $SHAREDIR/tsearch_data dir
+        -- en_us.dict / en_us.affix are committed under ../tsearch_data and are
+        -- mounted into $SHAREDIR/tsearch_data of the stock postgres image.  see
+        -- ../gen-tsearch-data.sh for how they are produced from hunspell-en-us.
         CREATE TEXT SEARCH DICTIONARY english_hunspell
         (
             template = ispell,

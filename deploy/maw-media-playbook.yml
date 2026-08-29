@@ -31,7 +31,7 @@
   vars:
     pod: pod-maw-media
     img_maw_media: "docker.io/aerisg222/maw-media:latest"
-    img_postgres: "docker.io/aerisg222/maw-media-postgres:latest"
+    img_postgres: "docker.io/library/postgres:18-trixie"
     img_rclone: "docker.io/rclone/rclone:1.75"
     img_revgeo: "docker.io/aerisg222/maw-reverse-geocode:latest"
     container_pg: maw-media-postgres
@@ -45,6 +45,10 @@
     dir_pgdata: "{{ dir_approot }}/pg-data"
     dir_pgsecrets: "{{ dir_approot }}/pg-secrets"
     dir_pgbackups: "{{ dir_approot }}/pg-backups"
+    dir_pgtsearch: "{{ dir_approot }}/pg-tsearch-data"
+    # where postgres looks for text search dictionaries inside the image.  the
+    # major version is part of the path, so this moves with img_postgres.
+    dir_pgtsearch_dest: "/usr/share/postgresql/18/tsearch_data"
     dir_mediaassets: "{{ dir_approot }}/media-assets"
     dir_mediadp: "{{ dir_approot }}/media-data-protection"
     dir_mediafaces: "{{ dir_approot }}/media-faces"
@@ -69,6 +73,7 @@
         - "{{ dir_systemd }}"
         - "{{ dir_pgbackups }}"
         - "{{ dir_pgdata }}"
+        - "{{ dir_pgtsearch }}"
         - "{{ dir_pgsecrets }}"
         - "{{ dir_mediaassets }}"
         - "{{ dir_mediasecrets }}"
@@ -98,6 +103,15 @@
           dest: "{{ dir_rcloneconf }}"
         - src: "{{ dir_localroot }}/rclone-secrets/rclone-gdrive-serviceaccount.json"
           dest: "{{ dir_rclonesecrets }}"
+
+    # the hunspell dictionaries and the xsyn rules are mounted into the stock
+    # postgres image instead of being baked into a custom one.  see
+    # src/db-postgres/gen-tsearch-data.sh for how the dictionaries are produced.
+    - name: Copy Text Search Data
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../src/db-postgres/tsearch_data/"
+        dest: "{{ dir_pgtsearch }}/"
+        mode: u+rw
 
     - name: Process Templates
       ansible.builtin.template:

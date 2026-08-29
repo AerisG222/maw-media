@@ -9,7 +9,7 @@ podman run --rm \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-secrets:/secrets" \
     --volume "$(pwd):/input" \
-    docker.io/aerisg222/maw-media-postgres:latest \
+    docker.io/library/postgres:18-trixie \
         psql \
             -h localhost \
             -U "${PSQLUSER}" \
@@ -23,7 +23,7 @@ podman run --rm \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-${PSQLUSER}" \
     --volume "/home/mmorano/maw-media/dev/pg-secrets:/secrets" \
     --volume "$(pwd):/input" \
-    docker.io/aerisg222/maw-media-postgres:latest \
+    docker.io/library/postgres:18-trixie \
         pg_restore \
             -h localhost \
             -U "${PSQLUSER}" \

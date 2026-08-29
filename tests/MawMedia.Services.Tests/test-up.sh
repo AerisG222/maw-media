@@ -2,8 +2,15 @@
 PROJ_ROOT=~/git/maw-media
 POD=integration-test-media-pod
 CON=integration-test-media-pgsql
-PGIMG="docker.io/aerisg222/maw-media-postgres:latest"
+PGIMG="docker.io/library/postgres:18-trixie"
 PWDDIR="$(pwd)/media-testing/pgpwd"
+
+# the full text search config needs the hunspell dictionaries and the xsyn rules
+# in the image's $SHAREDIR/tsearch_data.  mounted file by file rather than as a
+# directory - a directory mount would hide the stock contents, and the
+# english_hunspell dictionary reads english.stop from there.
+TSEARCH_SRC="${PROJ_ROOT}/src/db-postgres/tsearch_data"
+TSEARCH_DEST="/usr/share/postgresql/18/tsearch_data"
 PGPWD=$(gpg --gen-random --armor 1 24 | base64)
 MEDIAPWD=$(gpg --gen-random --armor 1 24 | base64)
 
@@ -21,6 +28,9 @@ podman run \
     --name "${CON}" \
     --env "POSTGRES_PASSWORD_FILE=/secrets/psql-postgres" \
     --volume "${PWDDIR}:/secrets" \
+    --volume "${TSEARCH_SRC}/en_us.dict:${TSEARCH_DEST}/en_us.dict:ro" \
+    --volume "${TSEARCH_SRC}/en_us.affix:${TSEARCH_DEST}/en_us.affix:ro" \
+    --volume "${TSEARCH_SRC}/maw_media_xsyn.rules:${TSEARCH_DEST}/maw_media_xsyn.rules:ro" \
     --security-opt label=disable \
     "${PGIMG}"
 

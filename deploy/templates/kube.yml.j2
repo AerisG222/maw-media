@@ -28,6 +28,20 @@ spec:
           name: pg-backups
         - mountPath: /var/lib/postgresql:Z
           name: pg-data
+        # the dictionaries backing the english text search config.  mounted file
+        # by file on purpose - mounting the directory would hide the stock
+        # contents of tsearch_data, and the english_hunspell dictionary is
+        # declared with StopWords = english, which is read from english.stop
+        # there.  this is what lets the pod run the official postgres image.
+        - mountPath: {{ dir_pgtsearch_dest }}/en_us.dict:Z
+          name: pg-tsearch-dict
+          readOnly: true
+        - mountPath: {{ dir_pgtsearch_dest }}/en_us.affix:Z
+          name: pg-tsearch-affix
+          readOnly: true
+        - mountPath: {{ dir_pgtsearch_dest }}/maw_media_xsyn.rules:Z
+          name: pg-tsearch-xsyn
+          readOnly: true
 
     - image: {{ img_maw_media }}
       imagePullPolicy: IfNotPresent
@@ -97,6 +111,18 @@ spec:
         path: /home/svc_maw_media/maw-media/pg-data
         type: Directory
       name: pg-data
+    - hostPath:
+        path: {{ dir_pgtsearch }}/en_us.dict
+        type: File
+      name: pg-tsearch-dict
+    - hostPath:
+        path: {{ dir_pgtsearch }}/en_us.affix
+        type: File
+      name: pg-tsearch-affix
+    - hostPath:
+        path: {{ dir_pgtsearch }}/maw_media_xsyn.rules
+        type: File
+      name: pg-tsearch-xsyn
     - hostPath:
         path: /home/svc_maw_media/maw-media/media-assets
         type: Directory

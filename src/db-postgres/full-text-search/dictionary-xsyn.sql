@@ -1,4 +1,5 @@
--- dependent on maw-media image placing the xsyn .rules file in $SHAREDIR/tsearch_data/ dir
+-- depends on ../tsearch_data/maw_media_xsyn.rules being mounted into the
+-- $SHAREDIR/tsearch_data dir of the postgres container
 ALTER TEXT SEARCH DICTIONARY xsyn
 (
     MATCHSYNONYMS = true,
