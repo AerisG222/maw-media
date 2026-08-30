@@ -184,6 +184,9 @@ function main() {
 
     header "tables"
     queue "tables/media.scale.sql"
+    queue "tables/media.place_kind.sql"
+    queue "tables/media.place.sql"
+    queue "tables/media.place_alias.sql"
     queue "tables/media.location.sql"
     queue "tables/media.point_of_interest.sql"
     queue "tables/media.type.sql"
@@ -220,6 +223,7 @@ function main() {
     header "seed"
     queue "seed/media.type.sql"
     queue "seed/media.scale.sql"
+    queue "seed/media.place_kind.sql"
 
     header "functions"
     queue "funcs/media.add_comment.sql"
