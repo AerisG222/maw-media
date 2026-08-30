@@ -114,10 +114,13 @@ public class CategoryRepositoryTests
         { Guid.CreateVersion7(),  Constants.CATEGORY_NATURE.Id, 0 },
         { Constants.USER_ADMIN,   Guid.CreateVersion7(),        0 },
         { Constants.USER_ADMIN,   Constants.CATEGORY_NATURE.Id, 2 },
-        { Constants.USER_ADMIN,   Constants.CATEGORY_TRAVEL.Id, 1 },
-        { Constants.USER_ADMIN,   Constants.CATEGORY_FOOD.Id,   0 },  // no files, so not media not returned
+        // travel also carries the two Boston place fixtures now
+        { Constants.USER_ADMIN,   Constants.CATEGORY_TRAVEL.Id, 3 },
+        // MEDIA_FOOD_1 still has no files so is still not returned; the London
+        // place fixture beside it does have one
+        { Constants.USER_ADMIN,   Constants.CATEGORY_FOOD.Id,   1 },
         { Constants.USER_JOHNDOE, Constants.CATEGORY_NATURE.Id, 0 },
-        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, 1 },
+        { Constants.USER_JOHNDOE, Constants.CATEGORY_TRAVEL.Id, 3 },
         { Constants.USER_JOHNDOE, Constants.CATEGORY_FOOD.Id,   0 },
     };
 

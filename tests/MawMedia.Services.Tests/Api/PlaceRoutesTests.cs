@@ -21,21 +21,35 @@ public class PlaceRoutesTests
 
     }
 
-    // the fixtures put every media at LOCATION_NY, so the derived tree is
-    // USA > NY > New York.  resolving it by drilling rather than by hardcoding ids
-    // means these tests also assert that the drill-down itself works.
-    async Task<(Place Country, Place State, Place City)> ResolveTree(HttpClient client)
+    // the fixtures derive two countries:
+    //
+    //   USA            -> NY      -> New York  (MEDIA_TRAVEL_1 etc)
+    //                  -> MA      -> Boston    (MEDIA_PLACE_MA, MEDIA_PLACE_OVERRIDE)
+    //   United Kingdom -> England -> London    (MEDIA_PLACE_UK, admin only)
+    //
+    // resolving them by drilling rather than by hardcoding ids means these tests
+    // also assert the drill-down works as a side effect of setting themselves up.
+    async Task<Place> Country(HttpClient client, string slug)
     {
-        var token = TestContext.Current.CancellationToken;
+        var countries = await client.GetFromJsonAsync<Place[]>(
+            ROUTE_LIST, JsonOptions, TestContext.Current.CancellationToken);
 
-        var countries = await client.GetFromJsonAsync<Place[]>(ROUTE_LIST, JsonOptions, token);
-        var country = Assert.Single(countries!);
+        return Assert.Single(countries!, c => c.Slug == slug);
+    }
 
-        var states = await client.GetFromJsonAsync<Place[]>($"{ROUTE_LIST}?parent={country.Id}", JsonOptions, token);
-        var state = Assert.Single(states!);
+    async Task<Place> Child(HttpClient client, Place parent, string slug)
+    {
+        var children = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?parent={parent.Id}", JsonOptions, TestContext.Current.CancellationToken);
 
-        var cities = await client.GetFromJsonAsync<Place[]>($"{ROUTE_LIST}?parent={state.Id}", JsonOptions, token);
-        var city = Assert.Single(cities!);
+        return Assert.Single(children!, c => c.Slug == slug);
+    }
+
+    async Task<(Place Country, Place State, Place City)> Usa(HttpClient client, string stateSlug, string citySlug)
+    {
+        var country = await Country(client, "usa");
+        var state = await Child(client, country, stateSlug);
+        var city = await Child(client, state, citySlug);
 
         return (country, state, city);
     }
@@ -57,7 +71,7 @@ public class PlaceRoutesTests
     {
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
 
-        var (country, state, city) = await ResolveTree(client);
+        var (country, state, city) = await Usa(client, "ny", "new-york");
 
         Assert.Equal("country", country.Kind);
         Assert.Equal("state", state.Kind);
@@ -78,14 +92,20 @@ public class PlaceRoutesTests
     {
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
 
-        var (country, state, city) = await ResolveTree(client);
+        var (country, ny, newYork) = await Usa(client, "ny", "new-york");
+        var (_, ma, boston) = await Usa(client, "ma", "boston");
 
-        // every fixture media sits at the one city, so all three levels agree -
-        // and none of them may be zero, since a place with nothing visible is
-        // supposed to be absent rather than listed empty
-        Assert.True(city.MediaCount > 0);
-        Assert.Equal(city.MediaCount, state.MediaCount);
-        Assert.Equal(state.MediaCount, country.MediaCount);
+        // a state with one city mirrors it, and the country is the sum of both
+        // branches - a count that only covered coordinates filed directly against
+        // the country would read zero here
+        Assert.Equal(newYork.MediaCount, ny.MediaCount);
+        Assert.Equal(boston.MediaCount, ma.MediaCount);
+        Assert.Equal(ny.MediaCount + ma.MediaCount, country.MediaCount);
+
+        // and none may be zero: a place with nothing visible is supposed to be
+        // absent rather than listed empty
+        Assert.True(newYork.MediaCount > 0);
+        Assert.True(boston.MediaCount > 0);
     }
 
     [Fact]
@@ -94,14 +114,14 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (country, _, _) = await ResolveTree(client);
+        var country = await Country(client, "usa");
 
         var states = await client.GetFromJsonAsync<Place[]>(
             $"{ROUTE_LIST}?parent={country.Id}&kind=state", JsonOptions, token);
         var cities = await client.GetFromJsonAsync<Place[]>(
             $"{ROUTE_LIST}?parent={country.Id}&kind=city", JsonOptions, token);
 
-        Assert.Single(states!);
+        Assert.Equal(2, states!.Length);
         Assert.Empty(cities!);
     }
 
@@ -111,7 +131,7 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (_, _, city) = await ResolveTree(client);
+        var (_, _, city) = await Usa(client, "ny", "new-york");
 
         var fetched = await client.GetFromJsonAsync<Place>(PlaceRoute(city.Id), JsonOptions, token);
 
@@ -130,7 +150,7 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (country, state, city) = await ResolveTree(client);
+        var (country, state, city) = await Usa(client, "ny", "new-york");
 
         var chain = await client.GetFromJsonAsync<PlaceAncestor[]>(AncestorsRoute(city.Id), JsonOptions, token);
 
@@ -150,7 +170,7 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (_, _, city) = await ResolveTree(client);
+        var (_, _, city) = await Usa(client, "ny", "new-york");
 
         var result = await client.GetFromJsonAsync<SearchResult<Media>>(MediaRoute(city.Id), JsonOptions, token);
 
@@ -168,7 +188,7 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (_, _, city) = await ResolveTree(client);
+        var (_, _, city) = await Usa(client, "ny", "new-york");
 
         var result = await client.GetFromJsonAsync<SearchResult<Category>>(CategoryRoute(city.Id), JsonOptions, token);
 
@@ -206,7 +226,7 @@ public class PlaceRoutesTests
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
         var token = TestContext.Current.CancellationToken;
 
-        var (_, _, city) = await ResolveTree(client);
+        var (_, _, city) = await Usa(client, "ny", "new-york");
 
         var media = await client.GetAsync($"{MediaRoute(city.Id)}?o=-1", token);
         var categories = await client.GetAsync($"{CategoryRoute(city.Id)}?o=-1", token);
@@ -220,12 +240,13 @@ public class PlaceRoutesTests
     {
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
 
-        // LOCATION_UNK has no country, so it resolves to no place at all - the
-        // whole tree must be the one derived from LOCATION_NY
+        // LOCATION_UNK has no country, so it resolves to no place at all.  the
+        // listing must therefore be exactly the two derived countries, with no
+        // third bucket standing in for "somewhere".
         var countries = await client.GetFromJsonAsync<Place[]>(
             ROUTE_LIST, JsonOptions, TestContext.Current.CancellationToken);
 
-        Assert.Single(countries!);
+        Assert.Equal(["united-kingdom", "usa"], countries!.Select(c => c.Slug).Order());
     }
 
     [Fact]
@@ -246,5 +267,70 @@ public class PlaceRoutesTests
 
             Assert.True(f.MediaCount <= match.MediaCount);
         });
+    }
+
+    [Fact]
+    public async Task APlaceIsAbsentEntirelyWhenNoneOfItsMediaAreVisible()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // LOCATION_UK is reachable only through CATEGORY_FOOD, which ROLE_FRIEND
+        // does not hold.  so the United Kingdom must not merely report zero for
+        // johndoe - it must not be in his listing at all, or its existence leaks.
+        var uk = await Country(admin, "united-kingdom");
+
+        var friendCountries = await friend.GetFromJsonAsync<Place[]>(ROUTE_LIST, JsonOptions, token);
+
+        Assert.DoesNotContain(friendCountries!, c => c.Id == uk.Id);
+        Assert.Contains(friendCountries!, c => c.Slug == "usa");
+
+        // and the drill-ins answer 404 rather than an empty page, so he cannot
+        // confirm the place exists by asking about it directly
+        Assert.Equal(HttpStatusCode.NotFound, (await friend.GetAsync(PlaceRoute(uk.Id), token)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await friend.GetAsync(MediaRoute(uk.Id), token)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await friend.GetAsync(CategoryRoute(uk.Id), token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task AnOverriddenLocationBrowsesUnderTheOverrideNotTheRecordedOne()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // MEDIA_PLACE_OVERRIDE is recorded at LOCATION_NY and overridden to
+        // LOCATION_MA.  this is not a corner case: the phase 0 audit found 60,472
+        // production media reachable only through the override column, and 1,471
+        // carrying both with different values.
+        var (_, _, newYork) = await Usa(client, "ny", "new-york");
+        var (_, _, boston) = await Usa(client, "ma", "boston");
+
+        var inBoston = await client.GetFromJsonAsync<SearchResult<Media>>(MediaRoute(boston.Id), JsonOptions, token);
+        var inNewYork = await client.GetFromJsonAsync<SearchResult<Media>>(MediaRoute(newYork.Id), JsonOptions, token);
+
+        Assert.Contains(inBoston!.Results, m => m.Id == Constants.MEDIA_PLACE_OVERRIDE.Id);
+        Assert.DoesNotContain(inNewYork!.Results, m => m.Id == Constants.MEDIA_PLACE_OVERRIDE.Id);
+
+        // the media recorded at LOCATION_MA with no override sits beside it, so
+        // both routes into a place agree
+        Assert.Contains(inBoston.Results, m => m.Id == Constants.MEDIA_PLACE_MA.Id);
+    }
+
+    [Fact]
+    public async Task DrillingIntoACountryIncludesEveryDescendantsMedia()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var country = await Country(client, "usa");
+
+        // place_id records only the deepest place a coordinate resolved to, so a
+        // country query that did not expand its subtree would return nothing at
+        // all here - every fixture is filed against a city
+        var result = await client.GetFromJsonAsync<SearchResult<Media>>(MediaRoute(country.Id), JsonOptions, token);
+
+        Assert.Contains(result!.Results, m => m.Id == Constants.MEDIA_PLACE_MA.Id);
+        Assert.Contains(result.Results, m => m.Id == Constants.MEDIA_TRAVEL_1.Id);
     }
 }

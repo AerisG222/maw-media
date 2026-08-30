@@ -24,9 +24,12 @@ public class MediaRepositoryTests
         //                        count  min  max
         { Guid.CreateVersion7(),  10,    0,   0 },
         { Constants.USER_ADMIN,   1,     0,   1 },
-        { Constants.USER_ADMIN,   10,    3,   3 },
-        { Constants.USER_JOHNDOE, 1,     1,   1 },
-        { Constants.USER_JOHNDOE, 200,   1,   1 }
+        // admin reaches six media carrying files: the two nature, travel, and the
+        // three place fixtures.  johndoe reaches only CATEGORY_TRAVEL, which now
+        // holds travel plus the two Boston place fixtures.
+        { Constants.USER_ADMIN,   10,    6,   6 },
+        { Constants.USER_JOHNDOE, 1,     0,   1 },
+        { Constants.USER_JOHNDOE, 200,   3,   3 }
     };
 
     [Theory]

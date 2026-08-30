@@ -234,6 +234,103 @@ public static class Constants
         "/media/travel1.jpg"
     );
 
+    // NOTE: declaration order matters here.  static fields initialize top to
+    // bottom, so anything referencing USER_ADMIN, TYPE_PHOTO, SCALE_FULL_HD or a
+    // LOCATION_* must be declared after them - a forward reference silently reads
+    // Guid.Empty rather than failing to compile, and surfaces much later as a
+    // foreign key violation during seeding.
+    // browsing by location.  these reuse the existing categories rather than
+    // adding new ones, which keeps them out of every test that counts categories,
+    // years or search hits: CATEGORY_TRAVEL is already shared with ROLE_FRIEND and
+    // CATEGORY_FOOD is already admin only, which is exactly the pair of visibility
+    // rules these fixtures need.  they stay clear of CATEGORY_NATURE, which
+    // CategoryRepositoryTests pins at two gps-bearing media.
+    //
+    // the derived tree they produce is:
+    //
+    //   USA            -> NY -> New York   (MEDIA_TRAVEL_1 etc, pre-existing)
+    //                  -> MA -> Boston     (MEDIA_PLACE_MA, MEDIA_PLACE_OVERRIDE)
+    //   United Kingdom -> England -> London (MEDIA_PLACE_UK, admin only)
+    public static readonly DbLocation LOCATION_UK = new(
+        Guid.CreateVersion7(),
+        51.507400m,
+        -0.127800m,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        "London, England, United Kingdom",
+        "England",
+        "Greater London",
+        null,
+        "United Kingdom",
+        "London",
+        null,
+        null,
+        null,
+        "SW1A 1AA",
+        null,
+        null,
+        null,
+        null,
+        null
+    );
+
+    public static readonly DbMedia MEDIA_PLACE_MA = new(
+        Guid.CreateVersion7(),
+        TYPE_PHOTO,
+        LOCATION_MA.Id,
+        null,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        GetTestMetadata("media_nature_1"),
+        "media-place-ma"
+    );
+
+    // the override fixture, and the reason it is not optional: the phase 0 audit
+    // found 1,471 production media carry both columns with *different* values, and
+    // 60,472 are reachable only through the override.  this one is recorded at
+    // LOCATION_NY and overridden to LOCATION_MA, so it must browse under Boston and
+    // must not appear under New York.
+    public static readonly DbMedia MEDIA_PLACE_OVERRIDE = new(
+        Guid.CreateVersion7(),
+        TYPE_PHOTO,
+        LOCATION_NY.Id,
+        LOCATION_MA.Id,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        GetTestMetadata("media_nature_1"),
+        "media-place-override"
+    );
+
+    public static readonly DbMedia MEDIA_PLACE_UK = new(
+        Guid.CreateVersion7(),
+        TYPE_PHOTO,
+        LOCATION_UK.Id,
+        null,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        Instant.FromDateTimeUtc(DateTime.UtcNow),
+        USER_ADMIN,
+        GetTestMetadata("media_nature_1"),
+        "media-place-uk"
+    );
+
+    // every place media needs a file: media.get_place_media inner joins
+    // media_detail, and a category's teaser needs one to render as a tile
+    public static readonly DbFile FILE_PLACE_MA = new(
+        Guid.CreateVersion7(), MEDIA_PLACE_MA.Id, TYPE_PHOTO, SCALE_FULL_HD,
+        1920, 1080, 123456L, "/media/place-ma.jpg");
+
+    public static readonly DbFile FILE_PLACE_OVERRIDE = new(
+        Guid.CreateVersion7(), MEDIA_PLACE_OVERRIDE.Id, TYPE_PHOTO, SCALE_FULL_HD,
+        1920, 1080, 123456L, "/media/place-override.jpg");
+
+    public static readonly DbFile FILE_PLACE_UK = new(
+        Guid.CreateVersion7(), MEDIA_PLACE_UK.Id, TYPE_PHOTO, SCALE_FULL_HD,
+        1920, 1080, 123456L, "/media/place-uk.jpg");
+
     // face recognition.  PERSON_SHARED appears in both a nature photo (admin only)
     // and the travel photo (admin + friend), while PERSON_PRIVATE appears only in
     // nature - so johndoe, who holds ROLE_FRIEND, must see exactly one of them.

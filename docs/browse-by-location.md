@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-5 complete - phase 6 (tests/seeder) partly done**
+Status: **phases 0-6 complete - only the deferred admin surface (phase 7) remains**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -628,24 +628,53 @@ signature, and every returned column name maps onto its Dapper row class under
 
 ## 10. Tests
 
-The seeder needs work before any of this is testable: **every** seeded media
-currently points at `LOCATION_NY` (`tests/MawMedia.Services.Tests/Constants.cs`).
+The seeder now derives this tree, where before every media pointed at
+`LOCATION_NY`:
 
-- ~~fix `LOCATION_MA`~~ - **done.** Its columns were shifted: `Locality` held
-  `"Massachusetts"` and `Neighborhood` held `"Boston"`. Now `Locality` is
-  `"Boston"`, with `Suffolk County` and `North End` in their proper slots. Nothing
-  referenced the record, so the change was safe.
-- ~~derive places after seeding~~ - **done.** `DatabaseSeeder` calls
-  `media.assign_all_location_places()` after the locations land, since the
-  deploy's own pass runs long before the fixtures exist. It is the same idempotent
-  function the deploy calls, not a test-only path.
-- still to do: attach media to `LOCATION_MA` so the tree has more than one branch
-- one media with `location_override_id` contradicting `location_id`, proving
-  `COALESCE` precedence - **mandatory**, not nice-to-have: 1,471 production rows
-  carry both columns with differing values
-- `LOCATION_UNK` gives the null-metadata / not-browsable case for free
-- a place reachable only through a category `ROLE_FRIEND` cannot see, mirroring
-  `PERSON_PRIVATE`
+```
+USA             -> NY      -> New York   (MEDIA_TRAVEL_1 ...)
+                -> MA      -> Boston     (MEDIA_PLACE_MA, MEDIA_PLACE_OVERRIDE)
+United Kingdom  -> England -> London     (MEDIA_PLACE_UK, admin only)
+```
+
+- `LOCATION_MA`'s columns were shifted - `Locality` held `"Massachusetts"` and
+  `Neighborhood` held `"Boston"`. Fixed, with `Suffolk County` and `North End` in
+  their proper slots.
+- `DatabaseSeeder` calls `media.assign_all_location_places()` after the locations
+  land, since the deploy's own pass runs long before the fixtures exist. Same
+  idempotent function the deploy calls, not a test-only path.
+- Three media, three files and `LOCATION_UK` added. They **reuse the existing
+  categories** rather than adding new ones: `CATEGORY_TRAVEL` is already shared
+  with `ROLE_FRIEND` and `CATEGORY_FOOD` is already admin-only, which is exactly
+  the pair of visibility rules these fixtures need. An earlier attempt added two
+  new categories and broke nine unrelated assertions across `GetCategories`,
+  `GetYears`, `SearchCategories` and `GetStats` - including one where a category
+  named "Places Private" started matching a search for `"Private"`.
+- `LOCATION_UNK` gives the null-metadata / not-browsable case for free.
+- Two pre-existing theory tests legitimately needed new expectations, since the
+  fixture set grew: `GetRandomMedia` (admin 3 -> 6, johndoe 1 -> 3) and
+  `GetCategoryMedia` (travel 1 -> 3, food 0 -> 1).
+
+**Watch out for static initialization order in `Constants.cs`.** Fields
+initialize top to bottom, and a forward reference to `USER_ADMIN` reads
+`Guid.Empty` rather than failing to compile - it surfaces much later as a foreign
+key violation during seeding. The place fixtures are declared below everything
+they depend on, with a note saying so.
+
+### Phase 6 results
+
+**265 tests passing, 0 failures** - 15 of them in `PlaceRoutesTests`.
+
+Each fixture added in this phase buys a specific test:
+
+| fixture | proves |
+|---|---|
+| `MEDIA_PLACE_MA` in a shared category | the tree branches, and a country's count is the sum of its states rather than only coordinates filed directly against it |
+| `MEDIA_PLACE_OVERRIDE` (recorded NY, overridden MA) | `COALESCE` precedence end to end - it browses under Boston and is **absent** from New York |
+| `MEDIA_PLACE_UK` in an admin-only category | a place with nothing visible is absent from the listing entirely, not merely zero, and its drill-ins 404 |
+
+That last one is the sharper form of the access rule: reporting "United Kingdom:
+0 photos" would leak that the country exists at all.
 
 Then `tests/MawMedia.Services.Tests/Api/PlaceRoutesTests.cs` modeled on
 `PersonRoutesTests`: scope enforcement, visibility filtering, per-caller
@@ -678,7 +707,7 @@ name will not come back on the next geocode.
 | 3 | views: `media_location`, `user_location`, indexes | **complete** |
 | 4 | read functions: descendants, ancestors, `get_places`, `get_place_media`, `get_place_categories` | **complete** |
 | 5 | C#: model, repository, routes, DI | **complete** |
-| 6 | tests + seeder work | **partly done** - seeder derives places, `PlaceRoutesTests` covers the routes; still to do: media at a second place, an override fixture, a place only the admin can see |
+| 6 | tests + seeder work | **complete** |
 | 7 | admin surface (deferred) | |
 
 ---

@@ -302,6 +302,9 @@ public class DatabaseSeeder
             Constants.MEDIA_NATURE_2,
             Constants.MEDIA_TRAVEL_1,
             Constants.MEDIA_FOOD_1,
+            Constants.MEDIA_PLACE_MA,
+            Constants.MEDIA_PLACE_OVERRIDE,
+            Constants.MEDIA_PLACE_UK,
         ];
 
         foreach (var m in media)
@@ -369,6 +372,36 @@ public class DatabaseSeeder
                 modified = DateTime.UtcNow,
                 modified_by = Constants.USER_ADMIN,
                 slug = Constants.MEDIA_FOOD_1.Slug
+            },
+            new {
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                media_id = Constants.MEDIA_PLACE_MA.Id,
+                is_teaser = false,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_PLACE_MA.Slug
+            },
+            new {
+                category_id = Constants.CATEGORY_TRAVEL.Id,
+                media_id = Constants.MEDIA_PLACE_OVERRIDE.Id,
+                is_teaser = false,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_PLACE_OVERRIDE.Slug
+            },
+            new {
+                category_id = Constants.CATEGORY_FOOD.Id,
+                media_id = Constants.MEDIA_PLACE_UK.Id,
+                is_teaser = false,
+                created = DateTime.UtcNow,
+                created_by = Constants.USER_ADMIN,
+                modified = DateTime.UtcNow,
+                modified_by = Constants.USER_ADMIN,
+                slug = Constants.MEDIA_PLACE_UK.Slug
             }
         ];
 
@@ -387,7 +420,10 @@ public class DatabaseSeeder
         List<DbFile> files = [
             Constants.FILE_NATURE_1,
             Constants.FILE_NATURE_2,
-            Constants.FILE_TRAVEL_1
+            Constants.FILE_TRAVEL_1,
+            Constants.FILE_PLACE_MA,
+            Constants.FILE_PLACE_OVERRIDE,
+            Constants.FILE_PLACE_UK
         ];
 
         await conn.ExecuteAsync(
@@ -557,6 +593,7 @@ public class DatabaseSeeder
         List<object> locations = [
             Constants.LOCATION_MA,
             Constants.LOCATION_NY,
+            Constants.LOCATION_UK,
             Constants.LOCATION_UNK
         ];
 
