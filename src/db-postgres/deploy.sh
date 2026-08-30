@@ -216,9 +216,11 @@ function main() {
     queue "views/media.media_detail.sql"
     queue "views/media.media_exif_gps.sql"
     queue "views/media.media_gps.sql"
+    queue "views/media.media_location.sql"
     queue "views/media.user_category.sql"
     queue "views/media.user_media.sql"
     queue "views/media.user_face.sql"
+    queue "views/media.user_location.sql"
 
     header "seed"
     queue "seed/media.type.sql"

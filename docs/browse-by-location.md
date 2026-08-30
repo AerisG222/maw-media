@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-2 complete - next is phase 3 (views)**
+Status: **phases 0-3 complete - next is phase 4 (read functions)**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -412,21 +412,47 @@ WHERE COALESCE(location_override_id, location_id) IS NOT NULL;
 
 ### `views/media.user_location.sql` (new)
 
-The `media.user_face` analogue - access inherited from `media.user_media`:
+The `media.user_face` analogue, but composed from `media.user_category` and
+`media.category_media` **directly** rather than through `media.user_media`:
 
 ```sql
-SELECT DISTINCT um.user_id, l.place_id, ml.media_id
-FROM media.user_media um
-INNER JOIN media.media_location ml ON ml.media_id = um.media_id
+SELECT DISTINCT uc.user_id, l.place_id, cm.media_id
+FROM media.user_category uc
+INNER JOIN media.category_media cm ON cm.category_id = uc.category_id
+INNER JOIN media.media_location ml ON ml.media_id = cm.media_id
 INNER JOIN media.location l ON l.id = ml.location_id
 WHERE l.place_id IS NOT NULL;
 ```
 
+This is not a shortcut around the access rule. `media.user_media` *is* those same
+two relations with a `DISTINCT` over `(category_id, media_id, media_slug,
+user_id)`, and this view uses neither `category_id` nor `media_slug` -
+`media.user_category` remains the one home of `category_role -> user_role`.
+Going through `user_media` would buy a dedupe of columns that are then projected
+away, at the cost of an optimization barrier: that `DISTINCT` materializes all
+167,202 rows and spills ~7.5MB to disk before any place predicate can prune it.
+
+Measured on the dev restore, and the two forms verified set-identical across all
+2,937,290 rows:
+
+| query | via `user_media` | composed directly |
+|---|---|---|
+| city page (50) | 297ms | **72ms** |
+| country page (50, recursive) | 239ms | **66ms** |
+| media_count for all countries | 403ms | **203ms** |
+
 `category_id` is **deliberately absent**, and needs the same pointed comment
-`media.user_face.sql` carries: `user_media` has a row per (category, media), so
-carrying category through here would double-count every media sitting in two
-visible categories. Callers needing the category join `media.user_media`
-themselves.
+`media.user_face.sql` carries: a media sitting in two visible categories would
+arrive twice, and carrying that through would double-count every media in an
+aggregate. Callers needing the category join `media.user_media` themselves.
+
+The `DISTINCT` is **defensive, not currently load-bearing** - worth stating so
+nobody removes it after measuring that it changes nothing. Every media in the
+library belongs to exactly one category today (167,202 `category_media` rows over
+167,202 distinct media), so there is no duplication to absorb yet. The other
+fan-out source, a category reachable via two of a user's roles, is already
+absorbed by `media.user_category`'s own `DISTINCT` - which matters, because
+`media.category_role` averages two roles per category.
 
 ---
 
@@ -452,14 +478,29 @@ Everything else transfers verbatim from the person functions: `DISTINCT ON
 then-fan-out-files, the `_favorites_only` `EXISTS`, and the
 `BOOL_OR(_favorites_only AND EXISTS ...)` short circuit.
 
-### Indexes required
+### Indexes
 
-None of these exist today, and every query above starts with them:
+Only one is needed: **`media.location(place_id)`**, partial on `IS NOT NULL`
+(added in phase 1). It is used heavily - 542 scans during phase 3 verification
+alone.
 
-- `media.media(location_override_id)` - partial, `WHERE ... IS NOT NULL`; per
-  the audit this is the *more* important of the two
-- `media.media(location_id)`
-- `media.location(place_id)`
+Indexes on `media.media(location_id)` and `media.media(location_override_id)`
+were planned, built, and then **removed after measurement disproved the
+justification for them**. Two reasons:
+
+1. `media.media_location` joins on `COALESCE(location_override_id, location_id)`,
+   which is **not sargable** against either single-column index - the planner
+   seq-scans `media.media` regardless. An expression index on the coalesce itself
+   *can* be built, but the planner still preferred the seq scan under `LIMIT`,
+   and it moved the end-to-end timings by less than noise (250/239/443ms against
+   218/231/437ms).
+2. `pg_stat_user_indexes` showed each used exactly once or twice across the whole
+   verification run, and reading nearly the entire index when it did.
+
+The real cost was never the media-to-location join; it was `media.user_media`'s
+`DISTINCT`, which composing the view directly removes. Worth re-testing in phase
+4 if `get_place_media` ends up with a different query shape, but an index whose
+stated reason the measurement contradicts should not ship.
 
 ---
 
@@ -558,8 +599,8 @@ name will not come back on the next geocode.
 | 0 | data audit - tunes the normalization rules | **complete** (section 2) |
 | 1 | schema: `place_kind`, `place`, `place_alias`, `location.place_id`, seed, deploy.sh | **complete** |
 | 2 | derivation: normalize, slugify, assign, backfill, call-site wiring | **complete** |
-| 3 | views: `media_location`, `user_location`, indexes | next |
-| 4 | read functions: descendants, `get_places`, `get_place_media`, `get_place_categories` | |
+| 3 | views: `media_location`, `user_location`, indexes | **complete** |
+| 4 | read functions: descendants, `get_places`, `get_place_media`, `get_place_categories` | next |
 | 5 | C#: model, repository, routes, DI | |
 | 6 | tests + seeder work | |
 | 7 | admin surface (deferred) | |
