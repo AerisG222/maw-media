@@ -30,6 +30,7 @@ public static class IServiceCollectionExtensions
             .AddScoped<IFaceRepository, FaceRepository>()
             .AddScoped<ILocationRepository, LocationRepository>()
             .AddScoped<IMediaRepository, MediaRepository>()
+            .AddScoped<IPlaceRepository, PlaceRepository>()
             .AddScoped<IStatRepository, StatRepository>()
             .AddSingleton<IAssetPathBuilder, AssetPathBuilder>()
             .AddSingleton<IFaceImageStore, FaceImageStore>()

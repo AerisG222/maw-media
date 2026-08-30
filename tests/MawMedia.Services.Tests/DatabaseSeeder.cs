@@ -73,6 +73,12 @@ public class DatabaseSeeder
         await PopulateFavorites(conn);
         await PopulateCategoryFavorites(conn);
 
+        // places are derived from the reverse geocode text on media.location, and
+        // the deploy's own pass runs long before these fixtures exist - so derive
+        // them here, after the locations are in.  the function is idempotent, so
+        // this is the same call the deploy makes rather than a test-only path.
+        await DerivePlaces(conn);
+
         await RefreshMaterializedViews(conn);
     }
 
@@ -539,6 +545,11 @@ public class DatabaseSeeder
             """,
             favorites
         );
+    }
+
+    async Task DerivePlaces(NpgsqlConnection conn)
+    {
+        await conn.ExecuteAsync("SELECT media.assign_all_location_places();");
     }
 
     async Task PopulateLocations(NpgsqlConnection conn)

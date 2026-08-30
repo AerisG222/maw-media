@@ -13,9 +13,10 @@ public record Category(
     Media Teaser,
     string[] MediaTypes,
 
-    // how many of the caller's visible media in this category a given person or
-    // clan appears in.  only the person/clan category views populate it - it is
-    // null everywhere else, where "the media in this category" is the whole
-    // category and the client already knows it.
+    // how many of the caller's visible media in this category were taken at a
+    // given place, or hold a given person or clan.  only the person, clan and
+    // place category views populate it - it is null everywhere else, where "the
+    // media in this category" is the whole category and the client already knows
+    // it.
     int? MediaCount = null
 );

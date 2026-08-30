@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-4 complete - next is phase 5 (C# layer)**
+Status: **phases 0-5 complete - phase 6 (tests/seeder) partly done**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -544,8 +544,12 @@ stated reason the measurement contradicts should not ship.
 
 ## 8. C# layer
 
-- `src/MawMedia.Models/Place.cs` - `Id, ParentId, Kind, Name, Slug, MediaCount`
-  plus `CountryName` / `StateName` for breadcrumbs
+- `src/MawMedia.Models/Place.cs` - `Id, ParentId, Kind, Name, Slug, MediaCount`.
+  Deliberately flat: the browse is a drill-down, so a client asks for one level at
+  a time and never needs the whole tree nested in one response.
+- `src/MawMedia.Models/PlaceAncestor.cs` - the breadcrumb rung. Not a `Place`,
+  because a breadcrumb has no use for `MediaCount` and computing one per rung
+  would mean a subtree aggregate per level for a number nothing renders.
 - `src/MawMedia.Services.Abstractions/IPlaceRepository.cs` and
   `src/MawMedia.Services/PlaceRepository.cs` - a **new** repository rather than
   extending `ILocationRepository`. That one is admin/geocode-flavored and its
@@ -563,8 +567,14 @@ stated reason the measurement contradicts should not ship.
 |---|---|
 | `GET /places?parent={id}&kind=` | `MediaReader` |
 | `GET /places/{id:guid}` | `MediaReader` |
+| `GET /places/{id:guid}/ancestors` | `MediaReader` |
 | `GET /places/{id:guid}/media?o=&f=&seed=` | `MediaReader` |
 | `GET /places/{id:guid}/categories?o=&f=` | `MediaReader` |
+
+The listing returns an **empty array**, not 404, when a place has no visible
+children - a place whose children the caller cannot see is legitimately a leaf to
+them, and 404 would make the last level of every browse look broken. The
+drill-ins keep the person routes' 404 rule.
 
 **`MediaReader`, not `LocationReader`.** `location:read` currently means "read
 locations lacking metadata" for the correction worker, and
@@ -595,13 +605,41 @@ views populate it"; update it to include places.
 
 ---
 
+### Phase 5 results
+
+`dotnet build` clean, and 12 new tests in
+`tests/MawMedia.Services.Tests/Api/PlaceRoutesTests.cs` bring the suite to **262
+passing, 0 failures**. They cover: `MediaReader` enforcement (a `LocationRead`
+token is rejected), the derived hierarchy and its parentage, counts rolling up,
+the `kind` filter, single-place fetch, the breadcrumb order and depths, absolute
+file urls, per-place `MediaCount` on categories, the 404 rules, negative-offset
+rejection, an ungeocoded location staying unbrowsable, and per-caller scoping.
+
+The tests resolve the tree by drilling from the root rather than hardcoding ids,
+so they assert the drill-down works as a side effect of setting themselves up.
+
+Two things the build could not have caught, verified directly against the dev
+restore: every `SELECT * FROM media.get_place_*(...)` in `PlaceRepository`
+executes with its parameters in **positional** order matching the function
+signature, and every returned column name maps onto its Dapper row class under
+`MatchNamesWithUnderscores`.
+
+---
+
 ## 10. Tests
 
 The seeder needs work before any of this is testable: **every** seeded media
 currently points at `LOCATION_NY` (`tests/MawMedia.Services.Tests/Constants.cs`).
 
-- move some media to `LOCATION_MA`, and fix that record - its columns are
-  currently shifted
+- ~~fix `LOCATION_MA`~~ - **done.** Its columns were shifted: `Locality` held
+  `"Massachusetts"` and `Neighborhood` held `"Boston"`. Now `Locality` is
+  `"Boston"`, with `Suffolk County` and `North End` in their proper slots. Nothing
+  referenced the record, so the change was safe.
+- ~~derive places after seeding~~ - **done.** `DatabaseSeeder` calls
+  `media.assign_all_location_places()` after the locations land, since the
+  deploy's own pass runs long before the fixtures exist. It is the same idempotent
+  function the deploy calls, not a test-only path.
+- still to do: attach media to `LOCATION_MA` so the tree has more than one branch
 - one media with `location_override_id` contradicting `location_id`, proving
   `COALESCE` precedence - **mandatory**, not nice-to-have: 1,471 production rows
   carry both columns with differing values
@@ -639,8 +677,8 @@ name will not come back on the next geocode.
 | 2 | derivation: normalize, slugify, assign, backfill, call-site wiring | **complete** |
 | 3 | views: `media_location`, `user_location`, indexes | **complete** |
 | 4 | read functions: descendants, ancestors, `get_places`, `get_place_media`, `get_place_categories` | **complete** |
-| 5 | C#: model, repository, routes, DI | next |
-| 6 | tests + seeder work | |
+| 5 | C#: model, repository, routes, DI | **complete** |
+| 6 | tests + seeder work | **partly done** - seeder derives places, `PlaceRoutesTests` covers the routes; still to do: media at a second place, an override fixture, a place only the admin can see |
 | 7 | admin surface (deferred) | |
 
 ---

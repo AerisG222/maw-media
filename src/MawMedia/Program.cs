@@ -71,6 +71,7 @@ api.MapGroup("/faces").MapFaceRoutes();
 api.MapGroup("/locations").MapLocationRoutes();
 api.MapGroup("/media").MapMediaRoutes();
 api.MapGroup("/persons").MapPersonRoutes();
+api.MapGroup("/places").MapPlaceRoutes();
 api.MapGroup("/stats").MapStatRoutes();
 api.MapGroup("/upload").MapUploadRoutes();
 
