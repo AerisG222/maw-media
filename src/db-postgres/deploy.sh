@@ -227,6 +227,9 @@ function main() {
 
     header "functions"
     queue "funcs/media.add_comment.sql"
+    queue "funcs/media.assign_all_location_places.sql"
+    queue "funcs/media.assign_location_place.sql"
+    queue "funcs/media.build_place_slug.sql"
     queue "funcs/media.bulk_set_media_gps_override.sql"
     queue "funcs/media.create_clan.sql"
     queue "funcs/media.create_external_identity.sql"
@@ -262,6 +265,8 @@ function main() {
     queue "funcs/media.get_user_can_view_face.sql"
     queue "funcs/media.get_user_state.sql"
     queue "funcs/media.get_visible_person_count.sql"
+    queue "funcs/media.normalize_place_name.sql"
+    queue "funcs/media.resolve_place.sql"
     queue "funcs/media.search_categories.sql"
     queue "funcs/media.set_category_teaser.sql"
     queue "funcs/media.set_clan_persons.sql"
@@ -272,6 +277,9 @@ function main() {
     queue "funcs/media.sync_person_statuses.sql"
     queue "funcs/media.sync_persons.sql"
     queue "funcs/media.update_clan.sql"
+
+    header "post-deploy"
+    queue "post-deploy/media.assign_all_location_places.sql"
 
     run_driver
 

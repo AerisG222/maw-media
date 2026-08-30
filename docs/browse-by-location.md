@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phase 1 complete - next is phase 2 (derivation)**
+Status: **phases 0-2 complete - next is phase 3 (views)**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -273,7 +273,8 @@ in `media.media.sql`, with an FK to `media.place` and an index.
 | function | purpose |
 |---|---|
 | `media.normalize_place_name` | `lower(btrim(regexp_replace(v, '\s+', ' ', 'g')))` |
-| `media.slugify` | `[^a-z0-9]+` -> `-`, trimmed; falls back to the id's first 8 chars when the name slugifies to empty (CJK, Cyrillic) |
+| `media.build_place_slug` | periods and apostrophes dropped, then `[^a-z0-9]+` -> `-`, trimmed; falls back to the id's first 8 chars when the name slugifies to empty. Named for the house `verb_noun` convention rather than `slugify`, and place-scoped because of that fallback |
+| `media.resolve_place` | finds or creates the place one level resolves to - the single point at which a `media.place` row comes into existence |
 | `media.assign_location_place` | resolves one location to its deepest place |
 | `media.assign_all_location_places` | loops every location; idempotent, so it is both the backfill and the repair tool |
 
@@ -283,23 +284,114 @@ and zero accented Latin characters, so it would earn nothing.
 
 Slugs are cosmetic. Routes key on `{id:guid}`, exactly like persons.
 
-`assign_location_place` walks country -> state -> city. For each level:
-normalize -> look up `place_alias` by `(kind, parent, match_key)` -> a hit
-returns the place, a miss creates the place plus its identity alias. Then set
-`location.place_id` to the deepest node.
+`assign_location_place` walks country -> state -> city, delegating each level to
+`resolve_place`: normalize -> look up `place_alias` by `(kind, parent,
+match_key)` -> a hit returns the place, a miss creates the place plus its
+identity alias. Then set `location.place_id` to the deepest node.
+
+Three details that turned out to be load-bearing during implementation:
+
+- **`IS NOT DISTINCT FROM` on the parent lookup.** Every country has a null
+  parent, and `parent_place_id = NULL` matches nothing - plain equality would
+  miss the existing row on every call and try to insert a duplicate every time.
+- **A retry loop around the insert.** Two sessions racing to create the same
+  place (the backfill running while the correction worker publishes) means the
+  loser catches the unique violation on the alias and goes round again, where
+  the winner's row is now visible.
+- **The `UPDATE` is guarded with `place_id IS DISTINCT FROM`.** Without it the
+  backfill rewrites all 25,699 rows on every deploy and leaves a dead tuple
+  behind each, for no change in the answer.
+
+Slug shaping has two rules beyond lowercasing. **Periods and apostrophes are
+dropped rather than separated**, via a single `TRANSLATE` with an empty target,
+so the word closes up the way a reader expects:
+
+| name | slug |
+|---|---|
+| `U.S.A.` | `usa` |
+| `Washington D.C.` | `washington-dc` |
+| `St. John's` | `st-johns` |
+| `Martha's Vineyard` | `marthas-vineyard` |
+| `O'Fallon` | `ofallon` |
+
+Any **other** run of non-alphanumerics **collapses to a single dash** with the
+ends trimmed, so `  --Hong  Kong--  ` becomes `hong-kong` and `Wilkes-Barre`
+stays `wilkes-barre`. The `+` on the character class does that in one pass -
+there is no second collapse step. The drop has to happen first, or the pass would
+have already turned both characters into dashes.
+
+Two consequences worth knowing:
+
+- **Slugs are assigned at creation and never recomputed.** Changing these rules
+  does not retroactively re-slug existing places. It cost nothing for either rule
+  (zero of the 271 derived places contain a period or an apostrophe), but a
+  future change would need a re-slug pass or the deferred `media.rename_place`.
+- **Only the ascii apostrophe is covered.** The geocoder has never returned the
+  typographic one - the audit found a single non-ascii value in 27,870 rows, a
+  Thai state name - and one would slug as a dash like any other separator.
+
+`resolve_place` also owns slug collisions, since only it knows what is taken:
+two distinct names under one parent can slugify alike (`St. John` / `St John`
+normalize differently, so they are two places, but reduce to one slug), and the
+loser gets the head of its uuid appended.
+
+Ids come from PG18's native **`uuidv7()`**, matching the `Guid.CreateVersion7()`
+the application uses everywhere else.
 
 ### Call sites
 
 No triggers exist anywhere in this schema, so the calls stay explicit. Four
 functions touch `media.location`, but only two ever write geocode text:
 
-- `media.set_location_metadata` - call after the `UPDATE`, before `RETURN 0`
-- `media.fix_inaccurate_location` - call on the new location in the `RETURN 13`
-  branch, which copies metadata from a nearby location
+- `media.set_location_metadata` - called after the `UPDATE`, before `RETURN 0`
+- `media.fix_inaccurate_location` - called on the new location in the `RETURN 13`
+  branch, which copies metadata from a nearby location. The other branches need
+  no call: `12` reuses an existing location that already has a place, and `14`
+  creates a coordinate with no metadata, whose place is correctly the null it
+  already holds.
 
 `media.set_media_gps_override` and `media.bulk_set_media_gps_override` create
 coordinate-only rows with no text; the correction worker fills them in later via
 `set_location_metadata`, which is already hooked. No change needed there.
+
+---
+
+### Phase 2 results (verified against the dev restore)
+
+The backfill derived places for **25,699** locations in **2.35s** - exactly the
+27,870 minus the 2,171 never geocoded.
+
+| | derived | expected |
+|---|---|---|
+| countries | 8 | 8 |
+| states | 27 | 27 |
+| cities | 236 | 236 |
+
+The 27/236 differ from the 31/239 predicted in section 2 because that audit query
+counted NULL levels as distinct tuples, whereas derivation collapses them; the
+arithmetic reconciles exactly once the null-level tuples are subtracted. All 271
+places carry exactly one identity alias, and every structural invariant holds
+(no country with a parent, no non-country without one, no parent at or below its
+child's level, no ungeocoded row with a place, no geocoded row without one).
+
+Behaviour verified in rolled-back transactions:
+
+- `set_location_metadata` derives a place end to end
+- a re-geocode moves the location to the new place, reusing ancestors and leaving
+  the vacated place in place rather than deleting it
+- a slug collision resolves via the uuid suffix
+- a location that loses its country has `place_id` cleared
+- **an admin rename survives re-derivation** - renaming `Japan` to `Nippon` and
+  re-running produced no second `Japan`, which is the entire justification for
+  `place_alias`
+- a second backfill writes **zero** rows and creates no places or aliases
+
+A from-scratch `deploy.sh` run succeeds, and the full existing suite passes
+(250 tests, 0 failures).
+
+**Note on running the tests:** `dotnet test --project ...` reports "Zero tests
+ran"; the xUnit v3 in-process runner is invoked with `dotnet run` from
+`tests/MawMedia.Services.Tests` instead.
 
 ---
 
@@ -417,8 +509,10 @@ views populate it"; update it to include places.
 - views: `media.media_location.sql`, then `media.user_location.sql` after
   `media.user_media.sql`
 - funcs: alphabetical, as the file already is
-- post-deploy `SELECT media.assign_all_location_places();` - idempotent, so safe
-  on every deploy, though a oneshot job (per `7d271ea`) may be preferable
+- a new `post-deploy` stage, queued last: `post-deploy/media.assign_all_location_places.sql`.
+  Idempotent, so it runs on every deploy rather than once - which is also what
+  makes a change to the derivation rules take effect without a separate migration
+  step to remember.
 
 ---
 
@@ -463,8 +557,8 @@ name will not come back on the next geocode.
 |---|---|---|
 | 0 | data audit - tunes the normalization rules | **complete** (section 2) |
 | 1 | schema: `place_kind`, `place`, `place_alias`, `location.place_id`, seed, deploy.sh | **complete** |
-| 2 | derivation: normalize, slugify, assign, backfill, call-site wiring | next |
-| 3 | views: `media_location`, `user_location`, indexes | |
+| 2 | derivation: normalize, slugify, assign, backfill, call-site wiring | **complete** |
+| 3 | views: `media_location`, `user_location`, indexes | next |
 | 4 | read functions: descendants, `get_places`, `get_place_media`, `get_place_categories` | |
 | 5 | C#: model, repository, routes, DI | |
 | 6 | tests + seeder work | |

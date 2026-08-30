@@ -123,6 +123,13 @@ BEGIN
         SET location_id = _new_location_id
         WHERE id = _media_id;
 
+        -- the new coordinate inherited the neighbour's address, so it inherits
+        -- the place that address resolves to.  the other branches need no such
+        -- call: 12 reuses an existing location that already has one, and 14
+        -- creates a coordinate with no metadata at all, whose place is correctly
+        -- the null it already holds.
+        PERFORM media.assign_location_place(_new_location_id);
+
         RETURN 13;
     END IF;
 

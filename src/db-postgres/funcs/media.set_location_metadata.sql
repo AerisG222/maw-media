@@ -57,6 +57,13 @@ BEGIN
             sub_premise = _sub_premise
         WHERE id = _location_id;
 
+    -- the geocode text just changed, so the place derived from it has to follow.
+    -- doing it here rather than leaving it to a sweep is what keeps a location's
+    -- place from lagging its address - this is the only path by which a
+    -- coordinate acquires reverse geocode data in the first place.
+    -- see docs/browse-by-location.md
+    PERFORM media.assign_location_place(_location_id);
+
     RETURN 0;
 
 END;
