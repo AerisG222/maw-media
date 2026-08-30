@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-3 complete - next is phase 4 (read functions)**
+Status: **phases 0-4 complete - next is phase 5 (C# layer)**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -461,13 +461,51 @@ absorbed by `media.user_category`'s own `DISTINCT` - which matters, because
 | function | mirrors | notes |
 |---|---|---|
 | `media.get_place_descendants` | `media.get_visible_person_count` (shared-definition helper) | `WITH RECURSIVE`; depth is 3 and the tree is small, so no closure table |
-| `media.get_places` | `media.get_persons` | returns the whole set, not a page; per-caller `media_count` via `COUNT(DISTINCT ul.media_id)` over descendants; inner join makes invisible places vanish |
+| `media.get_place_ancestors` | (counterpart of the above) | the breadcrumb chain, root first, with a 1-based `depth`; sub-millisecond |
+| `media.get_places` | `media.get_persons` | returns the whole set, not a page; per-caller `media_count` via `COUNT(DISTINCT ul.media_id)` over the subtree; inner join makes invisible places vanish |
 | `media.get_place_media` | `media.get_person_media` | person predicate swapped for `place_id IN (get_place_descendants(...))` |
 | `media.get_place_categories` | `media.get_person_categories` | same `media_count` semantics, same favorites-both-ways rule |
 
 `get_places` signature: `(_user_id, _parent_id, _kind, _place_id)` - `_place_id`
 is the same single-row narrowing trick `get_persons` uses, so one function
-serves both list and fetch.
+serves both list and fetch. With no `_parent_id` it lists the countries; with one
+it lists that place's children.
+
+Two details worth knowing:
+
+- **A listing can mix kinds.** Macao and Hong Kong have no state level, so their
+  cities parent straight to the country. That is why `kind` is returned rather
+  than inferred from the depth of the request.
+- **`_parent_id` uses `IS NOT DISTINCT FROM`.** A null `_parent_id` means "the
+  root", and every country's `parent_id` is null, so plain equality would match
+  nothing and the top level of the browse would come back empty.
+
+### Phase 4 results (verified against the dev restore)
+
+| check | result |
+|---|---|
+| a page is N distinct media, not N (media, file) rows | 500 rows = 50 media x 10 scales |
+| pages 1 and 2 do not overlap | 0 |
+| same seed returns an identical page | 50/50 |
+| different seed reorders | 0 overlap |
+| seeded pages do not overlap | 0 |
+| a city's media are a subset of its country's | 0 violations |
+| a city's per-category count never exceeds its state's | 0 violations |
+| country `media_count` equals its subtree's distinct union | 83,927 = 83,927 |
+| restricted user sees extra places | 0 |
+| restricted user sees more media anywhere | 0 |
+| zero-count tiles | 0 |
+| unknown place id | empty, not an error |
+
+Access enforcement was checked against a place where the two users genuinely
+differ (Worcester: admin 911, restricted 895) rather than one where both hit the
+page cap - the tail page returns 111 against 95, and nothing the restricted user
+sees is invisible to the admin.
+
+Timings: root listing 220ms, drill-down 217ms, breadcrumb 0.3-0.7ms, media page
+442-510ms, categories page 607ms. For reference the existing person equivalents
+on the same data are 614ms, 873ms and 4,759ms (`get_categories`), so these sit
+below the feature they mirror.
 
 **Paging.** Browsing is always parent-scoped drill-down, so a result set is one
 country's states or one state's cities - never "all cities globally". That is
@@ -600,8 +638,8 @@ name will not come back on the next geocode.
 | 1 | schema: `place_kind`, `place`, `place_alias`, `location.place_id`, seed, deploy.sh | **complete** |
 | 2 | derivation: normalize, slugify, assign, backfill, call-site wiring | **complete** |
 | 3 | views: `media_location`, `user_location`, indexes | **complete** |
-| 4 | read functions: descendants, `get_places`, `get_place_media`, `get_place_categories` | next |
-| 5 | C#: model, repository, routes, DI | |
+| 4 | read functions: descendants, ancestors, `get_places`, `get_place_media`, `get_place_categories` | **complete** |
+| 5 | C#: model, repository, routes, DI | next |
 | 6 | tests + seeder work | |
 | 7 | admin surface (deferred) | |
 
@@ -609,11 +647,22 @@ name will not come back on the next geocode.
 
 ## 13. Open questions
 
-1. **Place tiles - image or not?** Persons have `preferred_face_id` for the
-   tile; places have nothing. v1 could ship text+count tiles, or add a `LATERAL`
-   teaser join picking the most recent visible media at that place. The teaser
-   looks better but costs a `media_detail` lookup per tile and drags the file
-   fan-out into `get_places`.
+1. ~~**Place tiles - image or not?**~~ - **resolved: neither.** A teaser drawn
+   from the caller's own media was measured and rejected - it must be a photo
+   *that caller* can see, so it needs a `LATERAL` per tile, which took a city
+   listing from 144ms to 991ms (~7x, worst at the level with the most tiles).
+   The direction instead is a **curated image of the place itself** - a stock
+   shot of the city or country, which highlights the location rather than showing
+   one photo from inside it. Because it is identical for every caller it needs no
+   `LATERAL` and no access check: it becomes a plain column on `media.place`,
+   read for free. `get_places` therefore ships the fast flat shape now, and the
+   image is **additive** when it arrives - a new field beside the others, not a
+   change to any of them.
+
+   Still to decide when that is picked up: where the images are stored and served
+   (the `/assets/faces/{id}` pattern from `FaceImageStore` is the obvious model),
+   how they are uploaded and assigned, licensing/attribution for stock imagery,
+   and whether a place with no image falls back to its parent's.
 2. ~~**`unaccent` extension**~~ - **resolved by the phase 0 audit: not adding
    it.** One non-ASCII value exists in the whole table and `unaccent` would not
    help it.

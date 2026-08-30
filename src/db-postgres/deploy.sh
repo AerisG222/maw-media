@@ -8,7 +8,24 @@ PWDFILEDIR=$2
 # repeat deploy emits a NOTICE for every object that is already there.  raising
 # the client threshold to warning drops that noise and leaves warnings and
 # errors standing out.
-PSQL_OPTIONS="-c client_min_messages=warning"
+#
+# lock_timeout turns a stalled deploy into a failed one.  several scripts take an
+# ACCESS EXCLUSIVE lock - any ALTER TABLE ... ADD COLUMN or ADD CONSTRAINT does -
+# and that conflicts with the ACCESS SHARE lock every plain SELECT holds.  so one
+# idle transaction or one long running query somewhere makes the deploy wait, and
+# because postgres queues later lock requests behind a pending exclusive one, the
+# whole run appears to stop dead on whichever script asked first rather than on
+# the session actually at fault.
+#
+# with a timeout it fails instead, and ON_ERROR_STOP plus psql's include tracking
+# then name the script and line - which is the difference between "the deploy is
+# hung" and a message pointing at media.location.sql.  30s is well beyond what
+# these locks need on an idle database and short enough not to read as a hang.
+#
+# to find the culprit when it fires:
+#   SELECT pid, pg_blocking_pids(pid), state, query FROM pg_stat_activity
+#   WHERE cardinality(pg_blocking_pids(pid)) > 0;
+PSQL_OPTIONS="-c client_min_messages=warning -c lock_timeout=30s"
 
 # where the sql lives from psql's point of view.  empty when psql runs on this
 # host, since the scripts are then addressed relative to the working directory.
@@ -260,6 +277,11 @@ function main() {
     queue "funcs/media.get_person_categories.sql"
     queue "funcs/media.get_person_media.sql"
     queue "funcs/media.get_persons.sql"
+    queue "funcs/media.get_place_ancestors.sql"
+    queue "funcs/media.get_place_categories.sql"
+    queue "funcs/media.get_place_descendants.sql"
+    queue "funcs/media.get_place_media.sql"
+    queue "funcs/media.get_places.sql"
     queue "funcs/media.get_random_media.sql"
     queue "funcs/media.get_scales.sql"
     queue "funcs/media.get_stats.sql"
