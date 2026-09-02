@@ -28,7 +28,7 @@ public static class PlaceRoutes
             .MapGet("/", GetPlaces)
             .WithName("places-list")
             .WithSummary("Places")
-            .WithDescription("Lists places the caller has media in. Omit parent for the countries; pass parent=<id> to drill into a place's children, and kind=country|state|city to filter a mixed listing.")
+            .WithDescription("Lists places the caller has media in. Omit parent for the countries; pass parent=<id> to drill into a place's children, kind=country|state|city to filter a mixed listing, and q=<term> to search names anywhere in the tree. Searching ignores parent.")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
         group
@@ -109,7 +109,8 @@ public static class PlaceRoutes
         HttpRequest request,
         CancellationToken token,
         [FromQuery] Guid? parent = null,
-        [FromQuery] string? kind = null
+        [FromQuery] string? kind = null,
+        [FromQuery] string? q = null
     )
     {
         var userId = user.GetMediaUserId();
@@ -122,7 +123,7 @@ public static class PlaceRoutes
         // an empty listing is a real answer here, unlike the drill-ins below - a
         // place whose children the caller cannot see is legitimately a leaf to
         // them, and 404 would make the last level of every browse look broken
-        return TypedResults.Ok(await repo.GetPlaces(userId.Value, request.GetBaseUrl(), parent, kind, token));
+        return TypedResults.Ok(await repo.GetPlaces(userId.Value, request.GetBaseUrl(), parent, kind, q, token));
     }
 
     static async Task<Results<Ok<Place>, NotFound>> GetPlace(

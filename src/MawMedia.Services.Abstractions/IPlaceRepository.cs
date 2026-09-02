@@ -23,7 +23,12 @@ public interface IPlaceRepository
     //
     // kind is an optional extra filter for a client that wants to group a mixed
     // listing; it is not needed to page or to drill.
-    Task<IEnumerable<Place>> GetPlaces(Guid userId, string baseUrl, Guid? parentId = null, string? kind = null, CancellationToken token = default);
+    //
+    // search matches a name anywhere in the tree and makes parentId irrelevant.
+    // the admin corrections need it: merging two places means finding the second
+    // one, and drilling to it requires already knowing where it is - which is
+    // exactly what is not known when hunting duplicates.
+    Task<IEnumerable<Place>> GetPlaces(Guid userId, string baseUrl, Guid? parentId = null, string? kind = null, string? search = null, CancellationToken token = default);
 
     // a single place by id, applying the same access rule - null when the caller
     // may see nothing there.  shares GetPlaces' query rather than adding a second

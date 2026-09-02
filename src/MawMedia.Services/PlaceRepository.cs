@@ -41,15 +41,16 @@ public class PlaceRepository
         string baseUrl,
         Guid? parentId = null,
         string? kind = null,
+        string? search = null,
         CancellationToken token = default
-    ) => await InternalGetPlaces(userId, baseUrl, parentId, kind, null, token);
+    ) => await InternalGetPlaces(userId, baseUrl, parentId, kind, null, search, token);
 
     public async Task<Place?> GetPlace(
         Guid userId,
         string baseUrl,
         Guid placeId,
         CancellationToken token = default
-    ) => (await InternalGetPlaces(userId, baseUrl, null, null, placeId, token)).SingleOrDefault();
+    ) => (await InternalGetPlaces(userId, baseUrl, null, null, placeId, null, token)).SingleOrDefault();
 
     async Task<IEnumerable<Place>> InternalGetPlaces(
         Guid userId,
@@ -57,6 +58,7 @@ public class PlaceRepository
         Guid? parentId,
         string? kind,
         Guid? placeId,
+        string? search,
         CancellationToken token
     )
     {
@@ -64,13 +66,14 @@ public class PlaceRepository
         // media.get_persons uses, so the list and the fetch are one query with one
         // access rule rather than two that could drift apart
         var results = await Query<PlaceRow>(
-            "SELECT * FROM media.get_places(@userId, @parentId, @kind, @placeId);",
+            "SELECT * FROM media.get_places(@userId, @parentId, @kind, @placeId, @search);",
             new
             {
                 userId,
                 parentId,
                 kind,
-                placeId
+                placeId,
+                search
             },
             token
         );
@@ -83,6 +86,9 @@ public class PlaceRepository
                 r.Name,
                 r.Slug,
                 r.MediaCount,
+                // null for a country, which has none - flattened here so clients
+                // never have to distinguish "no ancestors" from "not supplied"
+                r.AncestorNames ?? [],
                 // absolute, so clients do not assemble it.  the file name is the
                 // place id; cover_created only says whether there is one and which
                 // version, which becomes the url's ?v=.
@@ -92,7 +98,8 @@ public class PlaceRepository
                         System.Globalization.CultureInfo.InvariantCulture,
                         Constants.PlaceCoverUrlFormat,
                         r.Id,
-                        r.CoverCreated.Value.ToUnixTimeTicks()))
+                        r.CoverCreated.Value.ToUnixTimeTicks())),
+                r.CoverMediaId
             ))
             .ToList();
     }

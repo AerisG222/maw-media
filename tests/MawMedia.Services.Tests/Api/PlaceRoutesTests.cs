@@ -707,4 +707,103 @@ public class PlaceRoutesTests
 
         Assert.Equal(country.Id, unchanged!.ParentId);
     }
+
+    [Fact]
+    public async Task SearchFindsAPlaceWithoutKnowingItsParent()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, boston) = await Usa(client, "ma", "boston");
+
+        // no parent supplied, and the city is two levels down
+        var hits = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?q=bost", JsonOptions, token);
+
+        Assert.Equal(boston.Id, Assert.Single(hits!).Id);
+
+        // kind still applies, so "every city called X" is one call
+        var asState = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?q=bost&kind=state", JsonOptions, token);
+
+        Assert.Empty(asState!);
+    }
+
+    [Fact]
+    public async Task SearchIgnoresParentAndIsLiteralNotAPattern()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (country, _, boston) = await Usa(client, "ma", "boston");
+
+        // a parent alongside a search is ignored rather than narrowing it - the
+        // duplicates worth finding sit in different branches
+        var scoped = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?q=bost&parent={country.Id}", JsonOptions, token);
+
+        Assert.Equal(boston.Id, Assert.Single(scoped!).Id);
+
+        // LIKE metacharacters are matched literally, so they find nothing rather
+        // than everything
+        foreach (var term in new[] { "%", "_" })
+        {
+            Assert.Empty((await client.GetFromJsonAsync<Place[]>(
+                $"{ROUTE_LIST}?q={Uri.EscapeDataString(term)}", JsonOptions, token))!);
+        }
+
+        // and a blank term falls through to the country listing rather than
+        // matching every place in the tree
+        var blank = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?q={Uri.EscapeDataString("   ")}", JsonOptions, token);
+
+        Assert.All(blank!, p => Assert.Equal("country", p.Kind));
+    }
+
+    [Fact]
+    public async Task PlacesCarryTheirAncestorNames()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (country, state, city) = await Usa(client, "ny", "new-york");
+
+        // this is what makes a search result legible without a second call: the
+        // real library holds two cities called Zhuhai under two parents both
+        // called Guangdong, and only the grandparent separates them
+        Assert.Equal([country.Name, state.Name], city.AncestorNames);
+        Assert.Equal([country.Name], state.AncestorNames);
+        Assert.Empty(country.AncestorNames);
+    }
+
+    [Fact]
+    public async Task APlaceReportsWhichPhotographItsCoverCameFrom()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        Assert.Null(city.CoverMediaId);
+
+        var updated = await (await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token))
+            .Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        try
+        {
+            // the url names the published copy, so only this tells a picker which
+            // original to show as selected
+            Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, updated!.CoverMediaId);
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
+
+        var cleared = await admin.GetFromJsonAsync<Place>(PlaceRoute(city.Id), JsonOptions, token);
+
+        Assert.Null(cleared!.CoverMediaId);
+    }
 }

@@ -16,4 +16,6 @@ class PlaceRow
     public required string Slug { get; set; }
     public int MediaCount { get; set; }
     public NodaTime.Instant? CoverCreated { get; set; }
+    public Guid? CoverMediaId { get; set; }
+    public string[]? AncestorNames { get; set; }
 }

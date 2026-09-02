@@ -35,5 +35,20 @@ public record Place(
     string Name,
     string Slug,
     int MediaCount,
-    string? CoverUrl
+
+    // the names above this place, root first and excluding itself, so a client can
+    // label a result without walking parent ids.  it is what makes a search result
+    // legible: this library holds two cities called Zhuhai, both under a parent
+    // called Guangdong, and only the grandparent tells them apart.
+    //
+    // empty for a country.  an array rather than a joined string, so the client
+    // picks its own separator - the same choice Category.MediaTypes makes.
+    string[] AncestorNames,
+
+    string? CoverUrl,
+
+    // which photograph the cover was published from, or null when there is none.
+    // an admin picker needs it to show the current choice as selected, which it
+    // cannot do from CoverUrl - that names the published copy, not the original.
+    Guid? CoverMediaId
 );

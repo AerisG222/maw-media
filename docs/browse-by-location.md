@@ -568,7 +568,7 @@ stated reason the measurement contradicts should not ship.
 
 | route | scope |
 |---|---|
-| `GET /places?parent={id}&kind=` | `MediaReader` |
+| `GET /places?parent={id}&kind=&q=` | `MediaReader` |
 | `GET /places/{id:guid}` | `MediaReader` |
 | `GET /places/{id:guid}/ancestors` | `MediaReader` |
 | `GET /places/{id:guid}/media?o=&f=&seed=` | `MediaReader` |
@@ -739,6 +739,30 @@ a client may well display.
 
 Reinstate it only if a place ever needs to be kept out of the listing *while still
 holding media somebody can see*. No such place exists in the library.
+
+### Finding the second place
+
+Merging means finding a duplicate, and drilling to it requires already knowing
+where it is - which is exactly what is unknown when hunting duplicates. So
+`get_places` takes a `_search` term (`?q=`) that matches a name **anywhere in the
+tree**, ignoring `parent`, because the duplicates worth finding sit in *different*
+branches. `kind` still applies, so "every city called Zhuhai" is one call.
+
+Matching uses the same normalized form derivation uses, via `STRPOS` rather than
+`LIKE`, so a term containing `%` or `_` is a literal rather than a pattern. A term
+that normalizes to nothing falls through to the country listing instead of
+matching everything.
+
+It earned itself immediately: searching `zhuhai` turned up a **third** duplicate
+neither the audit nor the phase 0 queries had found - `Zhuhai Shi` under
+`Guangdong Sheng`, alongside the two known `Zhuhai` rows.
+
+`Place` also carries **`ancestorNames`** (root first, excluding itself), because
+search results are otherwise ambiguous in exactly the case that motivated the
+feature: two cities called Zhuhai, both under a parent called Guangdong, separated
+only by the grandparent. And **`coverMediaId`**, so an admin picker can show the
+current choice as selected - `coverUrl` names the published copy, not the
+original.
 
 ### Still unbuilt
 
