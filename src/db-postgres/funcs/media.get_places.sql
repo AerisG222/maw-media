@@ -21,7 +21,10 @@ DROP FUNCTION IF EXISTS media.get_places;
 -- country itself.
 --
 -- the join to media.user_location is INNER, and that is the entire access rule: a
--- place holding nothing the caller may see does not appear at all.  so a user
+-- place holding nothing the caller may see does not appear at all.  it doubles as
+-- the tidying rule - a place emptied by a merge or a re-parent stops being listed
+-- without anything having to mark it, which is why media.place carries no hidden
+-- flag.  so a user
 -- restricted out of every category from a trip does not learn the trip happened.
 -- it also keeps the list honest - a tile that reads "0 photos" and leads to an
 -- empty screen is worse than no tile.
@@ -71,8 +74,7 @@ BEGIN
         SELECT p.id
         FROM media.place p
         WHERE
-            p.is_hidden = FALSE
-            AND (_kind IS NULL OR p.kind = _kind)
+            (_kind IS NULL OR p.kind = _kind)
             AND (
                 CASE
                     WHEN _place_id IS NOT NULL THEN p.id = _place_id

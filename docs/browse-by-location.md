@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-6 and 8 complete - only the deferred admin surface (phase 7) remains**
+Status: **all phases complete.** Remaining optional work: `rename_place`, and the judgement calls in section 11
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -225,7 +225,6 @@ media.place (
     kind      TEXT NOT NULL REFERENCES media.place_kind(code),
     name      TEXT NOT NULL,      -- display; admin editable
     slug      TEXT NOT NULL,
-    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
     created   TIMESTAMPTZ NOT NULL,
     modified  TIMESTAMPTZ NOT NULL
 )
@@ -688,16 +687,63 @@ alias reuse, null handling).
 
 ---
 
-## 11. Admin surface (deferred)
+## 11. Admin surface
 
-The schema above already supports it, so this needs no migration later.
+The derived tree is only as good as the geocoder, and the audit found places it
+got wrong in ways no normalizer can fix by guessing. Two corrections are built,
+both admin-gated behind `LocationWriter`, both surviving re-derivation because
+`media.place_alias` records the correction rather than the place's name.
 
-`media.rename_place`, `media.merge_places`, `media.set_place_parent`,
-`media.set_place_hidden` - all `media.get_is_admin`-gated like
-`set_location_metadata`, exposed under `LocationWriter` (that scope genuinely
-fits location administration). Merge repoints aliases and locations, then
-deletes the loser; because derivation goes through `place_alias`, the merged-away
-name will not come back on the next geocode.
+| route | what it fixes |
+|---|---|
+| `POST /places/{id}/merge` body `{ sourceId }` | a place the geocoder spelled two ways, or filed twice |
+| `PUT /places/{id}/parent` body `{ parentId }` | a place filed in the wrong branch |
+
+**Merge is the more useful of the two, including where re-parent looks like the
+answer.** `United States -> Acton` appeared to need re-parenting, but there was
+already a `Massachusetts -> Acton` holding 3,675 locations - one town the geocoder
+filed twice, once with a state and once without. Merging consolidates to 3,677;
+re-parenting would have left two Actons under Massachusetts with a suffixed slug.
+So merge deliberately does **not** require a shared parent, only a shared kind.
+
+**Re-parenting leaves the aliases alone**, and that is the subtle part.
+`media.place_alias` records what the *geocoder* produces - `('city', United
+States, 'acton')`, because that coordinate really has no state - while
+`media.place.parent_id` records where an admin decided it belongs. After a move
+the two disagree on purpose: the next derivation pass still looks up the old
+tuple, still finds the alias, and still resolves to the place, which now hangs
+under its new parent. Repointing the alias would make that lookup miss and quietly
+recreate the place under the parent it was just moved out of.
+
+### There is no hidden flag
+
+`media.place` briefly carried `is_hidden`. It was removed before ever being
+written, because the case it was meant for turned out to be better served by the
+other two corrections.
+
+Worked through on the real `Macao -> Guangdong -> Zhuhai` branch, where three
+coordinates whose `formatted_address` reads *"Skyline, 24 Estrada de Dom João
+Paulino, Macao"* were assigned a Chinese province and the mainland city across the
+border:
+
+| | result |
+|---|---|
+| hide the bogus state | tile gone, but the parent claims 28 while its visible children sum to 23, and the photos are unreachable by drilling |
+| merge Zhuhai into Macau | `Macau 22 · Taipa 2`, counts reconcile, photos stay browsable - **and the bogus state vanishes from the listing on its own** |
+
+That last point is why the flag was unnecessary: `media.get_places` inner joins to
+visible media, so a place emptied by a merge or a re-parent stops being listed
+without anything having to mark it. Hiding instead papers over the wrong data,
+strands the hidden node's children, and widens a parent-versus-children count gap
+a client may well display.
+
+Reinstate it only if a place ever needs to be kept out of the listing *while still
+holding media somebody can see*. No such place exists in the library.
+
+### Still unbuilt
+
+`media.rename_place` - trivial once these exist, and the audit found no case
+needing it: names arrive consistently long-form.
 
 ---
 
@@ -712,7 +758,7 @@ name will not come back on the next geocode.
 | 4 | read functions: descendants, ancestors, `get_places`, `get_place_media`, `get_place_categories` | **complete** |
 | 5 | C#: model, repository, routes, DI | **complete** |
 | 6 | tests + seeder work | **complete** |
-| 7 | admin surface (deferred) | still deferred |
+| 7 | admin surface: merge + re-parent | **complete** (section 11) |
 | 8 | admin picked cover images | **complete** (section 14) |
 
 ---

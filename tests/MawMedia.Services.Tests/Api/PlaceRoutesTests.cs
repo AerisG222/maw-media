@@ -650,4 +650,61 @@ public class PlaceRoutesTests
 
         Assert.Null(still!.CoverUrl);
     }
+
+    static string MergeRoute(Guid id) => $"{ROUTE_LIST}/{id}/merge";
+    static string ParentRoute(Guid id) => $"{ROUTE_LIST}/{id}/parent";
+
+    [Fact]
+    public async Task ReshapingTheTreeRequiresTheScopeAndAdmin()
+    {
+        using var browse = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var noScope = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var notAdmin = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, ny, _) = await Usa(browse, "ny", "new-york");
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await noScope.PostAsJsonAsync(MergeRoute(ny.Id), new PlaceMergeRequest(ny.Id), JsonOptions, token)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await notAdmin.PutAsJsonAsync(ParentRoute(ny.Id), new PlaceParentRequest(null), JsonOptions, token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task MergeIsRefusedAcrossKindsAndIntoItself()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (country, state, _) = await Usa(admin, "ny", "new-york");
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await writer.PostAsJsonAsync(MergeRoute(country.Id), new PlaceMergeRequest(country.Id), JsonOptions, token)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await writer.PostAsJsonAsync(MergeRoute(country.Id), new PlaceMergeRequest(state.Id), JsonOptions, token)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await writer.PostAsJsonAsync(MergeRoute(country.Id), new PlaceMergeRequest(Guid.CreateVersion7()), JsonOptions, token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task AReParentIsRefusedWhenTheParentDoesNotSitAbove()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (country, state, city) = await Usa(admin, "ny", "new-york");
+
+        // a state cannot sit under a city, and only a country may be a root
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await writer.PutAsJsonAsync(ParentRoute(state.Id), new PlaceParentRequest(city.Id), JsonOptions, token)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await writer.PutAsJsonAsync(ParentRoute(city.Id), new PlaceParentRequest(null), JsonOptions, token)).StatusCode);
+
+        // and the country is still where it was
+        var unchanged = await admin.GetFromJsonAsync<Place>(PlaceRoute(state.Id), JsonOptions, token);
+
+        Assert.Equal(country.Id, unchanged!.ParentId);
+    }
 }

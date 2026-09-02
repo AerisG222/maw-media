@@ -41,12 +41,6 @@ CREATE TABLE IF NOT EXISTS media.place (
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
 
-    -- lets an admin retire a node - a mis-geocode, or the losing side of a merge
-    -- - without deleting a row that media.location and media.place_alias still
-    -- reference.  read paths filter on it; derivation ignores it, so a hidden
-    -- place stays the stable target of its aliases.
-    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
-
     created TIMESTAMPTZ NOT NULL,
     modified TIMESTAMPTZ NOT NULL,
 
@@ -64,6 +58,21 @@ CREATE TABLE IF NOT EXISTS media.place (
     CONSTRAINT ck_media_place$name
     CHECK (LENGTH(TRIM(name)) > 0)
 );
+
+-- 2026-09-01 - begin - drop is_hidden
+--
+-- it was added to let an admin retire a node without deleting it, and then never
+-- written.  the case it was meant for turned out to be better served by the other
+-- two corrections: merging or re-parenting a mis-geocoded place empties it, and
+-- media.get_places inner joins to visible media, so a place holding nothing drops
+-- out of the listing on its own.  hiding one instead left its children unreachable
+-- and its media counted in an ancestor a caller could no longer drill into.
+--
+-- worth reinstating only if a place ever needs to be kept out of the listing while
+-- still holding media somebody can see.  no such place exists in the library.
+ALTER TABLE media.place
+    DROP COLUMN IF EXISTS is_hidden;
+-- 2026-09-01 - end - drop is_hidden
 
 DO
 $$

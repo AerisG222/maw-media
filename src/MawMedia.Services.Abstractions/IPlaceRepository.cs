@@ -60,4 +60,20 @@ public interface IPlaceRepository
     // "that photo is not at that place".
     Task<PlaceCoverOutcome> SetPlaceCover(Guid userId, Guid placeId, Guid mediaId, CancellationToken token = default);
     Task<PlaceCoverOutcome> ClearPlaceCover(Guid userId, Guid placeId, CancellationToken token = default);
+
+    // --- shape (admin) ----------------------------------------------------
+    // the tree is derived from what the geocoder said, and the geocoder is
+    // sometimes wrong in ways no normalizer can fix by guessing.  these are how an
+    // admin says so explicitly.  both are admin only and both survive
+    // re-derivation, because media.place_alias records the correction rather than
+    // the place's name.
+
+    // folds one place into another and deletes it: same kind, any parent.  the
+    // usual fix for a place the geocoder spelled two ways, or filed twice.
+    Task<PlaceAdminOutcome> MergePlaces(Guid userId, Guid winnerId, Guid loserId, CancellationToken token = default);
+
+    // moves a place to a different parent, or to the root when parentId is null.
+    // the fix for a place filed in the wrong branch - usually because the geocode
+    // came back with no state to hang it from.
+    Task<PlaceAdminOutcome> SetPlaceParent(Guid userId, Guid placeId, Guid? parentId, CancellationToken token = default);
 }

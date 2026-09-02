@@ -282,6 +282,77 @@ public class PlaceRepository
         return PlaceCoverOutcome.Ok;
     }
 
+    public async Task<PlaceAdminOutcome> MergePlaces(
+        Guid userId,
+        Guid winnerId,
+        Guid loserId,
+        CancellationToken token = default
+    )
+    {
+        var result = await QuerySingle<MergeResult>(
+            "SELECT * FROM media.merge_places(@userId, @winnerId, @loserId);",
+            new { userId, winnerId, loserId },
+            token
+        );
+
+        if (result?.Result != 0)
+        {
+            return result?.Result switch
+            {
+                1 => PlaceAdminOutcome.NotAdmin,
+                4 => PlaceAdminOutcome.SamePlace,
+                5 => PlaceAdminOutcome.KindMismatch,
+                6 => PlaceAdminOutcome.InvalidParent,
+                _ => PlaceAdminOutcome.NotFound
+            };
+        }
+
+        _log.LogInformation(
+            "Merged place {LOSER} into {WINNER}: {LOCATIONS} locations and {CHILDREN} children moved",
+            loserId, winnerId, result.MovedLocations, result.MovedChildren);
+
+        // the row is gone but its published cover is not, and nothing points at it
+        // any more.  left behind it would still be served to anyone holding the
+        // dead id, so it goes - but failing to remove it must not fail a merge that
+        // has already committed.
+        if (result.HadCover)
+        {
+            try
+            {
+                _coverStore.Delete(loserId);
+            }
+            catch (IOException ex)
+            {
+                _log.LogWarning(ex, "Could not remove the cover of merged place {PLACE}", loserId);
+            }
+        }
+
+        return PlaceAdminOutcome.Ok;
+    }
+
+    public async Task<PlaceAdminOutcome> SetPlaceParent(
+        Guid userId,
+        Guid placeId,
+        Guid? parentId,
+        CancellationToken token = default
+    )
+    {
+        var result = await QuerySingle<int?>(
+            "SELECT * FROM media.set_place_parent(@userId, @placeId, @parentId);",
+            new { userId, placeId, parentId },
+            token
+        );
+
+        return result switch
+        {
+            0 => PlaceAdminOutcome.Ok,
+            1 => PlaceAdminOutcome.NotAdmin,
+            4 or 5 => PlaceAdminOutcome.InvalidParent,
+            6 => PlaceAdminOutcome.NotARootKind,
+            _ => PlaceAdminOutcome.NotFound
+        };
+    }
+
     static void ValidatePaging(int offset, int limit)
     {
         if (offset < 0)

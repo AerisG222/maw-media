@@ -76,6 +76,23 @@ public static class PlaceRoutes
             .WithDescription("Removes the place's cover image and deletes the published copy.")
             .RequireAuthorization(AuthorizationPolicies.LocationWriter);
 
+        // reshaping the tree.  the derived hierarchy is only as good as the
+        // geocoder, and these are how an admin corrects it - behind
+        // LocationWriter, with the database checking admin again.
+        group
+            .MapPost("/{id:guid}/merge", MergePlaces)
+            .WithName("place-merge")
+            .WithSummary("Merge a Place")
+            .WithDescription("Folds another place into this one and deletes it. Both must be the same kind, but they need not share a parent. Everything pointing at the merged place - locations, children and geocode aliases - is repointed here.")
+            .RequireAuthorization(AuthorizationPolicies.LocationWriter);
+
+        group
+            .MapPut("/{id:guid}/parent", SetPlaceParent)
+            .WithName("place-parent")
+            .WithSummary("Move a Place")
+            .WithDescription("Moves a place under a different parent, or to the root when parentId is null. The parent must sit above the place in the hierarchy.")
+            .RequireAuthorization(AuthorizationPolicies.LocationWriter);
+
         group
             .MapGet("/{id:guid}/categories", GetPlaceCategories)
             .WithName("place-categories")
@@ -303,4 +320,69 @@ public static class PlaceRoutes
             ? TypedResults.NotFound()
             : TypedResults.Ok(place);
     }
+
+    static async Task<Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>> MergePlaces(
+        ClaimsPrincipal user,
+        IPlaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] PlaceMergeRequest mergeRequest,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var outcome = await repo.MergePlaces(userId.Value, id, mergeRequest.SourceId, token);
+
+        return Interpret(outcome) ?? await Reread(repo, userId.Value, request, id, token);
+    }
+
+    static async Task<Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>> SetPlaceParent(
+        ClaimsPrincipal user,
+        IPlaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] PlaceParentRequest parentRequest,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var outcome = await repo.SetPlaceParent(userId.Value, id, parentRequest.ParentId, token);
+
+        return Interpret(outcome) ?? await Reread(repo, userId.Value, request, id, token);
+    }
+
+    // null means the operation succeeded and the caller should read the place back.
+    // the refusals are shared because merge and re-parent fail in overlapping ways
+    // and an admin screen renders them identically.
+    static Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>? Interpret(PlaceAdminOutcome outcome) =>
+        outcome switch
+        {
+            PlaceAdminOutcome.Ok => null,
+            // Forbid rather than 404, as on the cover routes: the caller already
+            // proved they hold the location administration scope, so being told
+            // they are not an admin reveals nothing new
+            PlaceAdminOutcome.NotAdmin => TypedResults.Forbid(),
+            PlaceAdminOutcome.NotFound => TypedResults.NotFound(),
+            PlaceAdminOutcome.SamePlace =>
+                TypedResults.BadRequest("A place cannot be merged into itself."),
+            PlaceAdminOutcome.KindMismatch =>
+                TypedResults.BadRequest("Both places must be the same kind - a state cannot be merged into a country."),
+            PlaceAdminOutcome.InvalidParent =>
+                TypedResults.BadRequest("That parent does not sit above this place in the hierarchy."),
+            PlaceAdminOutcome.NotARootKind =>
+                TypedResults.BadRequest("Only a country may sit at the root of the tree."),
+            _ => TypedResults.BadRequest("The place could not be changed.")
+        };
 }

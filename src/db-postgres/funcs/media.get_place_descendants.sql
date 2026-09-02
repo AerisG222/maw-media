@@ -14,14 +14,7 @@
 --
 -- the result always includes _place_id itself, which is what makes a city (a leaf)
 -- and a country (a root) the same query to the caller.
---
--- hidden places are deliberately *included*.  media.place.is_hidden retires a tile
--- from the listings, not the photographs underneath it; a caller browsing the
--- parent should still be shown media that genuinely sits in it.  media.get_places
--- applies the filter instead, so hiding a place removes it from the picker without
--- silently subtracting its media from its ancestors' counts.  nothing sets the
--- column yet - it arrives with the admin surface - so this pairing is worth
--- revisiting then.
+
 --
 -- see docs/browse-by-location.md
 CREATE OR REPLACE FUNCTION media.get_place_descendants
