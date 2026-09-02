@@ -1,6 +1,6 @@
 # Browse by Location
 
-Status: **phases 0-6 complete - only the deferred admin surface (phase 7) remains**
+Status: **phases 0-6 and 8 complete - only the deferred admin surface (phase 7) remains**
 Last updated: 2026-08-30
 
 Lets a user pick a country, state, or city and see the media and categories from
@@ -198,9 +198,13 @@ media.place_kind (
 ```
 
 Levels are **spaced by 10** rather than numbered 1-2-3, so a level can be slotted
-between two existing ones - neighborhood below city, or region between country
-and state - without renumbering rows `media.place` already references. Given
-open question 5, that is a live possibility rather than a hypothetical.
+between two existing ones - a region between country and state, say - without
+renumbering rows `media.place` already references.
+
+City is deliberately the floor: a neighborhood level was considered and rejected
+as too granular for this browse (open question 5). `media.location`'s
+`neighborhood` and `sub_locality_level_1` columns feed the *city* fallback
+instead.
 
 `code TEXT` as the primary key, **not** a UUID surrogate. `media.type` and
 `media.scale` use `id UUID` + `code`, and it costs them - `media.get_categories`
@@ -708,28 +712,27 @@ name will not come back on the next geocode.
 | 4 | read functions: descendants, ancestors, `get_places`, `get_place_media`, `get_place_categories` | **complete** |
 | 5 | C#: model, repository, routes, DI | **complete** |
 | 6 | tests + seeder work | **complete** |
-| 7 | admin surface (deferred) | |
+| 7 | admin surface (deferred) | still deferred |
+| 8 | admin picked cover images | **complete** (section 14) |
 
 ---
 
 ## 13. Open questions
 
-1. ~~**Place tiles - image or not?**~~ - **resolved: neither.** A teaser drawn
-   from the caller's own media was measured and rejected - it must be a photo
-   *that caller* can see, so it needs a `LATERAL` per tile, which took a city
-   listing from 144ms to 991ms (~7x, worst at the level with the most tiles).
-   The direction instead is a **curated image of the place itself** - a stock
-   shot of the city or country, which highlights the location rather than showing
-   one photo from inside it. Because it is identical for every caller it needs no
-   `LATERAL` and no access check: it becomes a plain column on `media.place`,
-   read for free. `get_places` therefore ships the fast flat shape now, and the
-   image is **additive** when it arrives - a new field beside the others, not a
-   change to any of them.
+1. ~~**Place tiles - image or not?**~~ - **resolved: an admin hand picks one, from
+   the library.** Three approaches were tried and two rejected:
+   - a teaser drawn from the caller's own media - rejected on cost, since it must
+     be a photo *that caller* can see, needing a `LATERAL` per tile (city listing
+     144ms -> 991ms)
+   - curated stock, via Wikidata `P948`/`P18` - prototyped against all 271 real
+     places and rejected on quality. Only **47%** resolved to something usable
+     unreviewed; coordinate matching returned the nearest "human settlement",
+     which put a Buddhist temple on Bangkok and a racetrack on Arcadia.
+   - Places365 scene classification in maw-media-ai - tried and rejected: it did
+     not pick well enough for this library.
 
-   Still to decide when that is picked up: where the images are stored and served
-   (the `/assets/faces/{id}` pattern from `FaceImageStore` is the obvious model),
-   how they are uploaded and assigned, licensing/attribution for stock imagery,
-   and whether a place with no image falls back to its parent's.
+   What shipped instead is **phase 8** below.
+
 2. ~~**`unaccent` extension**~~ - **resolved by the phase 0 audit: not adding
    it.** One non-ASCII value exists in the whole table and `unaccent` would not
    help it.
@@ -737,10 +740,15 @@ name will not come back on the next geocode.
    media, then fan out files" pattern. Current plan is to clone for v1 (matching
    how clans extended the person functions) and revisit if a fourth subject type
    appears.
-4. **`GET /places/kinds`** - exposing the valid kind codes is nearly free and is
-   the "api can expose the valid values" benefit `person_status` cites. In v1 or
-   not?
-5. **Neighborhood as a real level?** `media.location` already stores
-   `neighborhood` and `sub_locality_level_1`, which the plan currently collapses
-   into the city fallback chain. The `place_kind` lookup makes promoting one to a
-   real level a seed edit rather than a constraint migration.
+4. ~~**`GET /places/kinds`**~~ - **resolved: not building it.** Exposing the kind
+   codes would be nearly free, but nothing needs them: `kind` comes back on every
+   place, and a client rendering a mixed listing can read it there rather than
+   fetching a vocabulary first.
+
+5. ~~**Neighborhood as a real level?**~~ - **resolved: no.** Too granular for what
+   this browse is for. `media.location`'s `neighborhood` and
+   `sub_locality_level_1` stay where they are, feeding the city fallback in
+   `media.assign_location_place`, and city remains the deepest level.
+
+All open questions are now closed. What remains is phase 7, the deferred admin
+surface - see section 11.

@@ -3,6 +3,7 @@ using MawMedia.Authorization.Claims;
 using MawMedia.Routes.Extensions;
 using MawMedia.Models;
 using MawMedia.Services.Abstractions;
+using MawMedia.ViewModels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -55,6 +56,26 @@ public static class PlaceRoutes
 
         // the other half of the drill-in: the same media, rolled up to the
         // categories holding them, so a place screen can toggle between them
+        // choosing a cover publishes a copy of the photograph to a directory
+        // served with no authorization check.  that makes it a publication rather
+        // than an edit, so it sits behind LocationWriter - the location
+        // administration scope - and media.set_place_cover checks admin again in
+        // the database.  browsing for a candidate needs no new endpoint: the media
+        // route above already lists exactly the photographs eligible to be chosen.
+        group
+            .MapPut("/{id:guid}/cover", SetPlaceCover)
+            .WithName("place-cover-set")
+            .WithSummary("Set a Place Cover")
+            .WithDescription("Publishes one of the caller's photographs as the place's cover image. The media must be at this place or beneath it. The published copy is served publicly, without authorization.")
+            .RequireAuthorization(AuthorizationPolicies.LocationWriter);
+
+        group
+            .MapDelete("/{id:guid}/cover", ClearPlaceCover)
+            .WithName("place-cover-clear")
+            .WithSummary("Clear a Place Cover")
+            .WithDescription("Removes the place's cover image and deletes the published copy.")
+            .RequireAuthorization(AuthorizationPolicies.LocationWriter);
+
         group
             .MapGet("/{id:guid}/categories", GetPlaceCategories)
             .WithName("place-categories")
@@ -68,6 +89,7 @@ public static class PlaceRoutes
     static async Task<Results<Ok<IEnumerable<Place>>, BadRequest<string>>> GetPlaces(
         ClaimsPrincipal user,
         IPlaceRepository repo,
+        HttpRequest request,
         CancellationToken token,
         [FromQuery] Guid? parent = null,
         [FromQuery] string? kind = null
@@ -83,12 +105,13 @@ public static class PlaceRoutes
         // an empty listing is a real answer here, unlike the drill-ins below - a
         // place whose children the caller cannot see is legitimately a leaf to
         // them, and 404 would make the last level of every browse look broken
-        return TypedResults.Ok(await repo.GetPlaces(userId.Value, parent, kind, token));
+        return TypedResults.Ok(await repo.GetPlaces(userId.Value, request.GetBaseUrl(), parent, kind, token));
     }
 
     static async Task<Results<Ok<Place>, NotFound>> GetPlace(
         ClaimsPrincipal user,
         IPlaceRepository repo,
+        HttpRequest request,
         [FromRoute] Guid id,
         CancellationToken token
     )
@@ -100,7 +123,7 @@ public static class PlaceRoutes
             return TypedResults.NotFound();
         }
 
-        var place = await repo.GetPlace(userId.Value, id, token);
+        var place = await repo.GetPlace(userId.Value, request.GetBaseUrl(), id, token);
 
         // 404 rather than 403 for a place the caller may see nothing at, matching
         // the person read side - a 403 would confirm the place exists
@@ -112,6 +135,7 @@ public static class PlaceRoutes
     static async Task<Results<Ok<IEnumerable<PlaceAncestor>>, NotFound>> GetPlaceAncestors(
         ClaimsPrincipal user,
         IPlaceRepository repo,
+        HttpRequest request,
         [FromRoute] Guid id,
         CancellationToken token
     )
@@ -127,7 +151,7 @@ public static class PlaceRoutes
         // read a breadcrumb for a place the listing would not have shown them.
         // once past that the names are not privileged - the media behind each rung
         // is still filtered by its own request.
-        if (await repo.GetPlace(userId.Value, id, token) == null)
+        if (await repo.GetPlace(userId.Value, request.GetBaseUrl(), id, token) == null)
         {
             return TypedResults.NotFound();
         }
@@ -204,5 +228,79 @@ public static class PlaceRoutes
         return o == 0 && !f && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
+    }
+
+    static async Task<Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>> SetPlaceCover(
+        ClaimsPrincipal user,
+        IPlaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        [FromBody] PlaceCoverRequest coverRequest,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var outcome = await repo.SetPlaceCover(userId.Value, id, coverRequest.MediaId, token);
+
+        return outcome switch
+        {
+            // Forbid rather than 404 here, unlike the read side.  the caller has
+            // already proved they hold the location administration scope, so
+            // "you are not an admin" tells them nothing they could not learn by
+            // trying any other admin route.
+            PlaceCoverOutcome.NotAdmin => TypedResults.Forbid(),
+            PlaceCoverOutcome.PlaceNotFound => TypedResults.NotFound(),
+            PlaceCoverOutcome.MediaNotAtPlace =>
+                TypedResults.BadRequest("That media is not at this place, or is not one you can see."),
+            PlaceCoverOutcome.NoPublishableRendition =>
+                TypedResults.BadRequest("That media has no publishable rendition. Originals are never published."),
+            _ => await Reread(repo, userId.Value, request, id, token)
+        };
+    }
+
+    static async Task<Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>> ClearPlaceCover(
+        ClaimsPrincipal user,
+        IPlaceRepository repo,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var outcome = await repo.ClearPlaceCover(userId.Value, id, token);
+
+        return outcome == PlaceCoverOutcome.NotAdmin
+            ? TypedResults.Forbid()
+            : await Reread(repo, userId.Value, request, id, token);
+    }
+
+    // the place is read back so a caller sees the cover url it just created
+    // without composing it, and so clearing returns a place with no cover rather
+    // than an empty body an admin screen has to interpret
+    static async Task<Results<Ok<Place>, NotFound, BadRequest<string>, ForbidHttpResult>> Reread(
+        IPlaceRepository repo,
+        Guid userId,
+        HttpRequest request,
+        Guid id,
+        CancellationToken token
+    )
+    {
+        var place = await repo.GetPlace(userId, request.GetBaseUrl(), id, token);
+
+        return place == null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(place);
     }
 }

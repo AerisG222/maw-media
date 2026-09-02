@@ -42,8 +42,12 @@ public class FaceImageStore
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        Directory.CreateDirectory(_root);
-
+        // the directory is not created here.  it is a mount supplied by the deploy -
+        // the ansible playbook makes it and the pod binds it in - so an absent one
+        // is a broken deployment rather than a first run.  StaticFilesExtensions
+        // already refuses to start without it, which is the right moment to find
+        // out; creating it here would instead write crops into a path nothing is
+        // serving from, and the face would 404 with no sign of why.
         var path = PathFor(faceId);
 
         // written to a sibling temp file and moved into place so a reader can

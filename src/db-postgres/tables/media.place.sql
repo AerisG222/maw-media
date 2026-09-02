@@ -27,6 +27,12 @@
 -- this schema has no triggers anywhere and introducing the first one for an
 -- invariant that only two functions can violate is a poor trade.
 --
+-- this table is continued in tables/media.place_2.sql, which adds the cover image
+-- columns.  they cannot be declared here: their foreign keys point at media.media
+-- and media.user, and the schema's keys form a cycle - media.location references
+-- media.place, and media.media references media.location - so media.place has to
+-- be created before either of them exists.
+--
 -- see docs/browse-by-location.md
 CREATE TABLE IF NOT EXISTS media.place (
     id UUID NOT NULL,

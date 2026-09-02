@@ -1,3 +1,4 @@
+using MawMedia;
 using MawMedia.Authorization.Claims;
 using MawMedia.Services;
 using MawMedia.Services.Abstractions;
@@ -16,6 +17,43 @@ public static class StaticFilesExtensions
     {
         var assetDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<AssetConfig>>().Value.RootDirectory);
         var faceDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<FaceImageConfig>>().Value.RootDirectory);
+        var coverDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<PlaceCoverConfig>>().Value.RootDirectory);
+
+        // place covers first, for the same ordering reason the face branch gives:
+        // the media predicate below matches /assets, which /assets/covers also
+        // satisfies, and a UseWhen branch is not terminal.
+        //
+        // this branch authorizes differently from both its neighbours.  it demands
+        // a signed in caller holding media:read - so it is not open to the world -
+        // but performs no per file lookup, which is exactly what a cover is for: an
+        // admin has chosen it to represent a place, and the tile has to render for
+        // anyone browsing, including callers who cannot reach the category the
+        // photograph came from.  the control is in the choosing, not the serving.
+        //
+        // the file itself lives outside the asset root, so nothing under this
+        // prefix can name a private media even if the rule above it were wrong.
+        app.UseWhen(
+            ctx => ctx.Request.Path.StartsWithSegments(Constants.PlaceCoverBaseUrl),
+            covers => covers
+                .Use(AuthorizePlaceCover)
+                .UseStaticFiles(new StaticFileOptions()
+                {
+                    ContentTypeProvider = new FileExtensionContentTypeProvider(),
+                    FileProvider = new PhysicalFileProvider(coverDir),
+                    HttpsCompression = HttpsCompressionMode.DoNotCompress,  // avif is already compressed
+                    RequestPath = Constants.PlaceCoverBaseUrl,
+                    OnPrepareResponse = ctx =>
+                    {
+                        // a published cover is immutable: replacing one writes a new
+                        // file under a new name, so nothing at this url ever changes
+                        // and a long lived cache is free correctness rather than a
+                        // bet.  private rather than public, because the response is
+                        // only served to a signed in caller and a shared cache must
+                        // not hand it to anyone else.
+                        ctx.Context.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+                    }
+                })
+        );
 
         // face crops first.  the media predicate below matches /assets, which
         // /assets/faces also satisfies, and a UseWhen branch is not terminal - a
@@ -42,7 +80,8 @@ public static class StaticFilesExtensions
         // reaches the end of the pipeline as a 404 rather than being challenged.
         app.UseWhen(
             ctx => ctx.Request.Path.StartsWithSegments(Constants.AssetBaseUrl)
-                && !ctx.Request.Path.StartsWithSegments(Constants.FaceAssetBaseUrl),
+                && !ctx.Request.Path.StartsWithSegments(Constants.FaceAssetBaseUrl)
+                && !ctx.Request.Path.StartsWithSegments(Constants.PlaceCoverBaseUrl),
             assets => assets
                 .Use(AuthorizeAsset)
                 .UseStaticFiles(new StaticFileOptions()
@@ -55,6 +94,51 @@ public static class StaticFilesExtensions
         );
 
         return app;
+    }
+
+    // the scope check, then a shape check.  in that order: an unauthenticated
+    // caller must be challenged rather than told whether a name is well formed.
+    //
+    // unlike AuthorizeFaceAsset there is no second, per resource step - a cover is
+    // visible to every signed in caller by design, so there is nothing left to ask
+    // once the policy has passed.
+    static async Task AuthorizePlaceCover(HttpContext ctx, RequestDelegate next)
+    {
+        var authorization = ctx.RequestServices.GetRequiredService<IAuthorizationService>();
+        var result = await authorization.AuthorizeAsync(ctx.User, ctx, AuthorizationPolicies.PlaceCoverStaticAsset);
+
+        if (!result.Succeeded)
+        {
+            await ChallengeOrForbid(ctx);
+
+            return;
+        }
+
+        // nothing but "{guid}.avif" directly under the prefix is served.  the file
+        // provider already refuses to escape its root, so this is not the traversal
+        // defence - it is here so that whatever else may one day sit in that
+        // directory, only files this application published can be requested.
+        var value = ctx.Request.Path.Value;
+
+        if (value == null || !value.StartsWith(Constants.PlaceCoverBaseUrlWithSlash, StringComparison.Ordinal))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            return;
+        }
+
+        var name = value[Constants.PlaceCoverBaseUrlWithSlash.Length..];
+
+        if (name.Contains('/', StringComparison.Ordinal) ||
+            !name.EndsWith(Constants.PlaceCoverExtension, StringComparison.Ordinal) ||
+            !Guid.TryParse(name[..^Constants.PlaceCoverExtension.Length], out _))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            return;
+        }
+
+        await next(ctx);
     }
 
     static string RootDirectory(string? configured)

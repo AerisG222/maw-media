@@ -15,4 +15,5 @@ class PlaceRow
     public required string Name { get; set; }
     public required string Slug { get; set; }
     public int MediaCount { get; set; }
+    public NodaTime.Instant? CoverCreated { get; set; }
 }

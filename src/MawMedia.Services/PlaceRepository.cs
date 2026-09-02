@@ -1,3 +1,4 @@
+using Dapper;
 using MawMedia.Models;
 using MawMedia.Services.Abstractions;
 using MawMedia.Services.Models;
@@ -16,36 +17,43 @@ public class PlaceRepository
 
     readonly IAssetPathBuilder _assetPathBuilder;
     readonly HybridCache _cache;
+    readonly IPlaceCoverStore _coverStore;
 
     public PlaceRepository(
         ILogger<PlaceRepository> log,
         NpgsqlConnection conn,
         IAssetPathBuilder assetPathBuilder,
-        HybridCache cache
+        HybridCache cache,
+        IPlaceCoverStore coverStore
     ) : base(log, conn)
     {
         ArgumentNullException.ThrowIfNull(assetPathBuilder);
         ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(coverStore);
 
         _assetPathBuilder = assetPathBuilder;
         _cache = cache;
+        _coverStore = coverStore;
     }
 
     public async Task<IEnumerable<Place>> GetPlaces(
         Guid userId,
+        string baseUrl,
         Guid? parentId = null,
         string? kind = null,
         CancellationToken token = default
-    ) => await InternalGetPlaces(userId, parentId, kind, null, token);
+    ) => await InternalGetPlaces(userId, baseUrl, parentId, kind, null, token);
 
     public async Task<Place?> GetPlace(
         Guid userId,
+        string baseUrl,
         Guid placeId,
         CancellationToken token = default
-    ) => (await InternalGetPlaces(userId, null, null, placeId, token)).SingleOrDefault();
+    ) => (await InternalGetPlaces(userId, baseUrl, null, null, placeId, token)).SingleOrDefault();
 
     async Task<IEnumerable<Place>> InternalGetPlaces(
         Guid userId,
+        string baseUrl,
         Guid? parentId,
         string? kind,
         Guid? placeId,
@@ -74,7 +82,17 @@ public class PlaceRepository
                 r.Kind,
                 r.Name,
                 r.Slug,
-                r.MediaCount
+                r.MediaCount,
+                // absolute, so clients do not assemble it.  the file name is the
+                // place id; cover_created only says whether there is one and which
+                // version, which becomes the url's ?v=.
+                r.CoverCreated == null
+                    ? null
+                    : _assetPathBuilder.Build(baseUrl, string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        Constants.PlaceCoverUrlFormat,
+                        r.Id,
+                        r.CoverCreated.Value.ToUnixTimeTicks()))
             ))
             .ToList();
     }
@@ -173,6 +191,95 @@ public class PlaceRepository
         var categories = (await AssembleCategories(userId, results, baseUrl, _assetPathBuilder, _cache, token)).ToList();
 
         return Page(categories, offset, limit);
+    }
+
+    public async Task<PlaceCoverOutcome> SetPlaceCover(
+        Guid userId,
+        Guid placeId,
+        Guid mediaId,
+        CancellationToken token = default
+    )
+    {
+        // one fixed scale rather than the largest that fits: 'qvg-fill' is cropped
+        // to fill, so every tile is the same shape whatever the source photograph's
+        // aspect.  never 'src' - the function refuses it by name, because the
+        // originals carry gps and camera identity in exif.
+        var chosen = await QuerySingle<CoverCandidate>(
+            "SELECT * FROM media.get_place_cover_candidate(@userId, @mediaId, @scale);",
+            new { userId, mediaId, scale = Constants.PlaceCoverScale },
+            token
+        );
+
+        if (chosen == null)
+        {
+            // either the media has no rendition at that scale, or the caller cannot
+            // see it.  the two are one answer on purpose - see PlaceCoverOutcome.
+            return PlaceCoverOutcome.NoPublishableRendition;
+        }
+
+        // published before the row is written, so a row claiming a cover never
+        // precedes the file - a tile has no way to recover from a broken image.
+        // replacing overwrites {placeId}.avif, so there is no displaced name to
+        // track and nothing to clean up on the happy path.
+        await _coverStore.Publish(placeId, chosen.FilePath, token);
+
+        var result = await QuerySingle<CoverChange>(
+            "SELECT * FROM media.set_place_cover(@userId, @placeId, @mediaId, @fileId);",
+            new { userId, placeId, mediaId, fileId = chosen.FileId },
+            token
+        );
+
+        if (result?.Result != 0)
+        {
+            // the database refused, so nothing references the file just written.
+            // take it back out - though note this also removes a cover the place
+            // may already have had, which is the one cost of overwriting in place.
+            _coverStore.Delete(placeId);
+
+            return result?.Result switch
+            {
+                1 => PlaceCoverOutcome.NotAdmin,
+                2 => PlaceCoverOutcome.PlaceNotFound,
+                _ => PlaceCoverOutcome.MediaNotAtPlace
+            };
+        }
+
+        return PlaceCoverOutcome.Ok;
+    }
+
+    public async Task<PlaceCoverOutcome> ClearPlaceCover(
+        Guid userId,
+        Guid placeId,
+        CancellationToken token = default
+    )
+    {
+        // the row is cleared first and the file deleted after, the reverse of
+        // setting one: a tile that has stopped pointing at an image cannot break
+        // when the bytes go
+        var result = await QuerySingle<CoverChange>(
+            "SELECT * FROM media.clear_place_cover(@userId, @placeId);",
+            new { userId, placeId },
+            token
+        );
+
+        if (result?.Result == 1)
+        {
+            return PlaceCoverOutcome.NotAdmin;
+        }
+
+        // a file left behind is a leftover byte, not a disclosure of anything new -
+        // nothing points at it any more - so failing to remove it must not fail the
+        // request
+        try
+        {
+            _coverStore.Delete(placeId);
+        }
+        catch (IOException ex)
+        {
+            _log.LogWarning(ex, "Could not remove the cover file for place {PLACE}", placeId);
+        }
+
+        return PlaceCoverOutcome.Ok;
     }
 
     static void ValidatePaging(int offset, int limit)

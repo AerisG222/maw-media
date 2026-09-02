@@ -44,14 +44,88 @@ public class ApiFactory
             Set("OAuth__Authority", "https://test-login.mikeandwan.us");
             Set("OAuth__Audience", AUDIENCE);
             Set("DataProtection__Path", dataProtection);
-            Set("Assets__RootDirectory", CreateDir("assets"));
+            Set("Assets__RootDirectory", SharedAssetRoot.Value);
             Set("Faces__RootDirectory", CreateDir("faces"));
+            // a sibling of the asset root, never inside it - PlaceCoverStore refuses
+            // to start when the two overlap, because that branch is served
+            // unauthenticated
+            Set("PlaceCovers__RootDirectory", SharedCoverRoot.Value);
             Set("Upload__RootDirectory", CreateDir("upload"));
             Set("CategoryDownload__RootDirectory", CreateDir("download"));
             Set("CategoryDownload__CleanIntervalInMinutes", "60");
             Set("CategoryDownload__MinAgeBeforeDeleteInMinutes", "60");
             Set("LocationCorrection__UserId", Guid.Empty.ToString());
         }
+    }
+
+    // the asset and cover roots are shared by every factory, unlike the per-test
+    // scratch directories above, and they have to be.
+    //
+    // these settings reach the host as environment variables, which are global to
+    // the process: with tests running 32 wide, one factory can overwrite
+    // Assets__RootDirectory between another factory writing it and that other
+    // factory's host reading it.  every read path composes urls from the stored
+    // path without touching a file, so this never mattered before - publishing a
+    // cover is the first operation that actually opens one, and it would fail
+    // intermittently against a directory belonging to a different test.
+    //
+    // sharing removes the race rather than narrowing it: whichever value wins,
+    // every host sees the same tree.  the asset tree is read-only fixture data,
+    // and published covers are named with fresh guids, so neither can collide.
+    static readonly Lazy<string> SharedAssetRoot = new(MaterializeAssets);
+    static readonly Lazy<string> SharedCoverRoot = new(() => SharedDir("place-covers"));
+
+    // a stub rather than a real avif - nothing in this system decodes a cover, it
+    // is copied byte for byte.  the body is derived from the path so every
+    // rendition differs, which is what lets a test prove *which* one was published
+    // rather than merely that something was.
+    public static byte[] StubRendition(string path) =>
+        [.. new byte[] { 0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70 },
+           .. System.Text.Encoding.UTF8.GetBytes(path)];
+
+    static string SharedDir(string name)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "maw-media-api-tests-shared", name);
+
+        Directory.CreateDirectory(path);
+
+        return path;
+    }
+
+    // the seeder writes media.file rows, but nothing puts bytes on disk - which is
+    // fine for every read path, because they only ever compose urls from the
+    // stored path.  publishing a place cover is the one operation that actually
+    // opens the file, so the fixture renditions are materialized here.
+    //
+    // the contents are a stub rather than a real avif.  nothing in this system
+    // decodes a cover: it is copied byte for byte, which is exactly why the
+    // originals must never be the source - see media.get_place_cover_candidate.
+    static string MaterializeAssets()
+    {
+        var root = SharedDir("assets");
+
+        foreach (var path in new[]
+        {
+            Constants.FILE_NATURE_1.Path,
+            Constants.FILE_NATURE_2.Path,
+            Constants.FILE_TRAVEL_1.Path,
+            Constants.FILE_PLACE_MA.Path,
+            Constants.FILE_PLACE_OVERRIDE.Path,
+            Constants.FILE_PLACE_UK.Path,
+            Constants.FILE_NATURE_1_COVER.Path,
+            Constants.FILE_TRAVEL_1_COVER.Path,
+            Constants.FILE_PLACE_MA_COVER.Path,
+            Constants.FILE_PLACE_OVERRIDE_COVER.Path
+        })
+        {
+            var file = Path.Combine(root, path.TrimStart('/'));
+
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+
+            File.WriteAllBytes(file, StubRendition(path));
+        }
+
+        return root;
     }
 
     // the scope value the api will demand, qualified the way Auth0 does it

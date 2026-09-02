@@ -27,4 +27,15 @@ public static class AuthorizationPolicies
     // describes endpoints for OpenAPI.  it answers "may this client use the face
     // feature at all", never "may it see this face"; see StaticFilesExtensions.
     public const string FaceStaticAsset = "face:static-asset";
+
+    // guards the place cover branch of the static asset pipeline.  like the two
+    // above it is evaluated by hand rather than attached to an endpoint, so it
+    // stays out of ApiScopes.ByPolicy, which only describes endpoints for OpenAPI.
+    //
+    // it requires a signed in caller with media:read and nothing more.  unlike
+    // MediaStaticAsset it carries no resource requirement, which is the point: a
+    // cover is an admin's chosen representative of a place, and it renders for
+    // anyone browsing rather than only for callers who can reach the category the
+    // photograph came from.
+    public const string PlaceCoverStaticAsset = "place-cover:static-asset";
 }

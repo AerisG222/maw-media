@@ -423,7 +423,11 @@ public class DatabaseSeeder
             Constants.FILE_TRAVEL_1,
             Constants.FILE_PLACE_MA,
             Constants.FILE_PLACE_OVERRIDE,
-            Constants.FILE_PLACE_UK
+            Constants.FILE_PLACE_UK,
+            Constants.FILE_NATURE_1_COVER,
+            Constants.FILE_TRAVEL_1_COVER,
+            Constants.FILE_PLACE_MA_COVER,
+            Constants.FILE_PLACE_OVERRIDE_COVER
         ];
 
         await conn.ExecuteAsync(

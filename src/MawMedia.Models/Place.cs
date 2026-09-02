@@ -18,10 +18,15 @@ namespace MawMedia.Models;
 // covers the place's whole subtree: a country's count includes every photo in its
 // states and their cities.
 //
-// there is no teaser image field yet.  the intent is a curated image *of* the
-// place rather than one drawn from the caller's own media; because it would be
-// identical for every caller it can be a plain column on media.place and appear
-// here as an additional property, without changing any of the ones below.
+// CoverUrl is an admin's hand picked photograph representing the place, and is
+// absolute so clients do not assemble it - matching how media file urls are
+// returned.  null when no cover has been chosen.
+//
+// it is served from /assets/covers, which requires a signed in caller holding
+// media:read but performs none of the per file access checking the rest of
+// /assets does.  that is the point: a cover renders for anyone browsing, even a
+// caller who cannot reach the category the photograph came from.  the control
+// lives in the choosing, not the serving - see media.set_place_cover.
 // see docs/browse-by-location.md
 public record Place(
     Guid Id,
@@ -29,5 +34,6 @@ public record Place(
     string Kind,
     string Name,
     string Slug,
-    int MediaCount
+    int MediaCount,
+    string? CoverUrl
 );

@@ -1,3 +1,6 @@
+-- 2026-09-01 - add cover_created (the cover url is derived from place id)
+DROP FUNCTION IF EXISTS media.get_places;
+
 -- the places a user may browse at one level of the hierarchy.
 --
 -- the drill-down: with no _parent_id it lists the countries, and with one it lists
@@ -28,13 +31,16 @@
 -- the same access rule rather than a second function that could drift from this
 -- one.  it ignores _parent_id when supplied.
 --
--- there is deliberately no teaser image here.  a teaser drawn from the caller's
--- own media would have to be chosen per user - it must be a photo they can see -
--- which means a LATERAL join per tile; measured on the dev restore that took a
--- city listing from 144ms to 991ms.  the intent instead is a curated image *of*
--- the place, which is identical for every caller and can therefore be a plain
--- column on media.place, read with no extra work at query time.  it is additive
--- when it arrives: a new field beside these, not a change to any of them.
+-- cover_created is a plain column read, not a teaser computed per caller.  a teaser
+-- drawn from the caller's own media would have to be chosen per user - it must be
+-- a photo they can see - which means a LATERAL join per tile; measured on the dev
+-- restore that took a city listing from 144ms to 991ms.  an admin's hand picked
+-- cover is the same image for everybody, so it costs nothing here.
+--
+-- it is returned to every caller regardless of what they can see, which is
+-- correct rather than a leak: the file it names is served to any signed in caller
+-- without a per file check, so withholding the name would protect nothing.  what
+-- makes that safe is the choosing, not the reading - see media.set_place_cover.
 --
 -- see docs/browse-by-location.md
 CREATE OR REPLACE FUNCTION media.get_places
@@ -51,7 +57,10 @@ RETURNS TABLE
     kind TEXT,
     name TEXT,
     slug TEXT,
-    media_count INTEGER
+    media_count INTEGER,
+    -- null when there is no cover.  the file name is derived from id, so this
+    -- carries only whether one exists and which version, for the url's ?v=
+    cover_created TIMESTAMPTZ
 )
 AS $$
 BEGIN
@@ -96,7 +105,8 @@ BEGIN
         p.kind,
         p.name,
         p.slug,
-        COUNT(DISTINCT ul.media_id)::INTEGER
+        COUNT(DISTINCT ul.media_id)::INTEGER,
+        p.cover_created
     FROM subtree s
     INNER JOIN media.place p
         ON p.id = s.root_id
@@ -108,7 +118,8 @@ BEGIN
         p.parent_id,
         p.kind,
         p.name,
-        p.slug
+        p.slug,
+        p.cover_created
     ORDER BY
         -- busiest first, matching how media.get_persons leads with the people a
         -- caller actually looks for.  name breaks ties so the order is stable

@@ -317,6 +317,30 @@ public static class Constants
         "media-place-uk"
     );
 
+    // covers are always published from the qvg-fill rendition, so the media that
+    // are chosen as one carry a second file at that scale beside their full-hd.
+    // two renditions rather than one is also what makes the selection meaningful -
+    // with a single candidate the scale filter would pass no matter what it did.
+    //
+    // MEDIA_PLACE_UK deliberately has no qvg-fill.  it is the fixture for a media
+    // that exists, is visible, sits at the right place, and still cannot be a
+    // cover.
+    public static readonly DbFile FILE_NATURE_1_COVER = new(
+        Guid.CreateVersion7(), MEDIA_NATURE_1.Id, TYPE_PHOTO, SCALE_QVG_FILL,
+        320, 240, 4096L, "/media/nature1-qvg-fill.jpg");
+
+    public static readonly DbFile FILE_TRAVEL_1_COVER = new(
+        Guid.CreateVersion7(), MEDIA_TRAVEL_1.Id, TYPE_PHOTO, SCALE_QVG_FILL,
+        320, 240, 4096L, "/media/travel1-qvg-fill.jpg");
+
+    public static readonly DbFile FILE_PLACE_MA_COVER = new(
+        Guid.CreateVersion7(), MEDIA_PLACE_MA.Id, TYPE_PHOTO, SCALE_QVG_FILL,
+        320, 240, 4096L, "/media/place-ma-qvg-fill.jpg");
+
+    public static readonly DbFile FILE_PLACE_OVERRIDE_COVER = new(
+        Guid.CreateVersion7(), MEDIA_PLACE_OVERRIDE.Id, TYPE_PHOTO, SCALE_QVG_FILL,
+        320, 240, 4096L, "/media/place-override-qvg-fill.jpg");
+
     // every place media needs a file: media.get_place_media inner joins
     // media_detail, and a category's teaser needs one to render as a tile
     public static readonly DbFile FILE_PLACE_MA = new(

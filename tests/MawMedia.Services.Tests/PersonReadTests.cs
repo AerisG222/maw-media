@@ -313,8 +313,12 @@ public class PersonReadTests
         Assert.Equal(2023, travel.CategoryYear);
 
         // assembled the same way every other media read is, so a client can hand
-        // the result straight to its existing media component
-        var file = Assert.Single(travel.Files);
+        // the result straight to its existing media component.  two renditions,
+        // since MEDIA_TRAVEL_1 also carries the qvg-fill a place cover is
+        // published from.
+        Assert.Equal(2, travel.Files.Count());
+
+        var file = travel.Files.First();
 
         Assert.StartsWith("https://example.com/", file.Path);
     }
@@ -336,8 +340,9 @@ public class PersonReadTests
         Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, head.Id);
 
         // the extra row fetched to detect "more" must not leak into the page, and
-        // the file collection must survive being paged
-        Assert.Single(head.Files);
+        // the file collection must survive being paged - both of
+        // MEDIA_TRAVEL_1's renditions have to come through
+        Assert.Equal(2, head.Files.Count());
 
         var second = await repo.GetPersonMedia(
             Constants.USER_ADMIN, "https://example.com", Constants.PERSON_SHARED, first.NextOffset, 1, token: token);

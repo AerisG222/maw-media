@@ -96,6 +96,14 @@ public static class AuthExtensions
                 // middleware, because assets are served by middleware and never match an endpoint.
                 // this was previously the fallback policy, which applied it to *every* endpointless
                 // request - including unmatched routes, which then answered 401/403 instead of 404.
+                // place covers take media:read and stop there.  no resource
+                // requirement, so the per file lookup MediaStaticAsset performs is
+                // deliberately not applied - see AuthorizationPolicies.
+                .AddPolicy(
+                    AuthorizationPolicies.PlaceCoverStaticAsset, p => p
+                        .RequireAuthenticatedUser()
+                        .RequireScope(oauth.Qualify(ApiScopes.MediaRead))
+                )
                 .AddPolicy(
                     AuthorizationPolicies.MediaStaticAsset, p => p
                         .RequireAuthenticatedUser()

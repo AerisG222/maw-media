@@ -23,12 +23,12 @@ public interface IPlaceRepository
     //
     // kind is an optional extra filter for a client that wants to group a mixed
     // listing; it is not needed to page or to drill.
-    Task<IEnumerable<Place>> GetPlaces(Guid userId, Guid? parentId = null, string? kind = null, CancellationToken token = default);
+    Task<IEnumerable<Place>> GetPlaces(Guid userId, string baseUrl, Guid? parentId = null, string? kind = null, CancellationToken token = default);
 
     // a single place by id, applying the same access rule - null when the caller
     // may see nothing there.  shares GetPlaces' query rather than adding a second
     // one that could drift from it.
-    Task<Place?> GetPlace(Guid userId, Guid placeId, CancellationToken token = default);
+    Task<Place?> GetPlace(Guid userId, string baseUrl, Guid placeId, CancellationToken token = default);
 
     // the breadcrumb above a place, country first, including the place itself.
     // empty when the id is unknown.
@@ -52,4 +52,12 @@ public interface IPlaceRepository
     // both are the caller saying they care about the category, and the screen
     // drives media and categories from a single toggle.
     Task<SearchResult<Category>> GetPlaceCategories(Guid userId, string baseUrl, Guid placeId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
+
+    // --- covers (admin) ---------------------------------------------------
+    // choosing a cover publishes a copy of the photograph to a directory served
+    // with no authorization check, so these are admin only and the outcome is
+    // reported rather than thrown - a caller needs to tell "not yours to do" from
+    // "that photo is not at that place".
+    Task<PlaceCoverOutcome> SetPlaceCover(Guid userId, Guid placeId, Guid mediaId, CancellationToken token = default);
+    Task<PlaceCoverOutcome> ClearPlaceCover(Guid userId, Guid placeId, CancellationToken token = default);
 }

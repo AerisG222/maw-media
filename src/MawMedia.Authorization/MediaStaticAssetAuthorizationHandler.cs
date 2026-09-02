@@ -41,6 +41,15 @@ public class MediaStaticAssetAuthorizationHandler
             return;
         }
 
+        // place covers likewise.  they are authorized by
+        // AuthorizationPolicies.PlaceCoverStaticAsset, which deliberately performs
+        // no per file lookup - asking this rule about one would reimpose exactly
+        // the check a cover exists to skip.
+        if (ctx.Request.Path.StartsWithSegments(Constants.PlaceCoverBaseUrl))
+        {
+            return;
+        }
+
         var userId = ctx.User.GetMediaUserId();
 
         if (userId == null)

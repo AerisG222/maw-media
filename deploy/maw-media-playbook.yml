@@ -52,6 +52,10 @@
     dir_mediaassets: "{{ dir_approot }}/media-assets"
     dir_mediadp: "{{ dir_approot }}/media-data-protection"
     dir_mediafaces: "{{ dir_approot }}/media-faces"
+    # published place cover images.  served from /assets/covers, which skips the
+    # per file access check, so it is deliberately its own directory rather than
+    # a subdirectory of media-assets.
+    dir_mediaplacecovers: "{{ dir_approot }}/media-place-covers"
     dir_mediadownload: "{{ dir_approot }}/media-download"
     dir_mediasecrets: "{{ dir_approot }}/media-secrets"
     dir_mediaupload: "{{ dir_approot }}/media-upload"
@@ -79,6 +83,7 @@
         - "{{ dir_mediasecrets }}"
         - "{{ dir_mediadp }}"
         - "{{ dir_mediafaces }}"
+        - "{{ dir_mediaplacecovers }}"
         - "{{ dir_mediadownload }}"
         - "{{ dir_mediaupload }}"
         - "{{ dir_rcloneconf }}"

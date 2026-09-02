@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using MawMedia;
 using MawMedia.Models;
+using MawMedia.ViewModels;
 
 namespace MawMedia.Services.Tests.Api;
 
@@ -332,5 +333,321 @@ public class PlaceRoutesTests
 
         Assert.Contains(result!.Results, m => m.Id == Constants.MEDIA_PLACE_MA.Id);
         Assert.Contains(result.Results, m => m.Id == Constants.MEDIA_TRAVEL_1.Id);
+    }
+
+    static string CoverRoute(Guid id) => $"{ROUTE_LIST}/{id}/cover";
+
+    [Fact]
+    public async Task SettingACoverRequiresTheLocationWriteScope()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(client, "ny", "new-york");
+
+        var response = await client.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ANonAdminCannotSetACoverEvenWithTheScope()
+    {
+        using var browse = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(browse, "ny", "new-york");
+
+        // choosing a cover publishes a photograph outside the authorization
+        // boundary, so holding the scope is not enough - the database checks admin
+        var response = await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ACoverIsPublishedAndServedToAnySignedInCaller()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        Assert.Null(city.CoverUrl);
+
+        var set = await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+
+        var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        Assert.NotNull(updated!.CoverUrl);
+        Assert.Contains("/assets/covers/", updated.CoverUrl);
+
+        // the file is named for the place, so the url is derivable from the row -
+        // no second id, and no lookup to answer "where is this image"
+        Assert.Contains($"{city.Id}.avif", updated.CoverUrl);
+
+        var image = await admin.GetAsync(new Uri(updated.CoverUrl), token);
+
+        Assert.Equal(HttpStatusCode.OK, image.StatusCode);
+        Assert.Equal("image/avif", image.Content.Headers.ContentType?.MediaType);
+        Assert.True((await image.Content.ReadAsByteArrayAsync(token)).Length > 0);
+
+        // immutable, which is what makes replacing a cover safe to cache forever,
+        // and private so a shared cache cannot hand it to a signed out visitor
+        var cacheControl = image.Headers.CacheControl?.ToString() ?? "";
+
+        Assert.Contains("immutable", cacheControl);
+        Assert.Contains("private", cacheControl);
+
+        // signing out closes it: a cover is not public, it merely skips the per
+        // file check that the rest of /assets applies
+        using var anonymous = Factory.CreateClient();
+
+        var refused = await anonymous.GetAsync(new Uri(updated.CoverUrl), token);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
+
+        await writer.DeleteAsync(CoverRoute(city.Id), token);
+    }
+
+    [Fact]
+    public async Task TheCoverBranchOpensNoDoorIntoTheAssetTree()
+    {
+        using var anonymous = Factory.CreateClient();
+        using var signedIn = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // anything that is not "{guid}.avif" under the prefix is refused outright
+        foreach (var probe in new[]
+        {
+            "/assets/covers/nature1.jpg",
+            "/assets/covers/not-a-guid.avif",
+            "/assets/covers/nested/path.avif",
+            $"/assets/covers/{Guid.CreateVersion7()}.avif"
+        })
+        {
+            var response = await signedIn.GetAsync(probe, token);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        // a traversal out of the public prefix is normalized by the client before
+        // it is sent, so it arrives as a plain /assets request - which must still
+        // be challenged.  the point is that it is never *served*, whichever branch
+        // ends up judging it.
+        foreach (var probe in new[]
+        {
+            "/assets/covers/../media/nature1.jpg",
+            "/assets/media/nature1.jpg",
+            "/assets/media/anything.avif"
+        })
+        {
+            // a signed in caller who cannot see the media must still be refused -
+            // the cover branch skips the per file check, the media branch does not
+            var response = await signedIn.GetAsync(probe, token);
+
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound,
+                $"{probe} answered {response.StatusCode}");
+        }
+
+        // and an anonymous caller is refused everywhere, covers included
+        foreach (var probe in new[] { "/assets/media/nature1.jpg", $"/assets/covers/{Guid.CreateVersion7()}.avif" })
+        {
+            var response = await anonymous.GetAsync(probe, token);
+
+            Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task ACoverMustComeFromMediaAtThatPlace()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, boston) = await Usa(admin, "ma", "boston");
+
+        // MEDIA_TRAVEL_1 is in New York, not Boston
+        var response = await writer.PutAsJsonAsync(
+            CoverRoute(boston.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ACountryMayBeRepresentedByAPhotographFromOneOfItsCities()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var country = await Country(admin, "usa");
+
+        // the check is "at this place or beneath it", so a city photo represents
+        // its country - which is what an admin actually wants
+        var response = await writer.PutAsJsonAsync(
+            CoverRoute(country.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await writer.DeleteAsync(CoverRoute(country.Id), token);
+    }
+
+    [Fact]
+    public async Task ReplacingACoverMovesItToANewUrlAndClearingRemovesIt()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, boston) = await Usa(admin, "ma", "boston");
+
+        var first = await (await writer.PutAsJsonAsync(
+            CoverRoute(boston.Id), new PlaceCoverRequest(Constants.MEDIA_PLACE_MA.Id), JsonOptions, token))
+            .Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        var second = await (await writer.PutAsJsonAsync(
+            CoverRoute(boston.Id), new PlaceCoverRequest(Constants.MEDIA_PLACE_OVERRIDE.Id), JsonOptions, token))
+            .Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        // one file per place, so the path is unchanged - but the ?v= moves, which
+        // is what stops a cache serving the image that was just replaced
+        Assert.NotEqual(first!.CoverUrl, second!.CoverUrl);
+        Assert.Equal(
+            new Uri(first.CoverUrl!).AbsolutePath,
+            new Uri(second.CoverUrl!).AbsolutePath);
+        Assert.Contains($"{boston.Id}.avif", second.CoverUrl!);
+
+        // and the bytes at that one path are now the replacement's
+        var served = await admin.GetAsync(new Uri(second.CoverUrl!), token);
+
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        Assert.Equal(
+            ApiFactory.StubRendition(Constants.FILE_PLACE_OVERRIDE_COVER.Path),
+            await served.Content.ReadAsByteArrayAsync(token));
+
+        var cleared = await (await writer.DeleteAsync(CoverRoute(boston.Id), token))
+            .Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        Assert.Null(cleared!.CoverUrl);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await admin.GetAsync(new Uri(second.CoverUrl!), token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task ACoverSkipsThePerFileCheckThatGovernsTheRestOfAssets()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        // MEDIA_NATURE_1 lives in CATEGORY_NATURE, which ROLE_FRIEND cannot reach.
+        // johndoe can see the place - MEDIA_TRAVEL_1 is there too - but not this
+        // particular photograph.
+        var set = await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_NATURE_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+
+        var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        try
+        {
+            // the underlying photograph stays closed to him...
+            var original = await friend.GetAsync(
+                $"/assets{Constants.FILE_NATURE_1.Path}", token);
+
+            Assert.NotEqual(HttpStatusCode.OK, original.StatusCode);
+
+            // ...while the cover an admin chose from it renders anyway.  this is
+            // the whole point of the branch: a place tile has to draw for anyone
+            // browsing, and the control sits in the choosing, not the serving.
+            var cover = await friend.GetAsync(new Uri(updated!.CoverUrl!), token);
+
+            Assert.Equal(HttpStatusCode.OK, cover.StatusCode);
+
+            // and he is told about it in the listing, like everyone else
+            var seen = await friend.GetFromJsonAsync<Place[]>(
+                $"{ROUTE_LIST}?parent={city.ParentId}", JsonOptions, token);
+
+            Assert.Equal(updated.CoverUrl, Assert.Single(seen!, p => p.Id == city.Id).CoverUrl);
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
+    }
+
+    [Fact]
+    public async Task ACoverIsPublishedFromTheQvgFillRenditionNotTheLargestOne()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        // MEDIA_TRAVEL_1 carries a full-hd and a qvg-fill.  the cover must come
+        // from the qvg-fill, so every tile is the same shape whatever the source
+        // photograph's aspect - picking the largest would undo that.
+        var updated = await (await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token))
+            .Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+
+        try
+        {
+            var published = await admin.GetAsync(new Uri(updated!.CoverUrl!), token);
+
+            Assert.Equal(HttpStatusCode.OK, published.StatusCode);
+
+            // each fixture rendition has a distinct body, so the bytes identify
+            // exactly which file was copied
+            Assert.Equal(
+                ApiFactory.StubRendition(Constants.FILE_TRAVEL_1_COVER.Path),
+                await published.Content.ReadAsByteArrayAsync(token));
+
+            Assert.NotEqual(
+                ApiFactory.StubRendition(Constants.FILE_TRAVEL_1.Path),
+                await published.Content.ReadAsByteArrayAsync(token));
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
+    }
+
+    [Fact]
+    public async Task AMediaWithoutTheCoverRenditionIsRefused()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var uk = await Country(admin, "united-kingdom");
+
+        // MEDIA_PLACE_UK exists, is visible to the admin and sits at this place -
+        // it simply has no qvg-fill.  refusing is better than silently publishing
+        // a differently shaped image.
+        var response = await writer.PutAsJsonAsync(
+            CoverRoute(uk.Id), new PlaceCoverRequest(Constants.MEDIA_PLACE_UK.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        // and nothing was published on the way to failing
+        var still = await admin.GetFromJsonAsync<Place>(PlaceRoute(uk.Id), JsonOptions, token);
+
+        Assert.Null(still!.CoverUrl);
     }
 }

@@ -49,7 +49,7 @@ public class MediaRepositoryTests
         { Guid.CreateVersion7(),  Guid.CreateVersion7(),       null, 0 },
         { Guid.CreateVersion7(),  Constants.MEDIA_NATURE_1.Id, null, 0 },
         { Constants.USER_ADMIN,   Guid.CreateVersion7(),       null, 0 },
-        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_1.Id, Constants.MEDIA_NATURE_1, 1 },
+        { Constants.USER_ADMIN,   Constants.MEDIA_NATURE_1.Id, Constants.MEDIA_NATURE_1, 2 },  // full-hd plus the qvg-fill a cover is published from
         { Constants.USER_JOHNDOE, Constants.MEDIA_NATURE_1.Id, null, 0 }
     };
 
