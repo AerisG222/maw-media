@@ -1,5 +1,7 @@
 -- 2026-09-01 - add cover_created (the cover url is derived from place id)
 -- 2026-09-02 - add _search, and return cover_media_id and ancestor_names
+-- 2026-09-03 - return child_count, so a client can tell a tile that leads
+--              somewhere from one that is already the end of the line
 DROP FUNCTION IF EXISTS media.get_places;
 
 -- the places a user may browse at one level of the hierarchy.
@@ -97,7 +99,22 @@ RETURNS TABLE
     --
     -- an array rather than a joined string, matching how media.get_categories
     -- returns media_types, so the client picks its own separator.
-    ancestor_names TEXT[]
+    ancestor_names TEXT[],
+
+    -- how many places sit directly inside this one *that the caller can see*, by
+    -- the same rule that decides whether a place is listed at all.
+    --
+    -- it exists so a browse can avoid offering a drill-in that leads nowhere: a
+    -- city has nothing beneath it, and neither does a state whose only cities are
+    -- in categories this caller cannot reach.  the first is derivable from kind,
+    -- the second is not derivable at all without asking - which is the whole
+    -- reason this is computed here rather than guessed at in a client.
+    --
+    -- _kind is deliberately not applied to it.  it answers "does drilling in show
+    -- anything", and the kind filter is something the user can clear; counting
+    -- through it would make a tile look like a dead end because of a filter
+    -- rather than because of the tree.
+    child_count INTEGER
 )
 AS $$
 BEGIN
@@ -130,12 +147,22 @@ BEGIN
         -- each candidate paired with itself and everything beneath it, so one pass
         -- counts every level at once.  media.get_place_descendants does this for a
         -- single place; inlining it here avoids calling it once per candidate.
-        SELECT c.id AS root_id, c.id AS node_id
+        --
+        -- via_child records which of the candidate's own children a descendant
+        -- hangs from - null for the candidate itself.  carrying it costs nothing
+        -- and is what makes child_count free: counting the distinct children that
+        -- survive the visibility join below is the same question as "which
+        -- children would a drill-in list", answered by the join that is already
+        -- there rather than by a second pass over the tree.
+        SELECT c.id AS root_id, c.id AS node_id, NULL::UUID AS via_child
         FROM candidate c
 
         UNION ALL
 
-        SELECT s.root_id, ch.id
+        -- COALESCE keeps the *first* hop rather than the last: a city two levels
+        -- down is reached through its state, and it is the state the drill-in
+        -- would list
+        SELECT s.root_id, ch.id, COALESCE(s.via_child, ch.id)
         FROM media.place ch
         INNER JOIN subtree s
             ON ch.parent_id = s.node_id
@@ -156,7 +183,11 @@ BEGIN
             SELECT ARRAY_AGG(a.ancestor_name ORDER BY a.ancestor_depth)
             FROM media.get_place_ancestors(p.id) a
             WHERE a.ancestor_id <> p.id
-        )
+        ),
+        -- DISTINCT because a child contributes one row per visible node beneath
+        -- it, and NULLs - the candidate's own row - are not counted, which is
+        -- exactly right: a place is not a child of itself
+        COUNT(DISTINCT s.via_child)::INTEGER
     FROM subtree s
     INNER JOIN media.place p
         ON p.id = s.root_id

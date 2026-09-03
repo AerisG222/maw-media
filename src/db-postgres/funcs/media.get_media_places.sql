@@ -41,7 +41,12 @@ RETURNS TABLE
     media_count INTEGER,
     cover_created TIMESTAMPTZ,
     cover_media_id UUID,
-    ancestor_names TEXT[]
+    ancestor_names TEXT[],
+    -- always 0 for the deepest rung and usually not for the ones above it. this
+    -- function returns media.get_places rows verbatim, so its shape is that
+    -- function's shape - a column added there has to be added here too, or
+    -- postgres refuses the mismatch at call time
+    child_count INTEGER
 )
 AS $$
 DECLARE

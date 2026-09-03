@@ -108,7 +108,8 @@ public class PlaceRepository
                     Constants.PlaceCoverUrlFormat,
                     r.Id,
                     r.CoverCreated.Value.ToUnixTimeTicks())),
-            r.CoverMediaId
+            r.CoverMediaId,
+            r.ChildCount
         );
 
     public async Task<IEnumerable<Place>> GetMediaPlaces(

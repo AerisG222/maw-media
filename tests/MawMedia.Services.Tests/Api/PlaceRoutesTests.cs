@@ -919,4 +919,96 @@ public class PlaceRoutesTests
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task PlacesReportHowManyChildrenTheCallerCanSee()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+
+        var (country, state, city) = await Usa(client, "ny", "new-york");
+
+        // the fixtures give the USA two states, NY one city, and that city
+        // nothing - which is the number a browse needs to know whether drilling
+        // in leads anywhere or is a dead end
+        Assert.Equal(2, country.ChildCount);
+        Assert.Equal(1, state.ChildCount);
+        Assert.Equal(0, city.ChildCount);
+    }
+
+    [Fact]
+    public async Task ChildCountMatchesWhatDrillingInActuallyLists()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // the point of the number is that a client can trust it instead of
+        // fetching to find out, so it has to agree with the listing exactly - at
+        // every level, including the one where the answer is zero
+        var countries = await client.GetFromJsonAsync<Place[]>(ROUTE_LIST, JsonOptions, token);
+
+        var seen = 0;
+
+        async Task Check(Place place)
+        {
+            var children = await client.GetFromJsonAsync<Place[]>(
+                $"{ROUTE_LIST}?parent={place.Id}", JsonOptions, token);
+
+            Assert.Equal(children!.Length, place.ChildCount);
+
+            seen++;
+
+            foreach (var child in children)
+            {
+                await Check(child);
+            }
+        }
+
+        foreach (var country in countries!)
+        {
+            await Check(country);
+        }
+
+        // guards the assertion above against a tree that walked nothing
+        Assert.True(seen > 2, $"expected to walk the whole tree, saw {seen} places");
+    }
+
+    [Fact]
+    public async Task ChildCountIsScopedToWhatTheCallerCanSee()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var forAdmin = await admin.GetFromJsonAsync<Place[]>(ROUTE_LIST, JsonOptions, token);
+        var forFriend = await friend.GetFromJsonAsync<Place[]>(ROUTE_LIST, JsonOptions, token);
+
+        // a restricted caller can never be told a place holds more than the admin
+        // sees, and a branch emptied by permissions has to read as a leaf to them -
+        // otherwise the browse offers a drill-in that answers with nothing
+        Assert.All(forFriend!, f =>
+        {
+            var match = Assert.Single(forAdmin!, a => a.Id == f.Id);
+
+            Assert.True(
+                f.ChildCount <= match.ChildCount,
+                $"{f.Name} reported {f.ChildCount} children to a caller who sees {match.ChildCount}");
+        });
+    }
+
+    [Fact]
+    public async Task ChildCountIgnoresTheKindFilter()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // the filter narrows the listing, not the tree.  a country asked for as
+        // part of a country-only listing still has its states, or a client would
+        // grey out a drill-in because of a filter the user can clear
+        var filtered = await client.GetFromJsonAsync<Place[]>(
+            $"{ROUTE_LIST}?kind=country", JsonOptions, token);
+
+        var usa = Assert.Single(filtered!, c => c.Slug == "usa");
+
+        Assert.Equal(2, usa.ChildCount);
+    }
 }

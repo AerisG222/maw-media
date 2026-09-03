@@ -50,5 +50,14 @@ public record Place(
     // which photograph the cover was published from, or null when there is none.
     // an admin picker needs it to show the current choice as selected, which it
     // cannot do from CoverUrl - that names the published copy, not the original.
-    Guid? CoverMediaId
+    Guid? CoverMediaId,
+
+    // how many places sit directly inside this one that the caller can see.
+    //
+    // it is what lets a browse avoid offering a drill-in that leads nowhere. a
+    // client cannot work it out: a city having no children follows from Kind, but
+    // a state whose only cities sit in categories this caller cannot reach is
+    // just as much a leaf *to them*, and nothing in the rest of this record says
+    // so. scoped per caller for the same reason MediaCount is.
+    int ChildCount
 );

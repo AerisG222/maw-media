@@ -785,6 +785,7 @@ needing it: names arrive consistently long-form.
 | 7 | admin surface: merge + re-parent | **complete** (section 11) |
 | 8 | admin picked cover images | **complete** (section 14) |
 | 9 | the reverse lookup: which places one media was taken at | **complete** (section 15) |
+| 10 | `child_count`, so a browse never offers a drill-in that leads nowhere | **complete** (section 16) |
 
 ---
 
@@ -996,3 +997,52 @@ another state offers that state, not the one its file claimed.
 was taken is browsing; the location scopes are for maintaining the geocode and
 administering the tree. Choosing one of the returned places as a cover is still
 `LocationWriter` plus the database's own admin check.
+
+---
+
+## 16. Phase 10 - no dead ends
+
+The browse offered a drill-in on every tile, and a city has nothing inside it -
+so clicking one landed on a page whose only content was "nothing sits inside this
+place". The photographs were one more click away, up in the summary, which is the
+wrong way round: at the bottom of the tree the photographs *are* the answer.
+
+`media.get_places` therefore returns **`child_count`** - how many places sit
+directly inside this one **that the caller can see** - and a client sends a tile
+with none straight to the media.
+
+### Why it cannot be done in the client
+
+A city having no children follows from `kind`; there is no level below it. That
+covers 239 of the ~280 nodes and tempts a client-side rule.
+
+It is wrong for the other 41. A state whose media all geocoded to the state level
+has no cities, and **a state whose only cities sit in categories this caller
+cannot reach is just as much a leaf to them** - the listing hides those children
+by the same rule that hides the place itself. Nothing else in `Place` says so, and
+a client that guessed from `kind` would leave exactly the restricted users staring
+at the dead end this removes.
+
+### Why it is free
+
+The count comes out of the join that was already there. `subtree` now carries
+**`via_child`** - which of the candidate's own children a descendant hangs from,
+null for the candidate itself - and the aggregate counts
+`COUNT(DISTINCT s.via_child)`. Since the query already inner joins
+`media.user_location`, only children with something visible beneath them survive
+to be counted, which is the listing rule restated in the one place it was already
+being applied. No second pass over the tree, no per-tile subtree probe, and no
+possibility of the number disagreeing with what a drill-in would show - a
+property one of the tests asserts directly, by walking the whole tree and
+comparing `child_count` against the listing at every level.
+
+`_kind` is deliberately **not** applied to it. It answers "does drilling in show
+anything", and the kind filter is something the user can clear; counting through
+it would grey out a tile because of a filter rather than because of the tree.
+
+### The one shape rule this exposed
+
+`media.get_media_places` returns `media.get_places` rows verbatim, so its
+`RETURNS TABLE` restates that function's shape - and postgres refuses the
+mismatch at call time rather than at deploy time. Adding a column here means
+adding it there too; three tests failed with `42804` until it was.

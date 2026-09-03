@@ -18,4 +18,5 @@ class PlaceRow
     public NodaTime.Instant? CoverCreated { get; set; }
     public Guid? CoverMediaId { get; set; }
     public string[]? AncestorNames { get; set; }
+    public int ChildCount { get; set; }
 }
