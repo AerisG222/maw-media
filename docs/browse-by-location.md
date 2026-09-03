@@ -1,7 +1,7 @@
 # Browse by Location
 
 Status: **all phases complete.** Remaining optional work: `rename_place`, and the judgement calls in section 11
-Last updated: 2026-08-30
+Last updated: 2026-09-03
 
 Lets a user pick a country, state, or city and see the media and categories from
 it - the location equivalent of the person/clan browse added in `c9bf927`.
@@ -784,6 +784,7 @@ needing it: names arrive consistently long-form.
 | 6 | tests + seeder work | **complete** |
 | 7 | admin surface: merge + re-parent | **complete** (section 11) |
 | 8 | admin picked cover images | **complete** (section 14) |
+| 9 | the reverse lookup: which places one media was taken at | **complete** (section 15) |
 
 ---
 
@@ -950,3 +951,48 @@ narrowing it - the face root was missed on the first pass and produced an
 intermittent `PutImageStoresBytesThatCanBeReadBack` failure until it moved across
 too.
 
+---
+
+## 15. Phase 9 - the reverse lookup
+
+Every read above goes place -> media. The cover picker in the photo app wanted the
+other direction: an admin looking at one photograph, deciding it should represent
+where it was taken, and needing the *place ids* to say so - which a client holding
+only a media id had no way to obtain.
+
+```
+GET /media/{id:guid}/places      MediaReader
+```
+
+Returns the chain holding the media, **country first**: `[USA, MA, Boston]`.
+
+### Whole places, not the breadcrumb
+
+`PlaceAncestor` would have been the obvious shape and is the wrong one. The screen
+offering to replace a cover has to show the cover currently in force at each rung,
+and which photograph it came from, or an admin cannot tell what they are about to
+overwrite. So each rung is a full `Place`, and `media.get_media_places` gets it by
+**calling `media.get_places` once per rung** rather than restating its aggregate -
+covers, counts and ancestor names here can therefore never disagree with the ones
+the browse shows. The tree is three deep, so that is at most three single-place
+aggregates.
+
+### Where the access rule comes from
+
+Nowhere new. `media.user_location` yields nothing for a media the caller cannot
+see, and `media.get_places` drops a rung the caller may see nothing at - so the
+route cannot be used to discover that a place exists, nor that a media does.
+
+It answers **`200` with an empty array**, never `404`, matching
+`GET /media/{id}/faces`: a media with no location, one never geocoded, and one the
+caller cannot see are all "nothing to offer here", and the media route itself
+already tells those apart. The override column is honoured, because
+`media.user_location` composes `media.media_location` - a photograph corrected into
+another state offers that state, not the one its file claimed.
+
+### Scope
+
+`media:read`, not `location:read` or `location:write`. Naming where a photograph
+was taken is browsing; the location scopes are for maintaining the geocode and
+administering the tree. Choosing one of the returned places as a cover is still
+`LocationWriter` plus the database's own admin check.

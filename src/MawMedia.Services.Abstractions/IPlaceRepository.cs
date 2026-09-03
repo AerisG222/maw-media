@@ -35,6 +35,19 @@ public interface IPlaceRepository
     // one that could drift from it.
     Task<Place?> GetPlace(Guid userId, string baseUrl, Guid placeId, CancellationToken token = default);
 
+    // where one media was taken, as the chain of places holding it - country
+    // first, then its state and city where the geocode resolved that deep.
+    //
+    // the reverse of every other read here, and it exists for the cover picker: a
+    // client looking at a photograph cannot otherwise name the places it could
+    // represent, and SetPlaceCover takes place ids.  whole places rather than
+    // ancestors, because that screen shows each rung's current cover to say what
+    // would be replaced.
+    //
+    // empty for a media the caller cannot see, and for one with no location - the
+    // two are deliberately indistinguishable, as everywhere else here.
+    Task<IEnumerable<Place>> GetMediaPlaces(Guid userId, string baseUrl, Guid mediaId, CancellationToken token = default);
+
     // the breadcrumb above a place, country first, including the place itself.
     // empty when the id is unknown.
     Task<IEnumerable<PlaceAncestor>> GetPlaceAncestors(Guid userId, Guid placeId, CancellationToken token = default);

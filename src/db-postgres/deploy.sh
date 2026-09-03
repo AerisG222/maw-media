@@ -275,6 +275,7 @@ function main() {
     queue "funcs/media.get_media_faces.sql"
     queue "funcs/media.get_media_file.sql"
     queue "funcs/media.get_media_gps.sql"
+    queue "funcs/media.get_media_places.sql"
     queue "funcs/media.get_metadata.sql"
     queue "funcs/media.get_person_categories.sql"
     queue "funcs/media.get_person_media.sql"

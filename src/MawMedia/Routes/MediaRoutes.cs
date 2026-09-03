@@ -52,6 +52,17 @@ public static class MediaRoutes
             .WithDescription("Get GPS for media")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
+        // gated on media:read like the gps route above, and for the same reason:
+        // naming the places a photograph was taken is browsing, not location
+        // administration.  choosing one of them as a cover is the write, and that
+        // still needs location:write - see PlaceRoutes.
+        group
+            .MapGet("/{id}/places", GetMediaPlaces)
+            .WithName("media-places")
+            .WithSummary("Places for Media")
+            .WithDescription("Lists the places a media was taken - country first, then its state and city where the geocode resolved that deep. Each is a whole place, carrying its current cover, so a client can offer to replace one. Empty for media with no location.")
+            .RequireAuthorization(AuthorizationPolicies.MediaReader);
+
         group
             .MapPut("/{id}/favorite", FavoriteMedia)
             .WithName("favorite-media")
@@ -170,6 +181,24 @@ public static class MediaRoutes
         return gps != null
             ? TypedResults.Ok(gps)
             : TypedResults.NotFound();
+    }
+
+    static async Task<Ok<IEnumerable<Place>>> GetMediaPlaces(
+        IPlaceRepository repo,
+        ClaimsPrincipal user,
+        HttpRequest request,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        // an empty chain rather than a 404, matching the faces route: a media
+        // with no location and one the caller cannot see are both "nowhere to
+        // offer", and the media route itself already tells those apart
+        return userId != null
+            ? TypedResults.Ok(await repo.GetMediaPlaces(userId.Value, request.GetBaseUrl(), id, token))
+            : TypedResults.Ok(Array.Empty<Place>().AsEnumerable());
     }
 
     static async Task<IResult> GetMetadata(

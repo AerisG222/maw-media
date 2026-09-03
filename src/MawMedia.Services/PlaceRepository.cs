@@ -79,28 +79,57 @@ public class PlaceRepository
         );
 
         return results
-            .Select(r => new Place(
-                r.Id,
-                r.ParentId,
-                r.Kind,
-                r.Name,
-                r.Slug,
-                r.MediaCount,
-                // null for a country, which has none - flattened here so clients
-                // never have to distinguish "no ancestors" from "not supplied"
-                r.AncestorNames ?? [],
-                // absolute, so clients do not assemble it.  the file name is the
-                // place id; cover_created only says whether there is one and which
-                // version, which becomes the url's ?v=.
-                r.CoverCreated == null
-                    ? null
-                    : _assetPathBuilder.Build(baseUrl, string.Format(
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        Constants.PlaceCoverUrlFormat,
-                        r.Id,
-                        r.CoverCreated.Value.ToUnixTimeTicks())),
-                r.CoverMediaId
-            ))
+            .Select(r => MapPlace(r, baseUrl))
+            .ToList();
+    }
+
+    // shared by the listing and by the media -> places lookup, which reads the
+    // same rows through a different question.  the cover url in particular is
+    // composed in one place, so the two can never disagree about which version of
+    // a cover they are naming
+    Place MapPlace(PlaceRow r, string baseUrl) =>
+        new(
+            r.Id,
+            r.ParentId,
+            r.Kind,
+            r.Name,
+            r.Slug,
+            r.MediaCount,
+            // null for a country, which has none - flattened here so clients
+            // never have to distinguish "no ancestors" from "not supplied"
+            r.AncestorNames ?? [],
+            // absolute, so clients do not assemble it.  the file name is the
+            // place id; cover_created only says whether there is one and which
+            // version, which becomes the url's ?v=.
+            r.CoverCreated == null
+                ? null
+                : _assetPathBuilder.Build(baseUrl, string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    Constants.PlaceCoverUrlFormat,
+                    r.Id,
+                    r.CoverCreated.Value.ToUnixTimeTicks())),
+            r.CoverMediaId
+        );
+
+    public async Task<IEnumerable<Place>> GetMediaPlaces(
+        Guid userId,
+        string baseUrl,
+        Guid mediaId,
+        CancellationToken token = default
+    )
+    {
+        var results = await Query<PlaceRow>(
+            "SELECT * FROM media.get_media_places(@userId, @mediaId);",
+            new
+            {
+                userId,
+                mediaId
+            },
+            token
+        );
+
+        return results
+            .Select(r => MapPlace(r, baseUrl))
             .ToList();
     }
 

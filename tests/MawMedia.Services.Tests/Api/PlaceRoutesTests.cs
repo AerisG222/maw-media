@@ -806,4 +806,117 @@ public class PlaceRoutesTests
 
         Assert.Null(cleared!.CoverMediaId);
     }
+
+    // the reverse lookup: which places one photograph could represent.  it hangs
+    // off the media resource rather than this one, because it is asked with a
+    // media id in hand
+    static string MediaPlacesRoute(Guid id) => $"/api/v1/media/{id}/places";
+
+    [Fact]
+    public async Task GetMediaPlacesReturnsTheChainRootFirst()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        var (country, state, city) = await Usa(client, "ma", "boston");
+
+        var chain = await client.GetFromJsonAsync<Place[]>(
+            MediaPlacesRoute(Constants.MEDIA_PLACE_MA.Id), JsonOptions, token);
+
+        // country first, so a client can label the rungs in the order it was
+        // handed them - and whole places, not the breadcrumb, so each one carries
+        // the cover a caller would be replacing
+        Assert.Equal([country.Id, state.Id, city.Id], chain!.Select(p => p.Id));
+        Assert.Equal(["country", "state", "city"], chain!.Select(p => p.Kind));
+        Assert.Equal(
+            [country.MediaCount, state.MediaCount, city.MediaCount],
+            chain!.Select(p => p.MediaCount));
+    }
+
+    [Fact]
+    public async Task MediaPlacesFollowTheLocationOverride()
+    {
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // MEDIA_PLACE_OVERRIDE is recorded at LOCATION_NY and corrected to
+        // LOCATION_MA.  the override is the majority path in production, so this
+        // must name Boston - offering New York would let an admin publish a cover
+        // for a place the photograph was never taken at
+        var (_, _, boston) = await Usa(client, "ma", "boston");
+
+        var chain = await client.GetFromJsonAsync<Place[]>(
+            MediaPlacesRoute(Constants.MEDIA_PLACE_OVERRIDE.Id), JsonOptions, token);
+
+        Assert.Equal(boston.Id, chain!.Last().Id);
+        Assert.DoesNotContain(chain!, p => p.Slug == "new-york");
+    }
+
+    [Fact]
+    public async Task MediaPlacesCarryTheCoverEachRungCurrentlyHas()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        try
+        {
+            var chain = await admin.GetFromJsonAsync<Place[]>(
+                MediaPlacesRoute(Constants.MEDIA_NATURE_1.Id), JsonOptions, token);
+
+            var newYork = Assert.Single(chain!, p => p.Id == city.Id);
+
+            // this is the whole reason whole places are returned: a screen offering
+            // to replace a cover has to show the one in force, and which photograph
+            // it came from
+            Assert.NotNull(newYork.CoverUrl);
+            Assert.Equal(Constants.MEDIA_TRAVEL_1.Id, newYork.CoverMediaId);
+
+            // the levels above it are untouched by a city's choice
+            Assert.All(chain!.Where(p => p.Id != city.Id), p => Assert.Null(p.CoverUrl));
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
+    }
+
+    [Fact]
+    public async Task MediaPlacesAreEmptyForMediaTheCallerCannotSee()
+    {
+        using var friend = Client(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead);
+        var token = TestContext.Current.CancellationToken;
+
+        // MEDIA_PLACE_UK is reachable only through CATEGORY_FOOD, which
+        // ROLE_FRIEND does not hold.  an empty chain rather than a 404, so this
+        // cannot be used to confirm the media exists - and it is the same answer
+        // a media with no location gives, which is the point
+        var chain = await friend.GetFromJsonAsync<Place[]>(
+            MediaPlacesRoute(Constants.MEDIA_PLACE_UK.Id), JsonOptions, token);
+
+        Assert.Empty(chain!);
+
+        var unknown = await friend.GetFromJsonAsync<Place[]>(
+            MediaPlacesRoute(Guid.CreateVersion7()), JsonOptions, token);
+
+        Assert.Empty(unknown!);
+    }
+
+    [Fact]
+    public async Task GetMediaPlacesRequiresTheMediaReadScope()
+    {
+        // naming where a photograph was taken is browsing; the location scopes are
+        // for maintaining the geocode and administering the tree
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+
+        var response = await client.GetAsync(
+            MediaPlacesRoute(Constants.MEDIA_PLACE_MA.Id), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
