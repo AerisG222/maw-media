@@ -566,8 +566,8 @@ public class PlaceRoutesTests
         try
         {
             // the underlying photograph stays closed to him...
-            var original = await friend.GetAsync(
-                $"/assets{Constants.FILE_NATURE_1.Path}", token);
+            // the stored path is already a url under /assets
+            var original = await friend.GetAsync(Constants.FILE_NATURE_1.Path, token);
 
             Assert.NotEqual(HttpStatusCode.OK, original.StatusCode);
 

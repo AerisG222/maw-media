@@ -47,7 +47,12 @@ public class PlaceCoverStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRelativePath);
 
-        var source = Path.GetFullPath(Path.Combine(_assetRoot, sourceRelativePath.TrimStart('/')));
+        // the stored path is a url - "/assets/2007/..." - and the asset root on disk
+        // is what /assets resolves to, so the prefix comes off before the join.
+        // TrimStart('/') alone produced <root>/assets/2007/... and a file that was
+        // never there.
+        var source = Path.GetFullPath(
+            Path.Combine(_assetRoot, AssetPathBuilder.ToRelativeFilePath(sourceRelativePath)));
 
         // the path comes from the database rather than from a caller, but it is
         // still concatenated into a filesystem path, so it is checked rather than

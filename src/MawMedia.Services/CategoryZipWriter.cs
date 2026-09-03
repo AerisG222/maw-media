@@ -59,7 +59,7 @@ public class CategoryZipFileWriter
             foreach (var path in filePaths)
             {
                 await zip.CreateEntryFromFileAsync(
-                    Path.Combine(_assetRootDir, TrimAssetsPathPrefix(path)),
+                    Path.Combine(_assetRootDir, AssetPathBuilder.ToRelativeFilePath(path)),
                     Path.GetFileName(path),
                     CompressionLevel.NoCompression  // media assets already compressed so don't waste cpu
                 );
@@ -76,15 +76,5 @@ public class CategoryZipFileWriter
     string BuildDownloadFilePath(string filename)
     {
         return Path.Combine(_downloadRootDir, filename);
-    }
-
-    static string TrimAssetsPathPrefix(string urlPath)
-    {
-        if (!urlPath.StartsWith(Constants.AssetBaseUrlWithSlash))
-        {
-            throw new ArgumentOutOfRangeException(nameof(urlPath));
-        }
-
-        return urlPath[Constants.AssetBaseUrlWithSlash.Length..];
     }
 }

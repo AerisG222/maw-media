@@ -209,7 +209,7 @@ public static class Constants
         1920,
         1080,
         123456L,
-        "/media/nature1.jpg"
+        "/assets/2022/nature/full-hd/nature1.avif"
     );
 
     public static readonly DbFile FILE_NATURE_2 = new(
@@ -220,7 +220,7 @@ public static class Constants
         1920,
         1080,
         123456L,
-        "/media/nature2.jpg"
+        "/assets/2022/nature/full-hd/nature2.avif"
     );
 
     public static readonly DbFile FILE_TRAVEL_1 = new(
@@ -231,7 +231,7 @@ public static class Constants
         1920,
         1080,
         123456L,
-        "/media/travel1.jpg"
+        "/assets/2023/travel/full-hd/travel1.avif"
     );
 
     // NOTE: declaration order matters here.  static fields initialize top to
@@ -327,33 +327,40 @@ public static class Constants
     // cover.
     public static readonly DbFile FILE_NATURE_1_COVER = new(
         Guid.CreateVersion7(), MEDIA_NATURE_1.Id, TYPE_PHOTO, SCALE_QVG_FILL,
-        320, 240, 4096L, "/media/nature1-qvg-fill.jpg");
+        320, 240, 4096L, "/assets/2022/nature/qvg-fill/nature1.avif");
 
     public static readonly DbFile FILE_TRAVEL_1_COVER = new(
         Guid.CreateVersion7(), MEDIA_TRAVEL_1.Id, TYPE_PHOTO, SCALE_QVG_FILL,
-        320, 240, 4096L, "/media/travel1-qvg-fill.jpg");
+        320, 240, 4096L, "/assets/2023/travel/qvg-fill/travel1.avif");
 
     public static readonly DbFile FILE_PLACE_MA_COVER = new(
         Guid.CreateVersion7(), MEDIA_PLACE_MA.Id, TYPE_PHOTO, SCALE_QVG_FILL,
-        320, 240, 4096L, "/media/place-ma-qvg-fill.jpg");
+        320, 240, 4096L, "/assets/2023/travel/qvg-fill/place-ma.avif");
 
     public static readonly DbFile FILE_PLACE_OVERRIDE_COVER = new(
         Guid.CreateVersion7(), MEDIA_PLACE_OVERRIDE.Id, TYPE_PHOTO, SCALE_QVG_FILL,
-        320, 240, 4096L, "/media/place-override-qvg-fill.jpg");
+        320, 240, 4096L, "/assets/2023/travel/qvg-fill/place-override.avif");
 
+    // paths are stored the way production stores them: a *url* path under
+    // /assets, laid out as {year}/{category}/{scale}/{file}.  that matters beyond
+    // tidiness - these fixtures previously used "/media/nature1.jpg", and because
+    // nothing read a file off disk the difference went unnoticed until publishing
+    // a cover did, in production, where the missing prefix became
+    // <root>/assets/... and a FileNotFoundException.
+    //
     // every place media needs a file: media.get_place_media inner joins
     // media_detail, and a category's teaser needs one to render as a tile
     public static readonly DbFile FILE_PLACE_MA = new(
         Guid.CreateVersion7(), MEDIA_PLACE_MA.Id, TYPE_PHOTO, SCALE_FULL_HD,
-        1920, 1080, 123456L, "/media/place-ma.jpg");
+        1920, 1080, 123456L, "/assets/2023/travel/full-hd/place-ma.avif");
 
     public static readonly DbFile FILE_PLACE_OVERRIDE = new(
         Guid.CreateVersion7(), MEDIA_PLACE_OVERRIDE.Id, TYPE_PHOTO, SCALE_FULL_HD,
-        1920, 1080, 123456L, "/media/place-override.jpg");
+        1920, 1080, 123456L, "/assets/2023/travel/full-hd/place-override.avif");
 
     public static readonly DbFile FILE_PLACE_UK = new(
         Guid.CreateVersion7(), MEDIA_PLACE_UK.Id, TYPE_PHOTO, SCALE_FULL_HD,
-        1920, 1080, 123456L, "/media/place-uk.jpg");
+        1920, 1080, 123456L, "/assets/2023/food/full-hd/place-uk.avif");
 
     // face recognition.  PERSON_SHARED appears in both a nature photo (admin only)
     // and the travel photo (admin + friend), while PERSON_PRIVATE appears only in

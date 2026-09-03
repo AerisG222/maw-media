@@ -822,3 +822,131 @@ needing it: names arrive consistently long-form.
 
 All open questions are now closed. What remains is phase 7, the deferred admin
 surface - see section 11.
+
+---
+
+## 14. Phase 8 - admin picked cover images
+
+An admin browses a place's photographs, chooses one, and a **copy** of it is
+published to a directory any signed in caller may read **without the per file
+access check** the rest of `/assets` applies.
+
+Browsing needs no new endpoint - `GET /places/{id}/media` already lists exactly
+the candidates.
+
+| route | authorization |
+|---|---|
+| `PUT /places/{id:guid}/cover` (body `{ mediaId }`) | `LocationWriter` **and** admin |
+| `DELETE /places/{id:guid}/cover` | `LocationWriter` **and** admin |
+| `GET /assets/covers/{guid}.avif` | signed in + `media:read`, **no per-file check** |
+
+### The authorization rule
+
+| branch | requires | per-file check |
+|---|---|---|
+| `/assets/...` (media) | signed in | **yes** - `AllowAccessToAsset` per path |
+| `/assets/faces/...` | signed in + `face-recognition:read` | yes - `CanViewFace` |
+| `/assets/covers/...` | signed in + `media:read` | **no** |
+
+Skipping the per-file check is the point: an admin chose the photograph to
+represent a place, and the tile has to render for anyone browsing - including a
+caller who cannot reach the category it came from. The control is in the choosing,
+not the serving.
+
+It is **not** public. A signed out caller is challenged like anywhere else under
+`/assets`, and the response is `Cache-Control: private` so a shared cache cannot
+hand it to one.
+
+Two places exclude the prefix by hand, exactly as they already exclude
+`/assets/faces`: the `UseWhen` predicate in `StaticFilesExtensions`, and
+`MediaStaticAssetAuthorizationHandler`, which declines rather than applying the
+media rule to a file it knows nothing about. The cover files also live outside the
+asset root, and `PlaceCoverStore` refuses to construct if the two overlap.
+
+### Which rendition is published
+
+Always **`qvg-fill`** (320x240, cropped to fill), never the largest that fits. The
+scale is fixed rather than ranked because `qvg-fill` crops to a constant aspect, so
+every tile is the same shape whatever the source photograph's orientation. Ranking
+by size, which this first did, gave a portrait cover for a portrait original and
+the grid looked broken.
+
+A media without that rendition is **refused** rather than falling back - 16 of the
+167,202 media are in that state, and a differently shaped image is worse than none.
+
+### Why a copy, and why never `src`
+
+- **`src` originals carry GPS and camera identity.** A 2023 phone photo embeds
+  `51 deg 30' 4.63" N` (London); a 2022 one `42 deg 35' 51.30" N` (Massachusetts).
+- **Derived renditions carry none.** 27 purely structural AVIF tags, zero sensitive
+  tags across 40 sampled files spanning years and scales.
+
+So `media.get_place_cover_candidate` **never returns `src`**, and the copy is
+byte-for-byte - no re-encode, no imaging dependency. Publishing an original would
+have handed those coordinates to every signed in caller, including ones who cannot
+see the photo itself.
+
+### The stored path is a url, not a filesystem path
+
+`media.file.path` holds `/assets/2007/hk-macau/qvg-fill/x.avif`, and
+`AssetPathBuilder.Build` turns it into a url by plain concatenation - which is why
+it is stored that way. Reading the file means undoing that: the asset root on disk
+*is* what `/assets` resolves to, so the prefix comes off before the join. Joining
+it whole yields `<root>/assets/2007/...` and a `FileNotFoundException`.
+
+`CategoryZipWriter` already knew this and had a private helper; it is now
+`AssetPathBuilder.ToRelativeFilePath`, shared by both readers, since it is one rule
+feeding two file reads.
+
+The fixtures used `/media/nature1.jpg` - neither prefixed nor laid out like
+production - and because no test read a file off disk, nothing noticed until
+publishing a cover did, in production. They now store production-shaped paths and
+the harness resolves them through the same helper.
+
+### Naming, and what a failure leaves behind
+
+The file is always **`{place_id}.avif`** - derivable from the row, with no stored
+name, the same choice `media.face` makes for its crops. Replacing a cover therefore
+overwrites one file rather than orphaning a previous name, so there is no
+displaced-file bookkeeping at all. Freshness comes from the url: `cover_created` is
+appended as `?v=`, which is what keeps `Cache-Control: immutable` honest.
+
+- **Set:** publish the file, then write the row. A row claiming a cover must never
+  precede the file, because a tile cannot recover from a broken image. If the
+  database refuses, the file is removed again.
+- **Clear:** clear the row, then delete the file.
+- Worst case either way is an orphaned `{place_id}.avif` no row points at. The one
+  cost of overwriting in place: a refused *replacement* deletes the existing cover,
+  so a place that had one loses it. Row and disk stay consistent, which is the
+  property that matters.
+
+### Constraint on the choice
+
+The media must sit at that place **or beneath it**, so a city photograph may
+represent its country while an unrelated one is refused. The check runs against the
+admin's own `media.user_location`, so it obeys the same visibility rule as every
+other read.
+
+### Phase 8 results
+
+The defining test is `ACoverSkipsThePerFileCheckThatGovernsTheRestOfAssets`: an
+admin sets New York's cover from a photograph in a category `ROLE_FRIEND` cannot
+reach, and the restricted caller is then refused the original at
+`/assets/media/...` but served the cover at `/assets/covers/...`, and sees its url
+in the listing.
+
+Two tests pin the rendition choice: the published bytes are the `qvg-fill` file and
+*not* the full-hd beside it, and a media lacking `qvg-fill` is refused with nothing
+published on the way to failing. Every fixture rendition has a distinct body so the
+bytes identify which file was copied.
+
+**A pre-existing harness race surfaced here.** `ApiFactory` passes root directories
+as process-global environment variables, so at 32-wide parallelism one factory can
+overwrite one between another writing it and that other's host reading it. Every
+read path composes urls without opening a file, so it had never mattered.
+Publishing a cover is the first operation that opens one. The asset, cover **and
+face** roots are now shared across factories, which removes the race rather than
+narrowing it - the face root was missed on the first pass and produced an
+intermittent `PutImageStoresBytesThatCanBeReadBack` failure until it moved across
+too.
+

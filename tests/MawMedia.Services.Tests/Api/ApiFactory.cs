@@ -1,3 +1,4 @@
+using MawMedia.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -45,7 +46,7 @@ public class ApiFactory
             Set("OAuth__Audience", AUDIENCE);
             Set("DataProtection__Path", dataProtection);
             Set("Assets__RootDirectory", SharedAssetRoot.Value);
-            Set("Faces__RootDirectory", CreateDir("faces"));
+            Set("Faces__RootDirectory", SharedFaceRoot.Value);
             // a sibling of the asset root, never inside it - PlaceCoverStore refuses
             // to start when the two overlap, because that branch is served
             // unauthenticated
@@ -70,10 +71,18 @@ public class ApiFactory
     // intermittently against a directory belonging to a different test.
     //
     // sharing removes the race rather than narrowing it: whichever value wins,
-    // every host sees the same tree.  the asset tree is read-only fixture data,
-    // and published covers are named with fresh guids, so neither can collide.
+    // every host sees the same tree.  the asset tree is read-only fixture data, and
+    // covers and face crops are both named by a guid the test owns, so none of the
+    // three can collide between tests.
+    //
+    // the face root is here for the same reason and was added later: it kept the
+    // per-test directory long after assets and covers had moved, and
+    // PutImageStoresBytesThatCanBeReadBack - which writes a crop through one host
+    // and reads it back through the same one - failed intermittently because
+    // another factory had overwritten the variable in between.
     static readonly Lazy<string> SharedAssetRoot = new(MaterializeAssets);
     static readonly Lazy<string> SharedCoverRoot = new(() => SharedDir("place-covers"));
+    static readonly Lazy<string> SharedFaceRoot = new(() => SharedDir("faces"));
 
     // a stub rather than a real avif - nothing in this system decodes a cover, it
     // is copied byte for byte.  the body is derived from the path so every
@@ -118,7 +127,9 @@ public class ApiFactory
             Constants.FILE_PLACE_OVERRIDE_COVER.Path
         })
         {
-            var file = Path.Combine(root, path.TrimStart('/'));
+            // resolved through the same helper production uses, so the fixture
+            // tree is laid out the way the application will look for it
+            var file = Path.Combine(root, AssetPathBuilder.ToRelativeFilePath(path));
 
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
 
