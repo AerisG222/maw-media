@@ -51,14 +51,18 @@ RETURNS TABLE
     media_count INTEGER
 )
 AS $$
+DECLARE
+    -- an array rather than a CTE, for the reason media.get_place_media gives: a
+    -- semi-join cannot be pushed inside media.user_location's DISTINCT, so the
+    -- place filter arrived after the whole view had been built
+    _descendants UUID[];
 BEGIN
+    SELECT ARRAY_AGG(d.descendant_id)
+    INTO _descendants
+    FROM media.get_place_descendants(_place_id) d;
+
     RETURN QUERY
-    WITH place AS
-    (
-        SELECT d.descendant_id
-        FROM media.get_place_descendants(_place_id) d
-    ),
-    visible AS
+    WITH visible AS
     (
         -- one row per category holding media from this place, carrying the count
         -- of the caller's media in it that were taken there.  COUNT(DISTINCT) is
@@ -94,7 +98,7 @@ BEGIN
             AND um.user_id = ul.user_id
         WHERE
             ul.user_id = _user_id
-            AND ul.place_id IN (SELECT p.descendant_id FROM place p)
+            AND ul.place_id = ANY(_descendants)
         GROUP BY um.category_id
     ),
     page AS

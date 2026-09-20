@@ -46,16 +46,28 @@ RETURNS TABLE
     file_scale TEXT
 )
 AS $$
+DECLARE
+    -- 2026-09-20 - the subtree, as an array rather than a CTE the query joins to.
+    --
+    -- it was a CTE, which made the place filter a semi-join, and a semi-join is
+    -- not something postgres can push inside media.user_location's DISTINCT.  so
+    -- the view was built whole - every media the caller can see, with its
+    -- coordinate resolved - and the place was applied to the finished 86,444 rows
+    -- afterwards.  a city with 70 photos paid for the entire library.
+    --
+    -- as a local array it is a plain `= ANY(...)` restriction on a column the
+    -- DISTINCT carries, which does push down, and the read starts from
+    -- ix_media_location$place_id instead: 344ms to 16ms for that city.
+    --
+    -- the walk still runs exactly once per call, which is what the CTE was for.
+    _descendants UUID[];
 BEGIN
+    SELECT ARRAY_AGG(d.descendant_id)
+    INTO _descendants
+    FROM media.get_place_descendants(_place_id) d;
+
     RETURN QUERY
-    WITH place AS
-    (
-        -- materialized once rather than correlated into the join below, so the
-        -- subtree walk runs a single time per call instead of per candidate row
-        SELECT d.descendant_id
-        FROM media.get_place_descendants(_place_id) d
-    ),
-    visible AS
+    WITH visible AS
     (
         -- DISTINCT ON collapses a media item that sits in several categories the
         -- caller can see down to one row.  media.user_location is already one row
@@ -80,7 +92,7 @@ BEGIN
             ON c.id = um.category_id
         WHERE
             ul.user_id = _user_id
-            AND ul.place_id IN (SELECT p.descendant_id FROM place p)
+            AND ul.place_id = ANY(_descendants)
             -- EXISTS rather than a join so the filter cannot change the row count:
             -- favorite is keyed on (media_id, created_by), so a join would be safe
             -- today, but the shape of this CTE should not depend on that.

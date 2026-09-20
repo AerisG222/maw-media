@@ -97,6 +97,47 @@ END
 $$;
 -- 2026-07-04 - end - materialize exif gps into stored columns
 
+-- 2026-09-20 - begin - index the location a media is actually filed under
+--
+-- there are two location columns and neither was indexed, so nothing could reach
+-- a media *from* its coordinate.  every place read therefore had to arrive from
+-- the other end - walk all of the caller's media, resolve each one's location,
+-- then discard the 99.9% that were somewhere else.  a city holding 70 photos cost
+-- the same as the whole library.
+--
+-- the index is on the expression rather than on the two columns, because
+-- media.media_location defines where a media *is* as
+-- COALESCE(location_override_id, location_id) - the override wins, and it is the
+-- majority path rather than the exception.  a plain index on either column alone
+-- could not serve that expression, and the pair of them would still leave the
+-- planner unable to answer the coalesce without rechecking every row.
+--
+-- partial for the same reason media.location$place_id is: 45% of the library has
+-- no location at all, and those rows are never the answer to "what was taken
+-- here".  the predicate matches media.media_location's own WHERE exactly, which
+-- is what lets the planner use it for that view.
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'media'
+            AND indexname = 'ix_media_media$location'
+    )
+    THEN
+
+        CREATE INDEX ix_media_media$location
+        ON media.media(COALESCE(location_override_id, location_id))
+        WHERE COALESCE(location_override_id, location_id) IS NOT NULL;
+
+    END IF;
+END
+$$;
+-- 2026-09-20 - end - index the location a media is actually filed under
+
 GRANT INSERT, UPDATE, SELECT
 ON media.media
 TO maw_media;

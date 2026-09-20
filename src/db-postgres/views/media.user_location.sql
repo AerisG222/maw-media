@@ -18,6 +18,12 @@
 -- 222ms against 403ms, and the two forms were verified to return identical sets
 -- across all 2,937,290 rows.
 --
+-- 2026-09-20 - that barrier is gone: media.user_media no longer has a DISTINCT,
+-- because it never removed a row.  so the two forms are now equivalent in cost as
+-- well as in result, and this one is kept for what it says rather than for what
+-- it saves - it names the two relations the access rule is actually made of.
+-- the DISTINCT below is a different matter and stays; see the note on it.
+--
 -- category_id is deliberately absent, for exactly the reason media.user_face
 -- gives.  a media sitting in two categories a user can see would arrive twice;
 -- carrying that through would double count every media in an aggregate - and

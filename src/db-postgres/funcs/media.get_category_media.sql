@@ -24,12 +24,44 @@ RETURNS TABLE
 AS $$
 BEGIN
     RETURN QUERY
+    -- 2026-09-20 - the category's media, resolved before the file fan-out.
+    --
+    -- MATERIALIZED is load bearing here rather than a hint.  media.user_media lost
+    -- its DISTINCT - it deduplicated nothing, see the view - and without that
+    -- barrier the planner flattens the whole thing into one join of eight
+    -- relations, which is at join_collapse_limit: it stops searching for an order
+    -- and settles for hashing all 1.85M rows of media.file against the 200 this
+    -- category actually holds.  measured at 210ms against 4ms.
+    --
+    -- so the fence is deliberate.  it says: settle which media this is about
+    -- first, then go and get their files.  that is also the shape
+    -- media.get_place_media and media.get_person_media already use, where a page
+    -- of media is chosen before the join that multiplies it per file.
+    WITH media_in_category AS MATERIALIZED
+    (
+        SELECT
+            um.category_id,
+            c.year AS category_year,
+            c.slug AS category_slug,
+            um.media_id,
+            um.media_slug,
+            m.created
+        FROM media.media m
+        INNER JOIN media.user_media um
+            ON um.media_id = m.id
+        INNER JOIN media.category c
+            ON c.id = um.category_id
+        WHERE
+            um.category_id = _category_id
+            AND
+            um.user_id = _user_id
+    )
     SELECT
-        um.category_id,
-        c.year AS category_year,
-        c.slug AS category_slug,
+        mic.category_id,
+        mic.category_year,
+        mic.category_slug,
         md.media_id,
-        um.media_slug,
+        mic.media_slug,
         md.media_type,
         CASE WHEN f.media_id
             IS NOT NULL THEN true
@@ -39,26 +71,18 @@ BEGIN
         md.file_path,
         md.file_type,
         md.file_scale
-    FROM media.media m
-    INNER JOIN media.user_media um
-        ON um.media_id = m.id
-    INNER JOIN media.category c
-        ON c.id = um.category_id
+    FROM media_in_category mic
     INNER JOIN media.media_detail md
-        ON md.media_id = m.id
+        ON md.media_id = mic.media_id
         AND (
             _exclude_src_files = FALSE
             OR
             md.file_scale <> 'src'
         )
     LEFT OUTER JOIN media.favorite f
-        ON um.media_id = f.media_id
+        ON f.media_id = mic.media_id
         AND f.created_by = _user_id
-    WHERE
-        um.category_id = _category_id
-        AND
-        um.user_id = _user_id
-    ORDER BY m.created;  -- TODO: switch to metadata created
+    ORDER BY mic.created;  -- TODO: switch to metadata created
 END;
 $$ LANGUAGE plpgsql;
 
