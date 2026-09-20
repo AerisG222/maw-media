@@ -78,13 +78,28 @@ podman exec -i pod-maw-media-maw-media-postgres \
 
 1. Make sure python/pip are installed
 2. `cd deploy/` within project
-3. Setup a python environment for ansible in the deploy dir: `python -m venv .venv`
+3. Run `./prepare-control-env.sh` - this creates the `.venv` and installs the
+   pinned ansible, ansible-dev-tools and passlib
 4. Enter the environment: `source .venv/bin/activate`
 5. If you want to exit that environment, just run `deactivate`
-6. Install Ansible
-    1. `pip install ansible`
-    2. `pip install passlib`
-    3. to upgrade: `pip install --upgrade ansible`
+
+`prepare-control-env.sh` is safe to re-run: the versions are pinned and installed
+with `--upgrade`, so it converges an existing `.venv` to the pinned set rather
+than leaving whatever was installed the day it was first created. Run it after
+pulling a change that moves those pins.
+
+To bump ansible, raise the versions in `prepare-control-env.sh`, re-run it, and
+confirm the playbook still passes:
+
+```
+ansible-playbook --syntax-check -i inventories/staging.yml -e mawenv=staging maw-media-playbook.yml
+ansible-lint maw-media-playbook.yml
+```
+
+The pins matter because the playbook depends on collections bundled with the
+ansible package - `containers.podman` for `podman_login` and `podman_play`, and
+`ansible.posix` for `authorized_key` - which move independently of this repo.
+Pinning is what keeps two control nodes deploying the same way.
 
 ## Managed Node Setup
 
