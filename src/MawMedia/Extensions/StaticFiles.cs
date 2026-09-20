@@ -13,6 +13,26 @@ namespace MawMedia.Extensions;
 
 public static class StaticFilesExtensions
 {
+    // how long a browser may reuse a media file or a face crop without asking
+    // again.
+    //
+    // without it these are served with an ETag and no Cache-Control, so a browser
+    // revalidates every one on every page load: a grid of fifty thumbnails is
+    // fifty conditional requests, each one authorized - and each 304 costs a round
+    // trip to return no bytes at all.
+    //
+    // bounded rather than `immutable`, which is the difference between these and a
+    // place cover.  a cover is replaced by writing a new url, so nothing at a given
+    // url ever changes; a media file keeps its path when it is re-rendered, so an
+    // immutable cache could pin a stale rendition forever.  a week is long enough
+    // that browsing costs nothing and short enough that a re-render is not a
+    // permanent problem - and a re-render that cannot wait can still be forced by
+    // changing the file's path, which is what the url is built from.
+    //
+    // private, because the response was authorized for one caller and a shared
+    // cache must not hand it to anybody else.
+    const string MediaCacheControl = "private, max-age=604800";
+
     public static IApplicationBuilder UseCustomStaticFiles(this IApplicationBuilder app)
     {
         var assetDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<AssetConfig>>().Value.RootDirectory);
@@ -70,7 +90,8 @@ public static class StaticFilesExtensions
                     ContentTypeProvider = new FileExtensionContentTypeProvider(),
                     FileProvider = new PhysicalFileProvider(faceDir),
                     HttpsCompression = HttpsCompressionMode.DoNotCompress,  // avif is already compressed
-                    RequestPath = Constants.FaceAssetBaseUrl
+                    RequestPath = Constants.FaceAssetBaseUrl,
+                    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = MediaCacheControl
                 })
         );
 
@@ -89,7 +110,8 @@ public static class StaticFilesExtensions
                     ContentTypeProvider = new FileExtensionContentTypeProvider(),
                     FileProvider = new PhysicalFileProvider(assetDir),
                     HttpsCompression = HttpsCompressionMode.DoNotCompress,  // images/videos already optimized, ensure this doesn't trigger
-                    RequestPath = Constants.AssetBaseUrl
+                    RequestPath = Constants.AssetBaseUrl,
+                    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = MediaCacheControl
                 })
         );
 

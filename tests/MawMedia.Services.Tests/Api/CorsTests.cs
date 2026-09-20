@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using MawMedia;
 
@@ -40,6 +41,22 @@ public class CorsTests
                 .GetValues("Access-Control-Allow-Methods")
                 .SelectMany(v => v.Split(','))
                 .Select(v => v.Trim()));
+    }
+
+    // without this the browser preflights every call again, which is an extra
+    // round trip to a cross origin host before any request that matters can
+    // start.  every call this api serves carries an Authorization header, so
+    // none of them avoid the preflight by being "simple".
+    [Fact]
+    public async Task PreflightIsCacheable()
+    {
+        var response = await Preflight(ApiFactory.ORIGIN, "GET");
+
+        var maxAge = Assert.Single(response.Headers.GetValues("Access-Control-Max-Age"));
+
+        // the value is a judgement call and free to change; that there is one at
+        // all is the contract
+        Assert.True(int.Parse(maxAge, CultureInfo.InvariantCulture) > 0);
     }
 
     [Fact]
