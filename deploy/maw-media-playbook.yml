@@ -35,6 +35,8 @@
     img_rclone: "docker.io/rclone/rclone:1.75"
     img_revgeo: "docker.io/aerisg222/maw-reverse-geocode:latest"
     container_pg: maw-media-postgres
+    # matches DBNAME in src/db-postgres/deploy.sh
+    db_name: maw_media
     container_media: maw-media
     container_rclone: rclone-archive
     container_revgeo: maw-reverse-geocode
@@ -45,7 +47,21 @@
     dir_pgdata: "{{ dir_approot }}/pg-data"
     dir_pgsecrets: "{{ dir_approot }}/pg-secrets"
     dir_pgbackups: "{{ dir_approot }}/pg-backups"
+    # the dump taken immediately before a schema deploy, and deliberately NOT
+    # under pg-backups: the nightly rclone job runs `sync /backups`, so anything
+    # left there is uploaded to drive and, worse, removed from the remote again as
+    # soon as the local copy is pruned.  these are throwaway local safety copies
+    # for a deploy that goes wrong, not archives - a different thing with a
+    # different lifetime, so a different directory.
+    dir_pgpredeploy: "{{ dir_approot }}/pg-predeploy"
     dir_pgtsearch: "{{ dir_approot }}/pg-tsearch-data"
+    # where the schema scripts are staged on the target before deploy.sh runs
+    # them.  deploy.sh mounts its own working directory into the psql container as
+    # /tmp/context, so it has to be run from the directory it was copied to.
+    dir_dbdeploy: "{{ dir_approot }}/db-deploy"
+    # how many pre-deploy dumps to keep.  small: they exist to undo the deploy you
+    # just ran, and the nightly archive covers anything older
+    keep_predeploy_dumps: 5
     # where postgres looks for text search dictionaries inside the image.  the
     # major version is part of the path, so this moves with img_postgres.
     dir_pgtsearch_dest: "/usr/share/postgresql/18/tsearch_data"
@@ -76,6 +92,7 @@
       loop:
         - "{{ dir_systemd }}"
         - "{{ dir_pgbackups }}"
+        - "{{ dir_pgpredeploy }}"
         - "{{ dir_pgdata }}"
         - "{{ dir_pgtsearch }}"
         - "{{ dir_pgsecrets }}"
@@ -195,3 +212,100 @@
       loop:
         - { "src": "sql-media.sh.j2", "dest": "sql-media.sh" }
         - { "src": "logs.sh.j2", "dest": "logs.sh" }
+
+    # ---------------------------------------------------------------------------
+    # schema deploy - opt in, via `--tags db`
+    #
+    # tagged `never` as well as `db`, so an ordinary application deploy does not
+    # touch the database.  that is deliberate rather than cautious: the schema
+    # deploy is re-runnable, but it is not free and not silent.
+    # views/media.category_search.sql drops and rebuilds a materialized view over
+    # the whole library, views/media.user_media.sql does a DROP ... CASCADE that
+    # takes two other views with it, post-deploy/media.assign_all_location_places
+    # walks every geocoded location, and every ALTER TABLE takes an ACCESS
+    # EXCLUSIVE lock that ordinary reads block on.  none of that belongs in a
+    # routine `deploy.sh` run for a container image bump.
+    #
+    # run it on its own, before the application deploy, so the api never starts
+    # against a schema older than its code:
+    #
+    #     ansible-playbook ... --tags db maw-media-playbook.yml
+    #
+    # the tasks are idempotent on their own, so a --tags db run does not depend on
+    # a full run having happened first.
+    # ---------------------------------------------------------------------------
+    - name: Ensure Database Deploy Directories Exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        recurse: false
+      loop:
+        - "{{ dir_pgpredeploy }}"
+        - "{{ dir_dbdeploy }}"
+      tags: [db, never]
+
+    # pg_dump writes to its own stdout and the redirect happens here, on the
+    # target, so this needs no new volume in the pod and no restart to pick one
+    # up.  -Fc is the custom format, which pg_restore can read selectively - the
+    # same format the nightly job produces.
+    #
+    # `set -o pipefail` matters: without it the exit status would be the
+    # redirect's, and a failed dump would leave a truncated file and a green task.
+    - name: Take Pre-Deploy Database Dump
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          podman exec {{ pod }}-{{ container_pg }}
+          pg_dump -h localhost -U postgres -Fc {{ db_name }}
+          > {{ dir_pgpredeploy }}/{{ db_name }}.predeploy.$(date +%Y%m%d%H%M%S).dump
+        executable: /bin/bash
+      changed_when: true
+      tags: [db, never]
+
+    # keep only the most recent few.  these are undo buttons for the deploy about
+    # to run, not history - the nightly dump in pg-backups is the archive.
+    #
+    # done with find + file rather than `ls | tail | xargs` so there is no shell
+    # pipeline whose exit status has to be reasoned about, and so a run that finds
+    # nothing to prune is simply an empty loop.
+    - name: Find Pre-Deploy Dumps
+      ansible.builtin.find:
+        paths: "{{ dir_pgpredeploy }}"
+        patterns: "{{ db_name }}.predeploy.*.dump"
+      register: predeploy_dumps
+      tags: [db, never]
+
+    - name: Prune Old Pre-Deploy Dumps
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ (predeploy_dumps.files | sort(attribute='mtime', reverse=true))[keep_predeploy_dumps | int :] }}"
+      loop_control:
+        label: "{{ item.path }}"
+      tags: [db, never]
+
+    # the whole directory, because deploy.sh drives the scripts by relative path
+    # and mounts the directory it runs from into the psql container
+    - name: Stage Database Scripts
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../src/db-postgres/"
+        dest: "{{ dir_dbdeploy }}/"
+        mode: u+rw
+      tags: [db, never]
+
+    # invoked through bash rather than relying on the copied file's exec bit, and
+    # from the staged directory because deploy.sh mounts $(pwd) as its context.
+    # the arguments are the pod to join and the host directory holding
+    # psql-postgres, which is what deploy.sh expects.
+    - name: Deploy Database Schema
+      ansible.builtin.command:
+        cmd: bash deploy.sh "{{ pod }}" "{{ dir_pgsecrets }}"
+        chdir: "{{ dir_dbdeploy }}"
+      register: db_deploy
+      changed_when: true
+      tags: [db, never]
+
+    - name: Show Database Deploy Output
+      ansible.builtin.debug:
+        var: db_deploy.stdout_lines
+      tags: [db, never]
