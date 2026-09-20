@@ -47,5 +47,5 @@ END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE
-    ON FUNCTION media.get_media
+    ON FUNCTION media.get_media_gps
     TO maw_media;
