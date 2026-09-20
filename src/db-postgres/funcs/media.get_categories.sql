@@ -29,6 +29,51 @@ RETURNS TABLE
 AS $$
 BEGIN
     RETURN QUERY
+    -- 2026-09-20 - the categories this call is about, named once.
+    --
+    -- it exists so media_types below can be computed per category.  as a
+    -- correlated subquery in the select list it ran per *output row*, and the
+    -- teaser join fans a category out to one row per file - so a listing of 2,163
+    -- categories evaluated it 21,968 times and did 1.68M lookups against
+    -- media.media to answer 2,163 questions.  that was 4.9s of a 5.0s call.
+    --
+    -- the filters live here rather than at the bottom so the aggregate is paid
+    -- only for categories that survive them: asking for one category by id now
+    -- walks one category's media rather than the whole library's.
+    WITH visible AS
+    (
+        SELECT
+            c.id,
+            c.name,
+            c.year,
+            c.slug,
+            c.effective_date,
+            c.modified
+        FROM media.category c
+        INNER JOIN media.user_category uc
+            ON c.id = uc.category_id
+            AND uc.user_id = _user_id
+        WHERE
+            (_id IS NULL OR c.id = _id)
+            AND (_year IS NULL OR c.year = _year)
+            AND (_modified_after IS NULL OR c.modified::timestamptz(3) > (_modified_after::timestamptz(3) + INTERVAL '1 seconds'))
+    ),
+    types AS
+    (
+        -- one row per category, holding the kinds of media it contains.  the same
+        -- answer the subquery gave, grouped instead of correlated
+        SELECT
+            xcm.category_id,
+            ARRAY_AGG(DISTINCT xt.code ORDER BY xt.code) AS media_types
+        FROM visible v
+        INNER JOIN media.category_media xcm
+            ON xcm.category_id = v.id
+        INNER JOIN media.media xm
+            ON xm.id = xcm.media_id
+        INNER JOIN media.type xt
+            ON xt.id = xm.type_id
+        GROUP BY xcm.category_id
+    )
     SELECT DISTINCT
         c.id,
         c.name,
@@ -49,17 +94,13 @@ BEGIN
         md.file_path,
         md.file_type,
         md.file_scale,
-        (
-            SELECT array_agg(DISTINCT xt.code ORDER BY xt.code)
-                FROM media.category_media xcm
-                INNER JOIN media.media xm ON xcm.media_id = xm.id
-                INNER JOIN media.type xt ON xm.type_id = xt.id
-                WHERE xcm.category_id = c.id
-        ) AS media_types
-    FROM media.category c
-    INNER JOIN media.user_category uc
-        ON c.id = uc.category_id
-        AND uc.user_id = _user_id
+        t.media_types
+    FROM visible c
+    -- INNER drops nothing the teaser join below would have kept: a category with
+    -- no media has no teaser either, so it was already absent.  an outer join
+    -- would only differ for a category this one cannot happen to
+    INNER JOIN types t
+        ON t.category_id = c.id
     INNER JOIN media.category_media cm
         ON c.id = cm.category_id
         AND cm.is_teaser = true
@@ -76,10 +117,6 @@ BEGIN
     LEFT OUTER JOIN media.category_favorite cf
         ON c.id = cf.category_id
         AND cf.created_by = _user_id
-    WHERE
-        (_id IS NULL OR c.id = _id)
-        AND (_year IS NULL OR c.year = _year)
-        AND (_modified_after IS NULL OR c.modified::timestamptz(3) > (_modified_after::timestamptz(3) + INTERVAL '1 seconds'))
     ORDER BY c.effective_date DESC;
 END;
 $$ LANGUAGE plpgsql;

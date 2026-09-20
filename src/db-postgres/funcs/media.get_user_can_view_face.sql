@@ -14,11 +14,29 @@ AS $$
 DECLARE
     _can_view BOOLEAN = FALSE;
 BEGIN
-    SELECT COUNT(1) > 0 INTO _can_view
-        FROM media.user_face uf
+    -- 2026-09-20 - the rule media.user_face states, composed directly.
+    --
+    -- reading the view instead meant building it, and it is a DISTINCT over
+    -- media.user_media which is itself a DISTINCT: asking about one face built all
+    -- 168,818 of the caller's media twice and spilled to disk, for 178ms per call
+    -- against 4ms here.  this runs once per face crop, so a screen of them paid it
+    -- over and over.
+    --
+    -- the same reasoning media.user_location documents, and the same access rule
+    -- either way: a face is visible when the media carrying it is.
+    SELECT EXISTS
+    (
+        SELECT 1
+        FROM media.face f
+        INNER JOIN media.category_media cm
+            ON cm.media_id = f.media_id
+        INNER JOIN media.user_category uc
+            ON uc.category_id = cm.category_id
         WHERE
-            uf.user_id = _user_id
-            AND uf.face_id = _face_id;
+            f.id = _face_id
+            AND uc.user_id = _user_id
+    )
+    INTO _can_view;
 
     RETURN _can_view;
 END;

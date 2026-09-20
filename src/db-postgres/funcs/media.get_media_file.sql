@@ -18,26 +18,57 @@ BEGIN
         RAISE EXCEPTION 'Either file_id or path must be provided';
     END IF;
 
+    -- 2026-09-20 - find the file first, then ask whether the caller may have it.
+    --
+    -- it used to read the other way round - every media the caller can see, joined
+    -- to the file - and that is the expensive direction by a wide margin.
+    -- media.user_media is a DISTINCT over (category, media, slug, user), and a
+    -- join cannot be pushed inside one, so postgres built all 168,818 rows and
+    -- spilled the dedupe to disk before matching the single file asked for.  that
+    -- was 238ms per call on the dev restore against 5ms this way.
+    --
+    -- it is per call that makes it matter rather than the number itself.  this is
+    -- what authorizes /assets, so it runs once per thumbnail on a cache miss - a
+    -- grid of fifty was around eleven seconds of database time to draw.
+    --
+    -- both entry points are indexed on the file's own identity: pk_media_file for
+    -- an id, ix_media_file$path for a path.
+    --
+    -- EXISTS rather than a join, and that is the second half of the change: a
+    -- media sitting in several categories the caller can see used to return the
+    -- same file once per category.  the question here is only whether *some*
+    -- category grants access, so one row comes back either way.
+    --
+    -- the access rule is unchanged and still the one media.user_media states -
+    -- category_role -> user_role -> category_media - composed directly for the
+    -- reason media.user_location gives.
     RETURN QUERY
     SELECT
         md.file_id,
         md.file_path,
         md.file_type,
         md.file_scale
-    FROM media.user_media um
-    INNER JOIN media.media_detail md
-        ON md.media_id = um.media_id
-        AND (
+    FROM media.media_detail md
+    WHERE
+        (
             _exclude_src_files = FALSE
             OR
             md.file_scale <> 'src'
         )
-    WHERE
-        um.user_id = _user_id
         AND
         (_file_id IS NULL OR md.file_id = _file_id)
         AND
-        (_path IS NULL OR md.file_path = _path);
+        (_path IS NULL OR md.file_path = _path)
+        AND EXISTS
+        (
+            SELECT 1
+            FROM media.category_media cm
+            INNER JOIN media.user_category uc
+                ON uc.category_id = cm.category_id
+            WHERE
+                cm.media_id = md.media_id
+                AND uc.user_id = _user_id
+        );
 END;
 $$ LANGUAGE plpgsql;
 

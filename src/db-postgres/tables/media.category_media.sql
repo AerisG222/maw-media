@@ -112,6 +112,45 @@ END
 $$;
 -- 2025-11-04 - end - add slug
 
+-- 2026-09-20 - begin - index the media side of the pair
+--
+-- the primary key is (category_id, media_id), which answers "what is in this
+-- category" and nothing else: a btree can only be read from its leading column,
+-- so every lookup that arrives holding a media id - and there are a lot of them -
+-- scanned all 168,818 rows instead.
+--
+-- this table is where visibility is decided, so that scan was not confined to the
+-- functions that obviously join it.  media.user_media and media.user_face are
+-- built on it, and a question as small as "may this caller read this one file"
+-- went through the whole table.  measured on the dev restore, media.get_media_file
+-- by path fell from 238ms to 5ms and media.get_user_can_view_face from 178ms to
+-- 4ms - and the first of those is per thumbnail on a cold cache, so a grid of 50
+-- was paying around eleven seconds of database time to authorize itself.
+--
+-- it also covers the reverse direction generally: media.get_media,
+-- media.get_metadata, media.get_comments, media.get_media_faces and
+-- media.get_place_cover_candidate all filter by media id.
+DO
+$$
+BEGIN
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM pg_catalog.pg_indexes
+        WHERE schemaname = 'media'
+            AND tablename = 'category_media'
+            AND indexname = 'ix_media_category_media$media_id'
+    )
+    THEN
+
+        CREATE INDEX ix_media_category_media$media_id
+        ON media.category_media(media_id);
+
+    END IF;
+END
+$$;
+-- 2026-09-20 - end - index the media side of the pair
+
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON media.category_media
 TO maw_media;
