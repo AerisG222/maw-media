@@ -8,7 +8,7 @@ one or more nodes. It makes a couple of key assumptions:
 3. Trying to keep this simple for now - I went crazy building out an advanced playbook last time, but there are so many steps and I don't need to run often, so I rather not run it and don't want to revamp it for the new solution.
 4. Once deployed, you currently will still need to run the following steps manually:
     1. run the apply-migration step to load data from legacy database (/tools/legacy_db_migration)
-    2. set the password for the svc_maw_www db role
+    2. set the password for the svc_maw_media db role
 
 ## Deploying the Database Schema
 
