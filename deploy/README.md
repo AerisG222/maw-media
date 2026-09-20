@@ -12,32 +12,27 @@ one or more nodes. It makes a couple of key assumptions:
 
 ## Deploying the Database Schema
 
-The schema lives in `src/db-postgres/` and is deployed by the same playbook, but
-only when asked for by tag:
+The schema lives in `src/db-postgres/` and is deployed by the same playbook,
+driven by the same script. `./deploy.sh` asks two questions:
 
 ```
-./deploy.sh              # application only - never touches the database
-                         # (answer the environment prompt as usual)
+Enter deployment environment [staging | prod]:
+Enter what to deploy [app | db | both]:
 ```
 
-To deploy the schema, run the playbook directly with `--tags db`:
+| answer | what runs |
+| ------ | --------- |
+| `app`  | the application only - never touches the database (the default, and what this script always did before) |
+| `db`   | the schema only, via `--tags db` |
+| `both` | the schema first, then the application |
 
-```
-source .venv/bin/activate
-ansible-playbook \
-    --become-password-file "~/maw-media/${MAW_ENV}/ansible/become-password-file" \
-    --inventory "inventories/${MAW_ENV}.yml" \
-    --extra-vars "@~/maw-media/${MAW_ENV}/ansible/vars.yml" \
-    --extra-vars "mawenv=${MAW_ENV}" \
-    --tags db \
-    maw-media-playbook.yml
-```
+The schema deploy stages `src/db-postgres/` onto the target and runs its
+`deploy.sh` there against the pod, so there is no longer any need to copy the
+directory by hand.
 
-That stages `src/db-postgres/` onto the target and runs `deploy.sh` there against
-the pod, so there is no longer any need to copy the directory by hand.
-
-**Run it before the application deploy** when a release contains both, so the api
-never starts against a schema older than its code.
+`both` runs the schema first deliberately, so the api never starts against a
+schema older than the code that expects it. If the schema deploy fails, the
+application deploy does not run.
 
 ### Why it is opt-in rather than part of every run
 
