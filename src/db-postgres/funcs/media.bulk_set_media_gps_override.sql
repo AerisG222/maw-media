@@ -17,6 +17,17 @@ BEGIN
         RETURN 1;
     END IF;
 
+    -- the NUMERIC(8, 6) and (9, 6) above do not round anything: postgres drops the
+    -- precision of a function parameter, so a coordinate pasted with fourteen
+    -- decimals arrives with all fourteen.  the lookup below then compares it with the
+    -- six the column stores, never matches, and the insert - which the column does
+    -- round - collides with the row that is already there, on the unique
+    -- (latitude, longitude) constraint.  the first save of a place worked and every
+    -- later one failed.  round here, to what the column holds, so the lookup and the
+    -- insert agree about which coordinate this is.
+    _latitude := round(_latitude, 6);
+    _longitude := round(_longitude, 6);
+
     -- Try to find an existing location with the same coordinates
     SELECT id INTO override_location_id
         FROM media.location
