@@ -231,6 +231,36 @@ public class MediaRepository
         return result == 0;
     }
 
+    public async Task<bool> ClearGpsOverride(Guid userId, Guid mediaId, CancellationToken token = default)
+    {
+        var result = await ExecuteScalarInTransaction<int>(
+            "SELECT media.clear_media_gps_override(@userId, @mediaId);",
+            new
+            {
+                userId,
+                mediaId
+            },
+            token
+        );
+
+        return result == 0;
+    }
+
+    public async Task<bool> BulkClearGpsOverride(Guid userId, Guid[] mediaIds, CancellationToken token = default)
+    {
+        var result = await ExecuteScalarInTransaction<int>(
+            "SELECT media.bulk_clear_media_gps_override(@userId, @mediaIds);",
+            new
+            {
+                userId,
+                mediaIds
+            },
+            token
+        );
+
+        return result == 0;
+    }
+
     async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path, CancellationToken token = default) =>
         await QuerySingle<MediaFile>(
             """

@@ -98,11 +98,31 @@ public static class MediaRoutes
             .WithDescription("Set the GPS override for this media")
             .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
+        // DELETE on the same resource the PUT above writes, so the pair reads as one
+        // thing: the override for this media, set or removed
+        group
+            .MapDelete("/{id}/gps", ClearGpsOverride)
+            .WithName("clear-media-gps-override")
+            .WithSummary("Clear GPS Override for Media")
+            .WithDescription("Remove the GPS override for this media, so it falls back to the location its file recorded")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         group
             .MapPost("/bulk-gps-override", BulkGpsOverride)
             .WithName("bulk-set-gps-override")
             .WithSummary("Bulk GPS Override")
             .WithDescription("Set the GPS override for many media items at once")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        // POST rather than a DELETE carrying the id list.  a DELETE body has no
+        // defined meaning in http, and proxies and clients are entitled to drop it -
+        // which here would mean the request arriving with nothing to clear and
+        // answering 200 for having done so
+        group
+            .MapPost("/bulk-gps-override/clear", BulkClearGpsOverride)
+            .WithName("bulk-clear-gps-override")
+            .WithSummary("Bulk Clear GPS Override")
+            .WithDescription("Remove the GPS override from many media items at once")
             .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
         return group;
@@ -367,6 +387,51 @@ public static class MediaRoutes
             request.GpsCoordinate.Longitude,
             token
         );
+
+        return success
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
+    }
+
+    // answers the way SetGpsOverride does - 404 for a media the caller may not
+    // change, whether or not it exists - so the pair cannot be used to tell an
+    // unknown id from a forbidden one
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> ClearGpsOverride(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var success = await repo.ClearGpsOverride(userId.Value, id, token);
+
+        return success
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
+    }
+
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> BulkClearGpsOverride(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromBody] BulkClearGpsRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var success = await repo.BulkClearGpsOverride(userId.Value, request.MediaIds, token);
 
         return success
             ? TypedResults.Ok()

@@ -250,6 +250,8 @@ function main() {
     queue "funcs/media.assign_all_location_places.sql"
     queue "funcs/media.assign_location_place.sql"
     queue "funcs/media.build_place_slug.sql"
+    queue "funcs/media.bulk_clear_media_gps_override.sql"
+    queue "funcs/media.clear_media_gps_override.sql"
     queue "funcs/media.clear_place_cover.sql"
     queue "funcs/media.bulk_set_media_gps_override.sql"
     queue "funcs/media.create_clan.sql"

@@ -15,6 +15,16 @@ public class TestFixture
 
     public required NpgsqlDataSource DataSource { get; set; }
 
+    // the admin connection the seeder uses, kept for tests that need to *arrange*
+    // rows the service account is not granted to create - a category, most often,
+    // which the application only ever reads and updates.
+    //
+    // for setup only.  the code under test must keep running through DataSource,
+    // as svc_maw_media, because a missing grant is exactly the kind of defect these
+    // tests exist to catch - and a test that ran its subject as postgres would pass
+    // straight over one.
+    public required NpgsqlDataSource SetupDataSource { get; set; }
+
     // NpgsqlDataSource.ConnectionString redacts the password, so the api test
     // host cannot reuse it - it needs the full string to open its own pool
     public string ConnectionString => BuildConnString(PGSQL_SVC_ACCT);
@@ -27,11 +37,11 @@ public class TestFixture
 
         await BuildTestEnvironment();
 
-        var setupDataSource = PrepareDataSource(PGSQL_ADMIN_ACCT);
+        SetupDataSource = PrepareDataSource(PGSQL_ADMIN_ACCT);
 
         Log("** SEEDING TEST ENVIRONMENT **");
 
-        await SeedTestData(setupDataSource);
+        await SeedTestData(SetupDataSource);
 
         Log("** STARTING TESTS **");
 
