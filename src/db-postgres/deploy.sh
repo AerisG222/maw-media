@@ -218,6 +218,7 @@ function main() {
     queue "tables/media.place_2.sql"
     queue "tables/media.file.sql"
     queue "tables/media.category_role.sql"
+    queue "tables/media.media_role.sql"
     queue "tables/media.comment.sql"
     queue "tables/media.favorite.sql"
     queue "tables/media.person_status.sql"
