@@ -194,8 +194,13 @@ public class BaseRepository
             {
                 var first = g.First();
 
-                // side effect to simplify priming the cache
-                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, first.FilePath));
+                // side effect to simplify priming the cache.  one key per file,
+                // because CacheKeyBuilder.CanAccessAsset is now per file - priming
+                // only the first would leave every other rendition to a lookup
+                foreach (var row in g)
+                {
+                    uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, row.FilePath));
+                }
 
                 return new Category(
                     g.Key,
@@ -253,8 +258,12 @@ public class BaseRepository
             {
                 var first = g.First();
 
-                // side effect to simplify priming the cache
-                uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, first.FilePath));
+                // side effect to simplify priming the cache, one key per file for
+                // the reason AssembleCategories gives
+                foreach (var row in g)
+                {
+                    uniqueCacheKeys.Add(CacheKeyBuilder.CanAccessAsset(userId, row.FilePath));
+                }
 
                 return new Media(
                     g.Key,
