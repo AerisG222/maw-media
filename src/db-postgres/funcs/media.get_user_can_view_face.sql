@@ -22,19 +22,26 @@ BEGIN
     -- against 4ms here.  this runs once per face crop, so a screen of them paid it
     -- over and over.
     --
-    -- the same reasoning media.user_location documents, and the same access rule
-    -- either way: a face is visible when the media carrying it is.
+    -- the same access rule either way: a face is visible when the media carrying
+    -- it is.
+    --
+    -- 2026-10-06 - joined to media.user_media rather than composing category
+    -- access itself.  that one has no DISTINCT any more, so it costs nothing to go
+    -- through; and a media may now be restricted to fewer roles than its category
+    -- grants, which only media.user_media knows - a face cropped from a restricted
+    -- photo must not be fetchable by a caller who cannot open the photo.
+    --
+    -- still not media.user_face: that one keeps its own DISTINCT, and nothing
+    -- here needs one.
     SELECT EXISTS
     (
         SELECT 1
         FROM media.face f
-        INNER JOIN media.category_media cm
-            ON cm.media_id = f.media_id
-        INNER JOIN media.user_category uc
-            ON uc.category_id = cm.category_id
+        INNER JOIN media.user_media um
+            ON um.media_id = f.media_id
         WHERE
             f.id = _face_id
-            AND uc.user_id = _user_id
+            AND um.user_id = _user_id
     )
     INTO _can_view;
 

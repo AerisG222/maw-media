@@ -60,22 +60,62 @@ BEGIN
     -- therefore returns a "random" page that is really two or three events.
     -- measured over 24 picks against the full sort's 24 distinct categories: a
     -- 2,000 row sample gave 16-20, and 25,000 gives 23-24.
+    --
+    -- 2026-10-06 - access is decided by media.user_media, in two passes.
+    --
+    -- it has to be media.user_media rather than media.user_category alone: the
+    -- sample is drawn per (category, media) row, and a media may now be restricted
+    -- to fewer roles than its category grants, so a category level check would
+    -- hand a restricted photo to anybody who can see the category around it.
+    --
+    -- but asking media.user_media about the whole sample is what it cannot do
+    -- cheaply.  postgres estimates media.user_category at ~118 rows where an admin
+    -- has 2,170, so it judges hashing all of the caller's media.user_media to be
+    -- small, and builds a 170,376 row hash to test 25,000 sampled rows - 60ms
+    -- against the 15ms this function took with a category check.
+    --
+    -- so the inner pass prunes on category, which is cheap and can only *remove*
+    -- rows - no media is visible inside a category that is not - and takes a few
+    -- times _count of the survivors at random.  the outer pass then puts those
+    -- few through media.user_media, which stays the only authority on what may be
+    -- returned.  the category check is a filter in front of the rule, not a
+    -- second copy of it.
+    --
+    -- four times _count is headroom for restricted media, which are rare - a few
+    -- photos hidden from one role.  a caller who loses more than that to
+    -- restrictions comes back short, and the fallback below takes over, exactly as
+    -- it does for a caller who can see too little of the library to sample.
     SELECT ARRAY_AGG(s.category_id), ARRAY_AGG(s.media_id)
     INTO _category_ids, _media_ids
     FROM
     (
         SELECT
-            cm.category_id,
-            cm.media_id
-        FROM media.category_media cm TABLESAMPLE SYSTEM (_sample_pct)
+            c.category_id,
+            c.media_id
+        FROM
+        (
+            SELECT
+                cm.category_id,
+                cm.media_id
+            FROM media.category_media cm TABLESAMPLE SYSTEM (_sample_pct)
+            WHERE EXISTS
+            (
+                SELECT 1
+                FROM media.user_category uc
+                WHERE uc.category_id = cm.category_id
+                    AND uc.user_id = _user_id
+            )
+            ORDER BY RANDOM()
+            LIMIT _count * 4
+        ) c
         WHERE EXISTS
         (
             SELECT 1
-            FROM media.user_category uc
-            WHERE uc.category_id = cm.category_id
-                AND uc.user_id = _user_id
+            FROM media.user_media um
+            WHERE um.category_id = c.category_id
+                AND um.media_id = c.media_id
+                AND um.user_id = _user_id
         )
-        ORDER BY RANDOM()
         LIMIT _count
     ) s;
 

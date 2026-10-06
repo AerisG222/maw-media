@@ -2,27 +2,21 @@
 --
 -- the location half of media.user_face: access is inherited rather than restated.
 -- a media at a place is visible when the media itself is, and the definition of
--- that - category_role -> user_role -> category_media - lives in
--- media.user_category.  every place read path goes through this view rather than
--- repeating the rule and hoping each copy got it right.
+-- that lives in media.user_media.  every place read path goes through this view
+-- rather than repeating the rule and hoping each copy got it right.
 --
--- it composes media.user_category with media.category_media directly, where
--- media.user_face reaches for media.user_media instead.  the difference is not a
--- shortcut around the access rule: media.user_media *is* those same two relations
--- with a DISTINCT over (category_id, media_id, media_slug, user_id), and this view
--- uses neither category_id nor media_slug.  going through it would buy a dedupe
--- of columns that are then projected away, at the cost of an optimization barrier
--- - the DISTINCT materializes all 167,202 rows and spills to disk before any
--- place predicate can prune it.  measured on the phase 0 dev restore, composing
--- directly runs a city page in 103ms against 297ms and the country counts in
--- 222ms against 403ms, and the two forms were verified to return identical sets
--- across all 2,937,290 rows.
+-- 2026-10-06 - built on media.user_media, as media.user_face is.  it used to
+-- compose media.user_category with media.category_media itself, because
+-- media.user_media then carried a DISTINCT that blocked every place predicate
+-- from reaching inside it - 297ms against 103ms for a city page on the phase 0
+-- restore.  that DISTINCT was dropped on 2026-09-20 for never having removed a
+-- row, so going through the view now costs nothing, and the reason to restate
+-- the rule here went with it.
 --
--- 2026-09-20 - that barrier is gone: media.user_media no longer has a DISTINCT,
--- because it never removed a row.  so the two forms are now equivalent in cost as
--- well as in result, and this one is kept for what it says rather than for what
--- it saves - it names the two relations the access rule is actually made of.
--- the DISTINCT below is a different matter and stays; see the note on it.
+-- and the reason *not* to restate it arrived: a media can now be restricted to
+-- fewer roles than its category grants.  that is decided per media, so it lives
+-- in media.user_media, and a view composing category level access for itself
+-- would quietly file a photo under a place for a caller forbidden to see it.
 --
 -- category_id is deliberately absent, for exactly the reason media.user_face
 -- gives.  a media sitting in two categories a user can see would arrive twice;
@@ -54,14 +48,12 @@
 -- see docs/browse-by-location.md
 CREATE OR REPLACE VIEW media.user_location AS
     SELECT DISTINCT
-        uc.user_id,
+        um.user_id,
         l.place_id,
-        cm.media_id
-    FROM media.user_category uc
-    INNER JOIN media.category_media cm
-        ON cm.category_id = uc.category_id
+        um.media_id
+    FROM media.user_media um
     INNER JOIN media.media_location ml
-        ON ml.media_id = cm.media_id
+        ON ml.media_id = um.media_id
     INNER JOIN media.location l
         ON l.id = ml.location_id
     WHERE l.place_id IS NOT NULL;

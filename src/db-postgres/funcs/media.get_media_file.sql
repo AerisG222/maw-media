@@ -39,9 +39,12 @@ BEGIN
     -- same file once per category.  the question here is only whether *some*
     -- category grants access, so one row comes back either way.
     --
-    -- the access rule is unchanged and still the one media.user_media states -
-    -- category_role -> user_role -> category_media - composed directly for the
-    -- reason media.user_location gives.
+    -- 2026-10-06 - the EXISTS asks media.user_media rather than composing
+    -- category access itself.  it did that while media.user_media carried a
+    -- DISTINCT, which is gone; and a media may now be restricted to fewer roles
+    -- than its category grants, which only media.user_media knows about.  this is
+    -- the function that authorizes /assets, so it is the last place that rule
+    -- could be allowed to go missing.
     RETURN QUERY
     SELECT
         md.file_id,
@@ -62,12 +65,10 @@ BEGIN
         AND EXISTS
         (
             SELECT 1
-            FROM media.category_media cm
-            INNER JOIN media.user_category uc
-                ON uc.category_id = cm.category_id
+            FROM media.user_media um
             WHERE
-                cm.media_id = md.media_id
-                AND uc.user_id = _user_id
+                um.media_id = md.media_id
+                AND um.user_id = _user_id
         );
 END;
 $$ LANGUAGE plpgsql;
