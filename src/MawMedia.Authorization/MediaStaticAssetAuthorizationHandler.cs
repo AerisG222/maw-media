@@ -58,7 +58,14 @@ public class MediaStaticAssetAuthorizationHandler
         }
         else
         {
-            if (await _repo.AllowAccessToAsset(userId.Value, ctx.Request.Path, ctx.RequestAborted))
+            // .Value, the path as decoded, rather than letting PathString convert
+            // itself: that conversion is the escaped uri form, so a file named
+            // "a b.mp4" was asked about as "a%20b.mp4".  media.file.path stores
+            // the name as published, the two never matched, and every rendition
+            // with a space in its name was refused to callers entitled to it.
+            //
+            // never null here - StartsWithSegments above has already required it
+            if (await _repo.AllowAccessToAsset(userId.Value, ctx.Request.Path.Value!, ctx.RequestAborted))
             {
                 context.Succeed(requirement);
             }
