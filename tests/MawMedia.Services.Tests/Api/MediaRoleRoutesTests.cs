@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using MawMedia;
 using MawMedia.Models;
 
@@ -185,6 +186,77 @@ public class MediaRoleRoutesTests
         Assert.NotNull(roles);
         Assert.Contains(u.AdminRole, roles);
         Assert.Contains("admin", roles);
+    }
+
+    [Fact]
+    public async Task TheRestrictedListingIsServedToAnAdminOnly()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await RestrictionUniverse.Create(_fixture);
+
+        using var admin = Client(u.AdminExternalId, ApiScopes.MediaWrite);
+        using var friend = Client(u.FriendExternalId, ApiScopes.MediaWrite);
+
+        var response = await admin.GetAsync($"/api/v1/media/restricted?categoryId={u.Category}", token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var restricted = await response.Content.ReadFromJsonAsync<RestrictedMedia[]>(JsonOptions, token);
+
+        Assert.NotNull(restricted);
+        Assert.Contains(restricted, r => r.MediaId == u.AdminOnly.Id && r.IsVisibleToYou);
+        // OutsiderOnly is restricted to a role the admin does not hold
+        Assert.Contains(restricted, r => r.MediaId == u.OutsiderOnly.Id && !r.IsVisibleToYou);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await friend.GetAsync("/api/v1/media/restricted", token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task ACategorysRestrictionsAreServedToAnAdminOnly()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await RestrictionUniverse.Create(_fixture);
+
+        using var admin = Client(u.AdminExternalId, ApiScopes.MediaWrite);
+        using var friend = Client(u.FriendExternalId, ApiScopes.MediaWrite);
+
+        var response = await admin.GetAsync($"/api/v1/categories/{u.Category}/restrictions", token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var restricted = await response.Content.ReadFromJsonAsync<RestrictedMedia[]>(JsonOptions, token);
+
+        // only the restricted media, the way the gps call lists only media with
+        // gps - a client joins this to the category's media on mediaId
+        Assert.NotNull(restricted);
+        Assert.Equal(
+            new[] { u.AdminOnly.Id, u.OutsiderOnly.Id }.Order(),
+            restricted.Select(r => r.MediaId).Order());
+        Assert.True(Assert.Single(restricted, r => r.MediaId == u.AdminOnly.Id).IsVisibleToYou);
+        Assert.False(Assert.Single(restricted, r => r.MediaId == u.OutsiderOnly.Id).IsVisibleToYou);
+
+        Assert.Equal(
+            HttpStatusCode.Forbidden,
+            (await friend.GetAsync($"/api/v1/categories/{u.Category}/restrictions", token)).StatusCode);
+    }
+
+    [Fact]
+    public async Task MediaPayloadsSayNothingAboutRestrictions()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await RestrictionUniverse.Create(_fixture);
+
+        // deliberately, for admins too: restrictions are reported by their own
+        // call, so the media every client reads carries no admin only concept
+        foreach (var externalId in new[] { u.AdminExternalId, u.FriendExternalId })
+        {
+            using var client = Client(externalId, ApiScopes.MediaRead);
+            using var media = JsonDocument.Parse(await client.GetStringAsync($"/api/v1/categories/{u.Category}/media", token));
+
+            Assert.NotEmpty(media.RootElement.EnumerateArray());
+            Assert.All(media.RootElement.EnumerateArray(), m =>
+                Assert.False(m.TryGetProperty("isRestricted", out _)));
+        }
     }
 
     static string Roles(Guid mediaId) => $"/api/v1/media/{mediaId}/roles";

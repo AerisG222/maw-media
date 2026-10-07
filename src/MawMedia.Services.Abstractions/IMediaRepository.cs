@@ -28,6 +28,11 @@ public interface IMediaRepository
     Task<MediaRolesResult> GetMediaRoles(Guid userId, Guid mediaId, CancellationToken token = default);
     Task<MediaRestrictionResult> SetMediaRoles(Guid userId, Guid[] mediaIds, string[] roleNames, CancellationToken token = default);
     Task<bool> ClearMediaRoles(Guid userId, Guid[] mediaIds, CancellationToken token = default);
+
+    // every restricted media - including any the caller cannot see - optionally in
+    // one category.  null for a caller who is not an admin.
+    Task<IReadOnlyList<RestrictedMedia>?> GetRestrictedMedia(Guid userId, Guid? categoryId, CancellationToken token = default);
+
     Task<IEnumerable<InaccurateLocation>> GetInaccurateLocations(Guid userId, CancellationToken token = default);
     Task<int> FixInaccurateLocation(Guid userId, Guid mediaId, Guid newLocationId, CancellationToken token = default);
 }

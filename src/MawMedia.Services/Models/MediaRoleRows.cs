@@ -15,3 +15,17 @@ class MediaRolesRow
     public int Result { get; set; }
     public string[]? RoleNames { get; set; }
 }
+
+// one row of media.get_restricted_media
+class RestrictedMediaRow
+{
+    public Guid MediaId { get; set; }
+    public required string MediaSlug { get; set; }
+    public required string MediaType { get; set; }
+    public Guid CategoryId { get; set; }
+    public required string CategoryName { get; set; }
+    public short CategoryYear { get; set; }
+    public required string CategorySlug { get; set; }
+    public required string[] Roles { get; set; }
+    public bool IsVisibleToYou { get; set; }
+}

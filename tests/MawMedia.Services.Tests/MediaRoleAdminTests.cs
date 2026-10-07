@@ -150,6 +150,51 @@ public class MediaRoleAdminTests
         Assert.Equal(MediaRestrictionOutcome.NotFound, (await Repo().GetMediaRoles(u.Admin, Guid.CreateVersion7(), token)).Outcome);
     }
 
+    [Fact]
+    public async Task AnAdminCanFindAPhotoTheyHaveHiddenFromThemselves()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await RestrictionUniverse.Create(_fixture);
+
+        // restricted to friend, which the admin does not hold - so it leaves every
+        // listing the admin can make
+        await Repo().SetMediaRoles(u.Admin, [u.Spare.Id], [u.FriendRole], token);
+
+        Assert.DoesNotContain(
+            await Categories().GetCategoryMedia(u.Admin, BASE_URL, u.Category, token),
+            m => m.Id == u.Spare.Id);
+
+        var restricted = await Repo().GetRestrictedMedia(u.Admin, u.Category, token);
+
+        Assert.NotNull(restricted);
+
+        var spare = Assert.Single(restricted, r => r.MediaId == u.Spare.Id);
+
+        Assert.False(spare.IsVisibleToYou);
+        Assert.Equal([u.FriendRole], spare.Roles);
+        Assert.True(Assert.Single(restricted, r => r.MediaId == u.AdminOnly.Id).IsVisibleToYou);
+
+        // and the restriction can then be lifted, which brings it back
+        await Repo().ClearMediaRoles(u.Admin, [u.Spare.Id], token);
+
+        Assert.Contains(
+            await Categories().GetCategoryMedia(u.Admin, BASE_URL, u.Category, token),
+            m => m.Id == u.Spare.Id);
+    }
+
+    [Fact]
+    public async Task OnlyAnAdminCanListRestrictedMedia()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await RestrictionUniverse.Create(_fixture);
+
+        Assert.Null(await Repo().GetRestrictedMedia(u.Friend, u.Category, token));
+        Assert.Null(await Repo().GetRestrictedMedia(u.Both, null, token));
+    }
+
     MediaRepository Repo() =>
         new(new FakeLogger<MediaRepository>(), _fixture.DataSource.CreateConnection(), new FakeHybridCache(), new AssetPathBuilder());
+
+    CategoryRepository Categories() =>
+        new(new FakeLogger<CategoryRepository>(), _fixture.DataSource.CreateConnection(), new FakeHybridCache(), new AssetPathBuilder());
 }

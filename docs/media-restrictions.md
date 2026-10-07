@@ -1,7 +1,7 @@
 # Media Restrictions
 
 Status: **complete.** Known gaps are listed in section 5.
-Last updated: 2026-10-06
+Last updated: 2026-10-07
 
 Lets an admin hide individual photos in a category from some of the roles that
 can see the category - "these few are for admin, not friend" - without moving them
@@ -42,10 +42,50 @@ signed-in non-admin gets `403`.
 | `DELETE /api/v1/media/{id}/roles` | remove the restriction |
 | `POST /api/v1/media/bulk-roles` | `{"mediaIds": [...], "roles": [...]}` |
 | `POST /api/v1/media/bulk-roles/clear` | `{"mediaIds": [...]}` |
+| `GET /api/v1/categories/{id}/restrictions` | the restricted media in one category, with their roles and `isVisibleToYou` - see below |
+| `GET /api/v1/media/restricted` | the same across the whole library, optionally `?categoryId=` |
 
 Roles are identified by **name**. The list is the whole restriction, not a delta,
 so a repeated call is harmless. An empty list is refused rather than read as
 "visible to nobody"; use `DELETE` to remove a restriction.
+
+### Badging and filtering restricted photos
+
+Media payloads say nothing about restrictions - not even to admins. Restrictions
+are rare and admin-only, so a flag on every media would carry an admin concept to
+every client, `null` for nearly all of them, and every query returning media
+would have to remember to fill it in.
+
+Instead, restrictions have their own call, the way GPS does:
+`GET /api/v1/categories/{id}/restrictions` returns **only the restricted media**
+in the category - usually none or a few - and the client joins it to the
+category's media on `mediaId`. That gives a bulk-edit "restricted photos" filter
+and grid badges for two requests per category, not one per photo. Outside a
+category view (random, places, persons), fetch `GET /api/v1/media/restricted`
+once - it is small - and match locally.
+
+```json
+[
+  {
+    "mediaId": "0199…", "mediaSlug": "img-0042", "mediaType": "photo",
+    "categoryId": "0199…", "categoryName": "November", "categoryYear": 2024,
+    "categorySlug": "november", "roles": ["friend"], "isVisibleToYou": false
+  }
+]
+```
+
+### Photos an admin has hidden from themselves
+
+Restrict a photo to roles you do not hold - `["friend"]`, as an admin who is not a
+friend - and it drops out of every listing you can make, because visibility
+applies to admins too. Both restriction calls still list it: they read
+restrictions directly rather than through your own visibility, and
+`isVisibleToYou: false` marks it.
+
+They return metadata only, no files: `/assets` refuses you the files of a photo
+you cannot see, so paths would only be refused. To view one, lift or widen its
+restriction - `DELETE /api/v1/media/{id}/roles` works on it whether or not you
+can see it.
 
 ### Refusals
 

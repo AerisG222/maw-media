@@ -341,6 +341,41 @@ public class MediaRepository
         return result == 0;
     }
 
+    public async Task<IReadOnlyList<RestrictedMedia>?> GetRestrictedMedia(Guid userId, Guid? categoryId, CancellationToken token = default)
+    {
+        // asked separately because the listing alone cannot tell "not an admin"
+        // from "nothing is restricted" - both are no rows, and a client must be
+        // able to tell them apart.  the function checks again for itself.
+        if (!await ExecuteScalar<bool>("SELECT media.get_is_admin(@userId);", new { userId }, token))
+        {
+            return null;
+        }
+
+        var rows = await Query<RestrictedMediaRow>(
+            "SELECT * FROM media.get_restricted_media(@userId, @categoryId);",
+            new
+            {
+                userId,
+                categoryId
+            },
+            token
+        );
+
+        return rows
+            .Select(r => new RestrictedMedia(
+                r.MediaId,
+                r.MediaSlug,
+                r.MediaType,
+                r.CategoryId,
+                r.CategoryName,
+                r.CategoryYear,
+                r.CategorySlug,
+                r.Roles,
+                r.IsVisibleToYou
+            ))
+            .ToList();
+    }
+
     async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path, CancellationToken token = default) =>
         await QuerySingle<MediaFile>(
             """

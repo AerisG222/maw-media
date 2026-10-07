@@ -131,6 +131,18 @@ public static class MediaRoutes
         //
         // the GET is under the write scope as well: it exists for the admin screen
         // that edits restrictions, and a reader has no use for it.
+        // every restricted media in the library, including any hidden from the
+        // admin asking - for finding a photo restricted to roles you do not hold,
+        // which drops out of every other listing, when you do not know its
+        // category.  GET /categories/{id}/restrictions is the same for one
+        // category.  a literal segment, so it is matched ahead of /{id}
+        group
+            .MapGet("/restricted", GetRestrictedMedia)
+            .WithName("restricted-media")
+            .WithSummary("Restricted Media")
+            .WithDescription("Every restricted media, optionally in one category, with whether you can see it")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         group
             .MapGet("/{id}/roles", GetMediaRoles)
             .WithName("get-media-roles")
@@ -605,5 +617,26 @@ public static class MediaRoutes
         return await repo.ClearMediaRoles(userId.Value, request.MediaIds ?? [], token)
             ? TypedResults.Ok()
             : TypedResults.Forbid();
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<RestrictedMedia>>, NotFound, ForbidHttpResult>> GetRestrictedMedia(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromQuery] Guid? categoryId,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var media = await repo.GetRestrictedMedia(userId.Value, categoryId, token);
+
+        return media == null
+            ? TypedResults.Forbid()
+            : TypedResults.Ok(media);
     }
 }

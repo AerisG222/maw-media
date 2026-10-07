@@ -95,6 +95,21 @@ public static class CategoryRoutes
             .WithDescription("Get GPS for media in a specific category")
             .RequireAuthorization(AuthorizationPolicies.MediaReader);
 
+        // the restricted media in a category, beside the gps call it mirrors: a
+        // client fetches it alongside the category's media and joins on mediaId
+        // to badge or filter restricted photos.  only restricted media are listed,
+        // including any the caller cannot see themselves.
+        //
+        // admin only, unlike gps - which photos are hidden from which roles is not
+        // a reader's to know - and under the write scope with the rest of
+        // restriction management.  see docs/media-restrictions.md
+        group
+            .MapGet("/{id}/restrictions", GetCategoryRestrictions)
+            .WithName("category-media-restrictions")
+            .WithSummary("Category Media Restrictions")
+            .WithDescription("The restricted media in a category, with their roles and whether you can see each")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         group
             .MapGet("/{id}/download", DownloadCategoryMedia)
             .WithName("category-download-media")
@@ -284,6 +299,27 @@ public static class CategoryRoutes
         return userId != null
             ? TypedResults.Ok(await repo.GetCategoryMedia(userId.Value, request.GetBaseUrl(), id, token))
             : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<RestrictedMedia>>, NotFound, ForbidHttpResult>> GetCategoryRestrictions(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var restricted = await repo.GetRestrictedMedia(userId.Value, id, token);
+
+        return restricted == null
+            ? TypedResults.Forbid()
+            : TypedResults.Ok(restricted);
     }
 
     static async Task<Results<Ok<IEnumerable<Gps>>, ForbidHttpResult>> GetCategoryMediaGps(

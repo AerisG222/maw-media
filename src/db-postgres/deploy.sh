@@ -292,6 +292,7 @@ function main() {
     queue "funcs/media.get_place_media.sql"
     queue "funcs/media.get_places.sql"
     queue "funcs/media.get_random_media.sql"
+    queue "funcs/media.get_restricted_media.sql"
     queue "funcs/media.get_roles.sql"
     queue "funcs/media.get_scales.sql"
     queue "funcs/media.get_stats.sql"
