@@ -30,7 +30,7 @@
 -- exclude it from.
 --
 -- the rule is applied in exactly one place, media.user_media, and every read path
--- reaches media through it.
+-- reaches media through it.  see docs/media-restrictions.md
 CREATE TABLE IF NOT EXISTS media.media_role (
     media_id UUID NOT NULL,
     role_id UUID NOT NULL,

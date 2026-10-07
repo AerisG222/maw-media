@@ -125,6 +125,50 @@ public static class MediaRoutes
             .WithDescription("Remove the GPS override from many media items at once")
             .RequireAuthorization(AuthorizationPolicies.MediaWriter);
 
+        // restrictions - media visible to fewer roles than their category grants.
+        // admin only, which the database enforces; these routes ask for the write
+        // scope as every media change does, and answer 403 for a non admin.
+        //
+        // the GET is under the write scope as well: it exists for the admin screen
+        // that edits restrictions, and a reader has no use for it.
+        group
+            .MapGet("/{id}/roles", GetMediaRoles)
+            .WithName("get-media-roles")
+            .WithSummary("Get Media Restriction")
+            .WithDescription("The roles this media is restricted to - empty when it follows its category")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        group
+            .MapPut("/{id}/roles", SetMediaRoles)
+            .WithName("set-media-roles")
+            .WithSummary("Restrict Media")
+            .WithDescription("Restrict this media to the named roles, replacing any restriction it had")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        group
+            .MapDelete("/{id}/roles", ClearMediaRoles)
+            .WithName("clear-media-roles")
+            .WithSummary("Unrestrict Media")
+            .WithDescription("Remove this media's restriction, so it follows its category again")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        // POST rather than a DELETE carrying ids, for the reason the bulk gps clear
+        // gives: a DELETE body may be dropped on the way, and would arrive as a
+        // request to clear nothing
+        group
+            .MapPost("/bulk-roles", BulkSetMediaRoles)
+            .WithName("bulk-set-media-roles")
+            .WithSummary("Bulk Restrict Media")
+            .WithDescription("Restrict many media to the named roles at once - all or nothing")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        group
+            .MapPost("/bulk-roles/clear", BulkClearMediaRoles)
+            .WithName("bulk-clear-media-roles")
+            .WithSummary("Bulk Unrestrict Media")
+            .WithDescription("Remove the restriction from many media at once")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         return group;
     }
 
@@ -436,5 +480,130 @@ public static class MediaRoutes
         return success
             ? TypedResults.Ok()
             : TypedResults.NotFound();
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<string>>, NotFound, ForbidHttpResult>> GetMediaRoles(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.GetMediaRoles(userId.Value, id, token);
+
+        return result.Outcome switch
+        {
+            MediaRestrictionOutcome.Ok => TypedResults.Ok(result.Roles),
+            MediaRestrictionOutcome.NotAdmin => TypedResults.Forbid(),
+            _ => TypedResults.NotFound()
+        };
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<string>>, NotFound, BadRequest<IReadOnlyList<MediaRestrictionProblem>>, ForbidHttpResult>> SetMediaRoles(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        [FromBody] MediaRolesRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.SetMediaRoles(userId.Value, [id], request.Roles ?? [], token);
+
+        switch (result.Outcome)
+        {
+            case MediaRestrictionOutcome.NotAdmin:
+                return TypedResults.Forbid();
+
+            // a single media that does not exist is a 404, not a list of one
+            // problem - this route names one resource, and it is not there
+            case MediaRestrictionOutcome.Invalid when result.Problems.All(p => p.Reason == "not_found"):
+                return TypedResults.NotFound();
+
+            case MediaRestrictionOutcome.Invalid:
+                return TypedResults.BadRequest(result.Problems);
+        }
+
+        // read back rather than echoing the request, so the client sees the
+        // restriction as stored - names deduplicated and in a stable order
+        return TypedResults.Ok((await repo.GetMediaRoles(userId.Value, id, token)).Roles);
+    }
+
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> ClearMediaRoles(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await repo.ClearMediaRoles(userId.Value, [id], token)
+            ? TypedResults.Ok()
+            : TypedResults.Forbid();
+    }
+
+    static async Task<Results<Ok, NotFound, BadRequest<IReadOnlyList<MediaRestrictionProblem>>, ForbidHttpResult>> BulkSetMediaRoles(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromBody] BulkMediaRolesRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.SetMediaRoles(userId.Value, request.MediaIds ?? [], request.Roles ?? [], token);
+
+        // an id that names no media is reported among the problems here rather
+        // than as a 404: the request as a whole exists, and an admin screen marks
+        // each photo it could not restrict
+        return result.Outcome switch
+        {
+            MediaRestrictionOutcome.Ok => TypedResults.Ok(),
+            MediaRestrictionOutcome.NotAdmin => TypedResults.Forbid(),
+            _ => TypedResults.BadRequest(result.Problems)
+        };
+    }
+
+    static async Task<Results<Ok, NotFound, ForbidHttpResult>> BulkClearMediaRoles(
+        IMediaRepository repo,
+        ClaimsPrincipal user,
+        [FromBody] BulkClearMediaRolesRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await repo.ClearMediaRoles(userId.Value, request.MediaIds ?? [], token)
+            ? TypedResults.Ok()
+            : TypedResults.Forbid();
     }
 }

@@ -261,6 +261,86 @@ public class MediaRepository
         return result == 0;
     }
 
+    public async Task<IReadOnlyList<string>?> GetRoles(Guid userId, CancellationToken token = default) =>
+        await ExecuteScalar<string[]?>(
+            "SELECT media.get_roles(@userId);",
+            new
+            {
+                userId
+            },
+            token
+        );
+
+    public async Task<MediaRolesResult> GetMediaRoles(Guid userId, Guid mediaId, CancellationToken token = default)
+    {
+        var row = await QuerySingle<MediaRolesRow>(
+            "SELECT * FROM media.get_media_roles(@userId, @mediaId);",
+            new
+            {
+                userId,
+                mediaId
+            },
+            token
+        );
+
+        return row?.Result switch
+        {
+            0 => new MediaRolesResult(MediaRestrictionOutcome.Ok, row.RoleNames ?? []),
+            1 => new MediaRolesResult(MediaRestrictionOutcome.NotAdmin, []),
+            _ => new MediaRolesResult(MediaRestrictionOutcome.NotFound, [])
+        };
+    }
+
+    public async Task<MediaRestrictionResult> SetMediaRoles(Guid userId, Guid[] mediaIds, string[] roleNames, CancellationToken token = default)
+    {
+        var rows = (await ExecuteQueryInTransaction<MediaRoleOutcomeRow>(
+            "SELECT * FROM media.set_media_roles(@userId, @mediaIds, @roleNames);",
+            new
+            {
+                userId,
+                mediaIds,
+                roleNames
+            },
+            token
+        ))?.ToList() ?? [];
+
+        if (rows.Any(r => r.Outcome == "not_admin"))
+        {
+            return new MediaRestrictionResult(MediaRestrictionOutcome.NotAdmin, []);
+        }
+
+        // the function returns either one 'applied' row per media, or the problems
+        // and nothing else - it never applies part of a request
+        var problems = rows
+            .Where(r => r.Outcome != "applied")
+            .Select(r => new MediaRestrictionProblem(r.AffectedMediaId, r.Outcome, r.Detail))
+            .ToList();
+
+        if (problems.Count == 0)
+        {
+            return new MediaRestrictionResult(MediaRestrictionOutcome.Ok, []);
+        }
+
+        _log.LogWarning("Unable to restrict media - user {USER} was refused for {PROBLEMS}", userId, string.Join(", ", problems.Select(p => p.Reason).Distinct()));
+
+        return new MediaRestrictionResult(MediaRestrictionOutcome.Invalid, problems);
+    }
+
+    public async Task<bool> ClearMediaRoles(Guid userId, Guid[] mediaIds, CancellationToken token = default)
+    {
+        var result = await ExecuteScalarInTransaction<int>(
+            "SELECT media.clear_media_roles(@userId, @mediaIds);",
+            new
+            {
+                userId,
+                mediaIds
+            },
+            token
+        );
+
+        return result == 0;
+    }
+
     async Task<MediaFile?> InternalGetMediaFile(Guid userId, Guid? assetId, string? path, CancellationToken token = default) =>
         await QuerySingle<MediaFile>(
             """

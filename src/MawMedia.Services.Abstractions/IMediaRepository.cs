@@ -20,6 +20,14 @@ public interface IMediaRepository
     Task<bool> BulkSetGpsOverride(Guid userId, Guid[] mediaIds, Guid newLocationId, decimal latitude, decimal longitude, CancellationToken token = default);
     Task<bool> ClearGpsOverride(Guid userId, Guid mediaId, CancellationToken token = default);
     Task<bool> BulkClearGpsOverride(Guid userId, Guid[] mediaIds, CancellationToken token = default);
+
+    // restrictions: media visible to fewer roles than their category grants.
+    // admin only - see media.set_media_roles.  GetRoles is null for a caller who
+    // is not an admin; ClearMediaRoles is false for one.
+    Task<IReadOnlyList<string>?> GetRoles(Guid userId, CancellationToken token = default);
+    Task<MediaRolesResult> GetMediaRoles(Guid userId, Guid mediaId, CancellationToken token = default);
+    Task<MediaRestrictionResult> SetMediaRoles(Guid userId, Guid[] mediaIds, string[] roleNames, CancellationToken token = default);
+    Task<bool> ClearMediaRoles(Guid userId, Guid[] mediaIds, CancellationToken token = default);
     Task<IEnumerable<InaccurateLocation>> GetInaccurateLocations(Guid userId, CancellationToken token = default);
     Task<int> FixInaccurateLocation(Guid userId, Guid mediaId, Guid newLocationId, CancellationToken token = default);
 }
