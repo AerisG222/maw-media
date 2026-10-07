@@ -40,7 +40,30 @@ BEGIN
         p.id,
         p.name,
         p.slug,
-        p.preferred_face_id,
+        -- 2026-10-06 - only a preferred face this caller may see.
+        --
+        -- a person is listed because the caller can see *some* face of theirs,
+        -- but preferred_face_id is a column on the person, published from
+        -- maw-media-ai, and can name a face on any photo at all - including one
+        -- in a category the caller has no role for, or one restricted away from
+        -- every role they hold.  returning it anyway was a leak rather than a
+        -- broken image: FaceRepository primes the face access cache with these
+        -- ids, which would have let the caller fetch that crop for as long as
+        -- the entry lived.
+        --
+        -- answered from rows this query already reads.  uf is the caller's
+        -- visible faces of this person, so the preferred face is visible exactly
+        -- when it is one of them.  a correlated EXISTS per person asked the same
+        -- question and tripled the cost of the listing - each probe rebuilt the
+        -- caller's category access from scratch, 540 times.
+        --
+        -- null rather than a substitute face, so the client falls back to its
+        -- placeholder - the choice of face is maw-media-ai's, and inventing a
+        -- different one here would show a face it never chose.
+        CASE
+            WHEN BOOL_OR(uf.face_id = p.preferred_face_id)
+            THEN p.preferred_face_id
+        END AS preferred_face_id,
         COUNT(DISTINCT uf.media_id)::INTEGER AS media_count,
         (pf.person_id IS NOT NULL) AS is_favorite
     FROM media.person p

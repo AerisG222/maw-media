@@ -13,6 +13,6 @@ public interface ICategoryRepository
     Task<IEnumerable<Gps>> GetCategoryMediaGps(Guid userId, Guid categoryId, CancellationToken token = default);
     Task<IEnumerable<Guid>> GetCategoriesWithoutGps(Guid userId, short? year, CancellationToken token = default);
     Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite, CancellationToken token = default);
-    Task<bool> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default);
+    Task<CategoryTeaserOutcome> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default);
     Task<SearchResult<Category>> Search(Guid userId, string baseUrl, string searchTerm, int offset, int limit, CancellationToken token = default);
 }

@@ -90,7 +90,7 @@ public class CategoryRepository
         return false;
     }
 
-    public async Task<bool> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default)
+    public async Task<CategoryTeaserOutcome> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default)
     {
         var result = await ExecuteScalarInTransaction<int>(
             "SELECT * FROM media.set_category_teaser(@userId, @categoryId, @mediaId);",
@@ -103,14 +103,21 @@ public class CategoryRepository
             token
         );
 
-        if (result == 0)
+        switch (result)
         {
-            return true;
+            case 0:
+                return CategoryTeaserOutcome.Ok;
+
+            case 3:
+                _log.LogWarning("Unable to set category teaser - media {MEDIA} is restricted to fewer roles than category {CATEGORY} grants", mediaId, categoryId);
+
+                return CategoryTeaserOutcome.MediaRestricted;
+
+            default:
+                _log.LogWarning("Unable to set category teaser - user {USER} does not have access to category {CATEGORY} or media {MEDIA} - or category/media does not exist!", userId, categoryId, mediaId);
+
+                return CategoryTeaserOutcome.NotFound;
         }
-
-        _log.LogWarning("Unable to set category teaser - user {USER} does not have access to category {CATEGORY} or media {MEDIA} - or category/media does not exist!", userId, categoryId, mediaId);
-
-        return false;
     }
 
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, string baseUrl, Guid categoryId, CancellationToken token = default) =>

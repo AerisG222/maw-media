@@ -158,8 +158,12 @@ public class FaceRepository
         // the picker renders one image per person, so these exact faces are about
         // to be requested as static assets - each of which authorizes through
         // CanViewFace.  priming here turns a few hundred round trips into none.
-        // the rows came from media.user_face, so every id is one this caller may
-        // already see.
+        //
+        // safe only because media.get_persons returns a preferred face solely
+        // when the caller may see it, and null otherwise.  it is *not* implied by
+        // the person being listed: that only means the caller can see some face
+        // of theirs, while preferred_face_id can name any face at all - and before
+        // 2026-10-06 this loop granted those too.
         foreach (var faceId in rows.Where(r => r.PreferredFaceId != null).Select(r => r.PreferredFaceId!.Value))
         {
             await _cache.SetAsync(

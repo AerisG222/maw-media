@@ -65,6 +65,28 @@ BEGIN
             ON m.person_id = uf.person_id
         WHERE uf.user_id = _user_id
         GROUP BY uf.person_id
+    ),
+    preferred AS MATERIALIZED
+    (
+        -- 2026-10-06 - the members whose preferred face this caller can see, for
+        -- the reason media.get_persons gives: preferred_face_id can name a face
+        -- on a photo the caller has no access to, and the picker renders it.
+        --
+        -- its own small pass over the members' preferred faces alone, rather
+        -- than folded into counts above.  answering it there meant joining
+        -- media.person into that pass, which changed its plan and cost ~150ms;
+        -- a clan holds a handful of people, so this costs almost nothing.
+        -- DISTINCT because a media filed in two visible categories appears in
+        -- media.user_media twice.
+        SELECT DISTINCT mp.id AS person_id
+        FROM members m
+        INNER JOIN media.person mp
+            ON mp.id = m.person_id
+        INNER JOIN media.face pf
+            ON pf.id = mp.preferred_face_id
+        INNER JOIN media.user_media pum
+            ON pum.media_id = pf.media_id
+            AND pum.user_id = _user_id
     )
     SELECT
         c.id AS clan_id,
@@ -74,7 +96,13 @@ BEGIN
         p.id AS person_id,
         p.name AS person_name,
         p.slug AS person_slug,
-        p.preferred_face_id,
+        -- 2026-10-06 - only a preferred face this caller may see, for the reason
+        -- media.get_persons gives: it can name a face on a photo the caller has
+        -- no access to, and the clan picker renders it as an image
+        CASE
+            WHEN pv.person_id IS NOT NULL
+            THEN p.preferred_face_id
+        END AS preferred_face_id,
         -- a member with no visible media has no row in counts, where the
         -- LATERAL - an aggregate with no GROUP BY - always produced one holding
         -- a zero.  coalescing keeps the column exactly as it was
@@ -89,6 +117,8 @@ BEGIN
         AND p.status_code IS NULL
     LEFT OUTER JOIN counts mc
         ON mc.person_id = p.id
+    LEFT OUTER JOIN preferred pv
+        ON pv.person_id = p.id
     LEFT OUTER JOIN media.person_favorite pf
         ON pf.person_id = p.id
         AND pf.created_by = _user_id

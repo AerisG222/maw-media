@@ -28,5 +28,10 @@ public enum PlaceCoverOutcome
     // from 'qvg-fill' so every tile is the same shape, and a media whose
     // renditions were never generated - or that only ever had an original, which
     // is never publishable - cannot be a cover.
-    NoPublishableRendition
+    NoPublishableRendition,
+
+    // the media is restricted to fewer roles than its category grants.  a cover
+    // is served to every signed in caller without a per file check, so it would
+    // publish exactly what the restriction withholds.
+    MediaRestricted
 }

@@ -10,4 +10,5 @@ class CoverCandidate
     public required string FileType { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
+    public bool IsRestricted { get; set; }
 }

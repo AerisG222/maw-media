@@ -66,8 +66,11 @@ BEGIN
             xcm.category_id,
             ARRAY_AGG(DISTINCT xt.code ORDER BY xt.code) AS media_types
         FROM visible v
-        INNER JOIN media.category_media xcm
+        -- 2026-10-06 - the caller's media, not the category's, so a media
+        -- restricted away from them cannot surface as a type on the tile
+        INNER JOIN media.user_media xcm
             ON xcm.category_id = v.id
+            AND xcm.user_id = _user_id
         INNER JOIN media.media xm
             ON xm.id = xcm.media_id
         INNER JOIN media.type xt

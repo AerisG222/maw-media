@@ -254,6 +254,16 @@ public class PlaceRepository
             return PlaceCoverOutcome.NoPublishableRendition;
         }
 
+        // refused here, before the file is written, rather than left to
+        // media.set_place_cover.  that function refuses it too, but only after
+        // Publish below has already copied the rendition into a directory every
+        // signed in caller can read - and its clean up deletes the place's
+        // *previous* cover along with it.
+        if (chosen.IsRestricted)
+        {
+            return PlaceCoverOutcome.MediaRestricted;
+        }
+
         // published before the row is written, so a row claiming a cover never
         // precedes the file - a tile has no way to recover from a broken image.
         // replacing overwrites {placeId}.avif, so there is no displaced name to
@@ -277,6 +287,7 @@ public class PlaceRepository
             {
                 1 => PlaceCoverOutcome.NotAdmin,
                 2 => PlaceCoverOutcome.PlaceNotFound,
+                4 => PlaceCoverOutcome.MediaRestricted,
                 _ => PlaceCoverOutcome.MediaNotAtPlace
             };
         }

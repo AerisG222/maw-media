@@ -1,5 +1,7 @@
 using Dapper;
+using MawMedia.Services.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services.Tests;
 
@@ -119,6 +121,118 @@ public class MediaRestrictionTests
         }
     }
 
+    // ---- the places a restricted media must not reach by another route --------
+    //
+    // a teaser, a place cover and a person's preferred face are each shown to an
+    // audience wider than the media's own: everyone who can see the category, the
+    // place, or the person.  so each is either refused or withheld.
+
+    [Fact]
+    public async Task APreferredFaceOnAWithheldMediaIsNotListed()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await CreateUniverse();
+        var friendCache = new FakeHybridCache();
+
+        // the friend sees the person - through the face on the open photo - but
+        // not the preferred face, which sits on the admin only photo
+        var person = (await Faces(friendCache).GetPersons(u.Friend, BASE_URL, token: token))
+            .Single(p => p.Id == u.Person);
+
+        Assert.Null(person.PreferredFaceId);
+
+        // and it is not quietly granted either.  the listing primes the face
+        // access cache with every preferred face it returns, which is exactly how
+        // returning this one would have handed the friend the crop
+        Assert.DoesNotContain(CacheKeyBuilder.CanViewFace(u.Friend, u.AdminOnly.FaceId), friendCache.SetKeys);
+
+        var forAdmin = (await Faces().GetPersons(u.Admin, BASE_URL, token: token))
+            .Single(p => p.Id == u.Person);
+
+        Assert.Equal(u.AdminOnly.FaceId, forAdmin.PreferredFaceId);
+    }
+
+    [Fact]
+    public async Task ARestrictedMediaCannotBecomeTheTeaser()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await CreateUniverse();
+
+        // the admin owns the category and can see the photo - the refusal is about
+        // the restriction alone
+        var outcome = await Categories().SetTeaserMedia(u.Admin, u.Category, u.AdminOnly.Id, token);
+
+        Assert.Equal(CategoryTeaserOutcome.MediaRestricted, outcome);
+        Assert.Equal(u.Open.Id, await Scalar<Guid>(
+            "SELECT media_id FROM media.category_media WHERE category_id = @id AND is_teaser", u.Category));
+    }
+
+    [Fact]
+    public async Task ARestrictedMediaCannotBecomeAPlaceCover()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await CreateUniverse();
+        var place = await PlaceOf(Constants.LOCATION_MA.Id);
+
+        // refused before the rendition is published.  that is checked by more than
+        // the outcome: this media has no file on disk, so had the repository gone
+        // on to publish it the copy would have thrown
+        var outcome = await Places().SetPlaceCover(u.Admin, place, u.AdminOnly.Id, token);
+
+        Assert.Equal(PlaceCoverOutcome.MediaRestricted, outcome);
+        Assert.NotEqual(u.AdminOnly.Id, await Scalar<Guid?>(
+            "SELECT cover_media_id FROM media.place WHERE id = @id", place));
+    }
+
+    [Fact]
+    public async Task TheDatabaseRefusesARestrictedCoverOnItsOwn()
+    {
+        var u = await CreateUniverse();
+        var place = await PlaceOf(Constants.LOCATION_MA.Id);
+
+        await using var conn = _fixture.DataSource.CreateConnection();
+
+        // for any caller that skips the repository's check: an admin, at a place
+        // the media is filed under, who can see it - refused only for the
+        // restriction
+        var result = await conn.ExecuteScalarAsync<int>(
+            """
+            SELECT result FROM media.set_place_cover(
+                @admin, @place, @media,
+                (SELECT id FROM media.file WHERE media_id = @media LIMIT 1))
+            """,
+            new { admin = u.Admin, place, media = u.AdminOnly.Id });
+
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public async Task MediaTypesOnlyNameMediaTheCallerCanSee()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var u = await CreateUniverse();
+
+        // the only video in the category is restricted to a role nobody here
+        // holds.  naming "video" on the tile would say it exists
+        foreach (var caller in new[] { u.Admin, u.Friend })
+        {
+            var category = await Categories().GetCategory(caller, u.Category, BASE_URL, token);
+
+            Assert.NotNull(category);
+            Assert.Equal(["photo"], category.MediaTypes);
+        }
+    }
+
+    async Task<Guid> PlaceOf(Guid locationId) =>
+        await Scalar<Guid>("SELECT place_id FROM media.location WHERE id = @id", locationId);
+
+    async Task<T?> Scalar<T>(string sql, Guid id)
+    {
+        await using var conn = _fixture.DataSource.CreateConnection();
+
+        return await conn.ExecuteScalarAsync<T>(sql, new { id });
+    }
+
     // two roles the category grants, one it does not, and a user for each
     // combination that matters.  three media: one unrestricted, one restricted to
     // the admin role, one restricted to the role the category never grants.  each
@@ -129,7 +243,10 @@ public class MediaRestrictionTests
         var tag = Guid.CreateVersion7().ToString("N")[^8..];
 
         var u = new Universe(
+            Tag: tag,
             Category: Guid.CreateVersion7(),
+            Person: Guid.CreateVersion7(),
+            OpenFace: Guid.CreateVersion7(),
             Admin: Guid.CreateVersion7(),
             Friend: Guid.CreateVersion7(),
             Both: Guid.CreateVersion7(),
@@ -159,13 +276,18 @@ public class MediaRestrictionTests
 
             INSERT INTO media.user_role (user_id, role_id, created, created_by) VALUES
                 (@admin,    @roleAdmin,    NOW(), @createdBy),
+                -- the seeded role named 'admin', which media.get_is_admin looks
+                -- for.  it is not granted this category, so it changes nothing
+                -- about who can see the subjects here, and no seeded user's
+                -- counts move: they are asked about by seeded user id
+                (@admin,    @seededAdmin,  NOW(), @createdBy),
                 (@friend,   @roleFriend,   NOW(), @createdBy),
                 (@both,     @roleAdmin,    NOW(), @createdBy),
                 (@both,     @roleFriend,   NOW(), @createdBy),
                 (@outsider, @roleOutsider, NOW(), @createdBy);
 
             INSERT INTO media.category (id, name, slug, effective_date, created, created_by, modified, modified_by)
-            VALUES (@category, @tag || ' restricted', 'restrict-' || @tag, '2001-01-01', NOW(), @createdBy, NOW(), @createdBy);
+            VALUES (@category, @tag || ' restricted', 'restrict-' || @tag, '2001-01-01', NOW(), @admin, NOW(), @admin);
 
             -- the category is granted to admin and friend; the outsider role is
             -- deliberately left off
@@ -176,7 +298,7 @@ public class MediaRestrictionTests
             INSERT INTO media.media (id, type_id, location_id, created, created_by, modified, modified_by) VALUES
                 (@open,         @photo, NULL,        NOW(), @createdBy, NOW(), @createdBy),
                 (@adminOnly,    @photo, @locationMa, NOW(), @createdBy, NOW(), @createdBy),
-                (@outsiderOnly, @photo, NULL,        NOW(), @createdBy, NOW(), @createdBy);
+                (@outsiderOnly, @video, NULL,        NOW(), @createdBy, NOW(), @createdBy);
 
             INSERT INTO media.category_media (category_id, media_id, slug, is_teaser, created, created_by, modified, modified_by) VALUES
                 (@category, @open,         'open',     true,  NOW(), @createdBy, NOW(), @createdBy),
@@ -186,10 +308,14 @@ public class MediaRestrictionTests
             INSERT INTO media.file (id, media_id, type_id, scale_id, width, height, bytes, path) VALUES
                 (gen_random_uuid(), @open,         @photo, @scale, 320, 240, 1, @openPath),
                 (gen_random_uuid(), @adminOnly,    @photo, @scale, 320, 240, 1, @adminPath),
-                (gen_random_uuid(), @outsiderOnly, @photo, @scale, 320, 240, 1, @outsiderPath);
+                (gen_random_uuid(), @outsiderOnly, @video, @scale, 320, 240, 1, @outsiderPath);
 
-            INSERT INTO media.face (id, media_id, person_id, box_x, box_y, box_width, box_height, detection_score, source_revision, published)
-            VALUES (@adminFace, @adminOnly, NULL, 0.1, 0.1, 0.2, 0.2, 0.99, 1, NOW());
+            INSERT INTO media.person (id, name, slug, status_code, preferred_face_id, face_count, source_revision, published)
+            VALUES (@person, @tag || ' person', 'restrict-person-' || @tag, NULL, @adminFace, 2, 1, NOW());
+
+            INSERT INTO media.face (id, media_id, person_id, box_x, box_y, box_width, box_height, detection_score, source_revision, published) VALUES
+                (@adminFace, @adminOnly, @person, 0.1, 0.1, 0.2, 0.2, 0.99, 1, NOW()),
+                (@openFace,  @open,      @person, 0.1, 0.1, 0.2, 0.2, 0.99, 1, NOW());
 
             INSERT INTO media.media_role (media_id, role_id, created, created_by) VALUES
                 (@adminOnly,    @roleAdmin,    NOW(), @createdBy),
@@ -216,7 +342,11 @@ public class MediaRestrictionTests
                 openPath = u.Open.Path,
                 adminPath = u.AdminOnly.Path,
                 outsiderPath = u.OutsiderOnly.Path,
-                adminFace = u.AdminOnly.FaceId
+                adminFace = u.AdminOnly.FaceId,
+                openFace = u.OpenFace,
+                person = u.Person,
+                video = Constants.TYPE_VIDEO,
+                seededAdmin = Constants.ROLE_ADMIN
             });
 
         return u;
@@ -241,13 +371,36 @@ public class MediaRestrictionTests
     CategoryRepository Categories() =>
         new(new FakeLogger<CategoryRepository>(), _fixture.DataSource.CreateConnection(), new FakeHybridCache(), new AssetPathBuilder());
 
-    FaceRepository Faces() =>
-        new(new FakeLogger<FaceRepository>(), _fixture.DataSource.CreateConnection(), new AssetPathBuilder(), new FakeHybridCache());
+    FaceRepository Faces(FakeHybridCache? cache = null) =>
+        new(new FakeLogger<FaceRepository>(), _fixture.DataSource.CreateConnection(), new AssetPathBuilder(), cache ?? new FakeHybridCache());
+
+    PlaceRepository Places() =>
+        new(
+            new FakeLogger<PlaceRepository>(),
+            _fixture.DataSource.CreateConnection(),
+            new AssetPathBuilder(),
+            new FakeHybridCache(),
+            new PlaceCoverStore(
+                new FakeLogger<PlaceCoverStore>(),
+                Options.Create(new PlaceCoverConfig { RootDirectory = TestDir("restriction-covers") }),
+                Options.Create(new AssetConfig { RootDirectory = TestDir("restriction-assets") })));
+
+    static string TestDir(string name)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "maw-media-restriction", name);
+
+        Directory.CreateDirectory(path);
+
+        return path;
+    }
 
     record Subject(Guid Id, string Path, Guid FaceId);
 
     record Universe(
+        string Tag,
         Guid Category,
+        Guid Person,
+        Guid OpenFace,
         Guid Admin,
         Guid Friend,
         Guid Both,

@@ -71,6 +71,20 @@ BEGIN
         RETURN;
     END IF;
 
+    -- 2026-10-06 - a restricted media cannot be a cover.  the cover is copied to a
+    -- directory every signed in caller may read without a per file check, which
+    -- would publish exactly what the restriction exists to withhold.
+    -- PlaceRepository refuses this before publishing the file; this is the
+    -- database's own guarantee, for any caller that does not.
+    IF EXISTS (
+        SELECT 1
+        FROM media.media_role mr
+        WHERE mr.media_id = _media_id
+    ) THEN
+        result := 4;
+        RETURN;
+    END IF;
+
     UPDATE media.place
     SET cover_media_id = _media_id,
         cover_file_id = _file_id,

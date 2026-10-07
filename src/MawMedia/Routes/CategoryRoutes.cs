@@ -243,7 +243,7 @@ public static class CategoryRoutes
             : TypedResults.NotFound();
     }
 
-    static async Task<Results<Ok<Category>, NotFound, ForbidHttpResult>> SetCategoryTeaser(
+    static async Task<Results<Ok<Category>, NotFound, BadRequest<string>, ForbidHttpResult>> SetCategoryTeaser(
         ICategoryRepository repo,
         ClaimsPrincipal user,
         HttpRequest request,
@@ -259,11 +259,16 @@ public static class CategoryRoutes
             return TypedResults.NotFound();
         }
 
-        var success = await repo.SetTeaserMedia(userId.Value, id, teaserRequest.MediaId, token);
+        var outcome = await repo.SetTeaserMedia(userId.Value, id, teaserRequest.MediaId, token);
 
-        return success
-            ? TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl(), token))
-            : TypedResults.NotFound();
+        return outcome switch
+        {
+            CategoryTeaserOutcome.Ok =>
+                TypedResults.Ok(await repo.GetCategory(userId.Value, id, request.GetBaseUrl(), token)),
+            CategoryTeaserOutcome.MediaRestricted =>
+                TypedResults.BadRequest("That photo is restricted to fewer roles than the category, so it cannot be the teaser everyone sees."),
+            _ => TypedResults.NotFound()
+        };
     }
 
     static async Task<Results<Ok<IEnumerable<Media>>, ForbidHttpResult>> GetCategoryMedia(

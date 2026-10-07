@@ -24,6 +24,20 @@ BEGIN
     END IF;
 
     -- only update the teaser if the media belongs to the specified category
+    -- 2026-10-06 - a restricted media cannot be a teaser.  the teaser is the
+    -- category's tile, shown to everyone who can see the category - which is
+    -- exactly the audience a restriction exists to narrow.  refused rather than
+    -- silently allowed, so the caller learns why, and media.set_media_roles
+    -- refuses the reverse: restricting a media that is already a teaser.
+    IF EXISTS (
+        SELECT 1
+        FROM media.media_role mr
+        WHERE mr.media_id = _media_id
+    ) THEN
+        RAISE NOTICE 'not updating category teaser - media % is restricted', _media_id;
+        RETURN 3;
+    END IF;
+
     IF EXISTS (
         SELECT 1
         FROM media.category_media cm

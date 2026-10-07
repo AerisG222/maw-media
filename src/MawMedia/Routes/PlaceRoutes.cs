@@ -278,6 +278,8 @@ public static class PlaceRoutes
                 TypedResults.BadRequest("That media is not at this place, or is not one you can see."),
             PlaceCoverOutcome.NoPublishableRendition =>
                 TypedResults.BadRequest("That media has no publishable rendition. Originals are never published."),
+            PlaceCoverOutcome.MediaRestricted =>
+                TypedResults.BadRequest("That photo is restricted to fewer roles than its category, so it cannot be a cover everyone sees."),
             _ => await Reread(repo, userId.Value, request, id, token)
         };
     }

@@ -38,7 +38,15 @@ RETURNS TABLE
     file_scale TEXT,
     file_type TEXT,
     width INTEGER,
-    height INTEGER
+    height INTEGER,
+    -- 2026-10-06 - whether the media is restricted to fewer roles than its
+    -- category grants.  returned rather than filtered on, so the caller can say
+    -- *why* it may not be a cover: "restricted" and "has no rendition" are
+    -- different things to fix.  a cover is copied to a directory served to every
+    -- signed in caller without a per file check, so the caller must refuse this
+    -- before publishing - media.set_place_cover refuses it too, but only after
+    -- the file has already been written.
+    is_restricted BOOLEAN
 )
 AS $$
     SELECT
@@ -47,7 +55,12 @@ AS $$
         md.file_scale,
         md.file_type,
         s.width,
-        s.height
+        s.height,
+        EXISTS (
+            SELECT 1
+            FROM media.media_role mr
+            WHERE mr.media_id = _media_id
+        ) AS is_restricted
     FROM media.media_detail md
     INNER JOIN media.scale s
         ON s.code = md.file_scale

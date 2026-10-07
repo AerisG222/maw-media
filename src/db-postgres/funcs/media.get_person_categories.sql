@@ -157,6 +157,29 @@ BEGIN
             v.category_id
         LIMIT _limit
         OFFSET _offset
+    ),
+    types AS
+    (
+        -- 2026-10-06 - the kinds of media on each category of this page, once.
+        --
+        -- computed over the caller's media rather than the category's, so a media
+        -- restricted away from them cannot surface as a type: "video" on a tile
+        -- whose only video is hidden says the hidden one exists.  and computed
+        -- here, grouped over the page, rather than as a subquery per output row -
+        -- that ran once per teaser file, ~10 per category, and each run rebuilt
+        -- the caller's access from scratch.
+        SELECT
+            xum.category_id,
+            ARRAY_AGG(DISTINCT xt.code ORDER BY xt.code) AS media_types
+        FROM page tp
+        INNER JOIN media.user_media xum
+            ON xum.category_id = tp.category_id
+            AND xum.user_id = _user_id
+        INNER JOIN media.media xm
+            ON xm.id = xum.media_id
+        INNER JOIN media.type xt
+            ON xt.id = xm.type_id
+        GROUP BY xum.category_id
     )
     -- the page is taken over categories, not over (category, file) rows.  the
     -- teaser join below fans out a row per file, so a LIMIT applied after it
@@ -184,13 +207,7 @@ BEGIN
         md.file_path,
         md.file_type,
         md.file_scale,
-        (
-            SELECT ARRAY_AGG(DISTINCT xt.code ORDER BY xt.code)
-                FROM media.category_media xcm
-                INNER JOIN media.media xm ON xcm.media_id = xm.id
-                INNER JOIN media.type xt ON xm.type_id = xt.id
-                WHERE xcm.category_id = c.id
-        ) AS media_types,
+        t.media_types,
         pg.person_media_count
     FROM page pg
     INNER JOIN media.category c
@@ -213,6 +230,10 @@ BEGIN
     LEFT OUTER JOIN media.category_favorite cf
         ON cf.category_id = c.id
         AND cf.created_by = _user_id
+    -- LEFT, as the subquery it replaces returned null rather than dropping the
+    -- row - though every category here holds at least the media that put it here
+    LEFT OUTER JOIN types t
+        ON t.category_id = c.id
     -- repeated so the file fan-out preserves the page's order
     ORDER BY
         pg.category_effective_date DESC,

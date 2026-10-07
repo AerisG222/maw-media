@@ -1,3 +1,4 @@
+using MawMedia.Services.Abstractions;
 using Dapper;
 using MawMedia.Services.Tests.Models;
 using Microsoft.Extensions.Logging.Testing;
@@ -153,11 +154,11 @@ public class CategoryRepositoryTests
         var repo = GetRepo();
 
         var token = TestContext.Current.CancellationToken;
-        var success = await repo.SetTeaserMedia(userId, categoryId, mediaId, token);
+        var outcome = await repo.SetTeaserMedia(userId, categoryId, mediaId, token);
 
         if (shouldFail)
         {
-            Assert.False(success);
+            Assert.Equal(CategoryTeaserOutcome.NotFound, outcome);
         }
         else
         {
@@ -176,9 +177,9 @@ public class CategoryRepositoryTests
         var startOfTest = Instant.FromDateTimeUtc(DateTime.UtcNow.AddSeconds(-5));
 
         var token = TestContext.Current.CancellationToken;
-        var success = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id, token);
+        var outcome = await repo.SetTeaserMedia(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, Constants.MEDIA_NATURE_2.Id, token);
 
-        Assert.True(success);
+        Assert.Equal(CategoryTeaserOutcome.Ok, outcome);
 
         var updatedCategory = await repo.GetCategory(Constants.USER_ADMIN, Constants.CATEGORY_NATURE.Id, BASE_URL, token);
 
