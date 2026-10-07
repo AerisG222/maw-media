@@ -120,6 +120,64 @@ public class CategoryRepository
         }
     }
 
+    public async Task<CategoryRolesLookup> GetCategoryRoles(Guid userId, Guid categoryId, CancellationToken token = default)
+    {
+        var row = await QuerySingle<MediaRolesRow>(
+            "SELECT * FROM media.get_category_roles(@userId, @categoryId);",
+            new
+            {
+                userId,
+                categoryId
+            },
+            token
+        );
+
+        return row?.Result switch
+        {
+            0 => new CategoryRolesLookup(CategoryRolesOutcome.Ok, row.RoleNames ?? []),
+            1 => new CategoryRolesLookup(CategoryRolesOutcome.NotAdmin, []),
+            _ => new CategoryRolesLookup(CategoryRolesOutcome.NotFound, [])
+        };
+    }
+
+    public async Task<CategoryRolesResult> SetCategoryRoles(Guid userId, Guid categoryId, string[] roleNames, CancellationToken token = default)
+    {
+        var rows = (await ExecuteQueryInTransaction<CategoryRoleOutcomeRow>(
+            "SELECT * FROM media.set_category_roles(@userId, @categoryId, @roleNames);",
+            new
+            {
+                userId,
+                categoryId,
+                roleNames
+            },
+            token
+        ))?.ToList() ?? [];
+
+        if (rows.Any(r => r.Outcome == "not_admin"))
+        {
+            return new CategoryRolesResult(CategoryRolesOutcome.NotAdmin, []);
+        }
+
+        if (rows.Any(r => r.Outcome == "not_found"))
+        {
+            return new CategoryRolesResult(CategoryRolesOutcome.NotFound, []);
+        }
+
+        var problems = rows
+            .Where(r => r.Outcome != "applied")
+            .Select(r => new CategoryRolesProblem(r.AffectedMediaId, r.Outcome, r.Detail))
+            .ToList();
+
+        if (problems.Count == 0)
+        {
+            return new CategoryRolesResult(CategoryRolesOutcome.Ok, []);
+        }
+
+        _log.LogWarning("Unable to set roles for category {CATEGORY} - user {USER} was refused for {PROBLEMS}", categoryId, userId, string.Join(", ", problems.Select(p => p.Reason).Distinct()));
+
+        return new CategoryRolesResult(CategoryRolesOutcome.Invalid, problems);
+    }
+
     public async Task<IEnumerable<Media>> GetCategoryMedia(Guid userId, string baseUrl, Guid categoryId, CancellationToken token = default) =>
         await InternalGetCategoryMedia(userId, baseUrl, categoryId, token);
 

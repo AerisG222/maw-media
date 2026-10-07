@@ -29,3 +29,11 @@ class RestrictedMediaRow
     public required string[] Roles { get; set; }
     public bool IsVisibleToYou { get; set; }
 }
+
+// one row of media.set_category_roles; the same shape as media.set_media_roles
+class CategoryRoleOutcomeRow
+{
+    public Guid? AffectedMediaId { get; set; }
+    public required string Outcome { get; set; }
+    public string? Detail { get; set; }
+}

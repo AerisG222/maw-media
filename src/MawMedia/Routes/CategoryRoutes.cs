@@ -103,6 +103,24 @@ public static class CategoryRoutes
         // admin only, unlike gps - which photos are hidden from which roles is not
         // a reader's to know - and under the write scope with the rest of
         // restriction management.  see docs/media-restrictions.md
+        // who may see a category - the first api over media.category_role.  admin
+        // only, which the database enforces, under the write scope with the rest
+        // of role management.  read and written directly rather than through the
+        // caller's own visibility, so an admin can always see and fix them.
+        group
+            .MapGet("/{id}/roles", GetCategoryRoles)
+            .WithName("get-category-roles")
+            .WithSummary("Get Category Roles")
+            .WithDescription("The roles this category is granted to")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
+        group
+            .MapPut("/{id}/roles", SetCategoryRoles)
+            .WithName("set-category-roles")
+            .WithSummary("Set Category Roles")
+            .WithDescription("Grant this category to exactly the named roles, replacing the ones it had")
+            .RequireAuthorization(AuthorizationPolicies.MediaWriter);
+
         group
             .MapGet("/{id}/restrictions", GetCategoryRestrictions)
             .WithName("category-media-restrictions")
@@ -299,6 +317,64 @@ public static class CategoryRoutes
         return userId != null
             ? TypedResults.Ok(await repo.GetCategoryMedia(userId.Value, request.GetBaseUrl(), id, token))
             : TypedResults.Ok(Array.Empty<Media>().AsEnumerable());
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<string>>, NotFound, ForbidHttpResult>> GetCategoryRoles(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.GetCategoryRoles(userId.Value, id, token);
+
+        return result.Outcome switch
+        {
+            CategoryRolesOutcome.Ok => TypedResults.Ok(result.Roles),
+            CategoryRolesOutcome.NotAdmin => TypedResults.Forbid(),
+            _ => TypedResults.NotFound()
+        };
+    }
+
+    static async Task<Results<Ok<IReadOnlyList<string>>, NotFound, BadRequest<IReadOnlyList<CategoryRolesProblem>>, ForbidHttpResult>> SetCategoryRoles(
+        ICategoryRepository repo,
+        ClaimsPrincipal user,
+        [FromRoute] Guid id,
+        [FromBody] CategoryRolesRequest request,
+        CancellationToken token
+    )
+    {
+        var userId = user.GetMediaUserId();
+
+        if (userId == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await repo.SetCategoryRoles(userId.Value, id, request.Roles ?? [], token);
+
+        switch (result.Outcome)
+        {
+            case CategoryRolesOutcome.NotAdmin:
+                return TypedResults.Forbid();
+
+            case CategoryRolesOutcome.NotFound:
+                return TypedResults.NotFound();
+
+            case CategoryRolesOutcome.Invalid:
+                return TypedResults.BadRequest(result.Problems);
+        }
+
+        // read back rather than echoing the request, so the client sees the roles
+        // as stored - names deduplicated and in a stable order
+        return TypedResults.Ok((await repo.GetCategoryRoles(userId.Value, id, token)).Roles);
     }
 
     static async Task<Results<Ok<IReadOnlyList<RestrictedMedia>>, NotFound, ForbidHttpResult>> GetCategoryRestrictions(

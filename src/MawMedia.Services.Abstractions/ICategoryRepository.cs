@@ -14,5 +14,10 @@ public interface ICategoryRepository
     Task<IEnumerable<Guid>> GetCategoriesWithoutGps(Guid userId, short? year, CancellationToken token = default);
     Task<bool> SetIsFavorite(Guid userId, Guid categoryId, bool isFavorite, CancellationToken token = default);
     Task<CategoryTeaserOutcome> SetTeaserMedia(Guid userId, Guid categoryId, Guid mediaId, CancellationToken token = default);
+
+    // the roles a category is granted to - who may see it.  admin only; see
+    // media.set_category_roles for what is refused, and why.
+    Task<CategoryRolesLookup> GetCategoryRoles(Guid userId, Guid categoryId, CancellationToken token = default);
+    Task<CategoryRolesResult> SetCategoryRoles(Guid userId, Guid categoryId, string[] roleNames, CancellationToken token = default);
     Task<SearchResult<Category>> Search(Guid userId, string baseUrl, string searchTerm, int offset, int limit, CancellationToken token = default);
 }

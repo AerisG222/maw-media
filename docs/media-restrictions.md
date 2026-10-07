@@ -1,7 +1,7 @@
 # Media Restrictions
 
 Status: **complete.** Known gaps are listed in section 5.
-Last updated: 2026-10-07
+Last updated: 2026-10-07 (category roles added)
 
 Lets an admin hide individual photos in a category from some of the roles that
 can see the category - "these few are for admin, not friend" - without moving them
@@ -108,6 +108,38 @@ restricted, nothing changes, and the response is a `400` listing every problem:
 | `teaser` | the media is the teaser of the category named in `detail`; change the teaser first |
 | `place_cover` | the media is the cover of the place named in `detail`; change or clear the cover first |
 | `no_roles` / `no_media` | the request named none |
+
+## 2a. Category roles
+
+Who may see a category at all - the level a photo restriction narrows.
+
+| | |
+|---|---|
+| `GET /api/v1/categories/{id}/roles` | the roles the category is granted to |
+| `PUT /api/v1/categories/{id}/roles` | `{"roles": ["admin", "friend"]}` - grant exactly these, replacing the rest. Answers with the stored list |
+
+Admin only, under `media:write`, like the rest of role management. Read and written
+directly rather than through your own visibility, so an admin can always see and
+fix a category's roles. Roles that stay keep their original grant date.
+
+Changing roles bumps the category's `modified` time, so clients syncing through
+`/categories/updates/{date}` pick it up - without that, a user newly granted an
+older category would never receive it. A user who *loses* a category simply stops
+receiving it in updates; a client that already cached it keeps showing it until
+it resyncs from scratch. Its media and files are refused from then on, within the
+30 seconds of the server's access cache - except files their browser already holds,
+which can outlive the change by up to a week (section 4).
+
+All or nothing, with every problem listed in a `400`, as for photos:
+
+| reason | meaning |
+|---|---|
+| `unknown_role` | `detail` names a role that does not exist |
+| `restriction_depends` | `mediaId` is a restricted photo in this category whose restriction lists `detail`, a role being removed - change that photo's restriction first, or it would name a role that grants nothing |
+| `would_hide_from_you` | you hold none of the new roles, so the change would hide the category from you - and unlike a photo, there is no listing to find a hidden category again |
+| `no_roles` | an empty list; a category granted to nobody is hidden from everyone |
+
+A missing category answers `404`.
 
 ## 3. Routes with a wider audience
 
