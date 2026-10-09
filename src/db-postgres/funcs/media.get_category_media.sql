@@ -82,7 +82,15 @@ BEGIN
     LEFT OUTER JOIN media.favorite f
         ON f.media_id = mic.media_id
         AND f.created_by = _user_id
-    ORDER BY mic.created;  -- TODO: switch to metadata created
+    -- capture order.  media.created is not when a media was imported: the
+    -- publisher sets it from the file's CreateDate tag, which for photos is the
+    -- local camera time (equal to EXIF DateTimeOriginal on 99.98% of them).  so
+    -- this already sorts by when each photo was taken, and switching to a
+    -- separate metadata date would reorder almost nothing.
+    --
+    -- the known exception is video: QuickTime stores CreateDate in UTC, so a
+    -- video sorts a few hours away from photos taken alongside it.
+    ORDER BY mic.created;
 END;
 $$ LANGUAGE plpgsql;
 
