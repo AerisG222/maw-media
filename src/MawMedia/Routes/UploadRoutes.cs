@@ -49,7 +49,7 @@ public static class UploadRoutes
             : TypedResults.Ok(Array.Empty<UploadedFile>().AsEnumerable());
     }
 
-    static async Task<Results<Created<UploadedFile>, NotFound, ForbidHttpResult>> UploadFile(
+    static async Task<Results<Created<UploadedFile>, BadRequest<string>, Conflict<string>, NotFound, ForbidHttpResult>> UploadFile(
         IUploadService svc,
         ClaimsPrincipal user,
         HttpRequest request,
@@ -64,7 +64,17 @@ public static class UploadRoutes
             return TypedResults.NotFound();
         }
 
+        if (!svc.IsAcceptedFilename(file.FileName))
+        {
+            return TypedResults.BadRequest("Filename not accepted: use letters, digits, spaces, '.', '-' and '_'.");
+        }
+
         var uploaded = await svc.UploadFile(userId.Value, file.OpenReadStream(), file.FileName, token);
+
+        if (uploaded == null)
+        {
+            return TypedResults.Conflict($"A file named {file.FileName} has already been uploaded.");
+        }
 
         // Location points at the download route for the newly stored file
         return TypedResults.Created($"{request.Path}/{Uri.EscapeDataString(uploaded.Name)}", uploaded);

@@ -12,6 +12,10 @@ namespace MawMedia.Routes;
 
 public static class MediaRoutes
 {
+    // the longest comment in the library is under 500 characters; this leaves a
+    // generous margin while keeping a single request from storing megabytes
+    const int MAX_COMMENT_LENGTH = 4_000;
+
     public static RouteGroupBuilder MapMediaRoutes(this RouteGroupBuilder group)
     {
         group
@@ -357,7 +361,7 @@ public static class MediaRoutes
             : TypedResults.NotFound();
     }
 
-    static async Task<Results<Created<Comment>, NotFound, ForbidHttpResult>> AddComment(
+    static async Task<Results<Created<Comment>, BadRequest<string>, NotFound, ForbidHttpResult>> AddComment(
         IMediaRepository repo,
         ClaimsPrincipal user,
         HttpRequest httpRequest,
@@ -371,6 +375,16 @@ public static class MediaRoutes
         if (userId == null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Body))
+        {
+            return TypedResults.BadRequest("A comment cannot be empty.");
+        }
+
+        if (request.Body.Length > MAX_COMMENT_LENGTH)
+        {
+            return TypedResults.BadRequest($"A comment may be at most {MAX_COMMENT_LENGTH} characters.");
         }
 
         var commentId = await repo.AddComment(userId.Value, id, request.Body, token);
