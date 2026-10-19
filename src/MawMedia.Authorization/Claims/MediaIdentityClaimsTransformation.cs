@@ -64,18 +64,6 @@ public class MediaIdentityClaimsTransformation
         return principal;
     }
 
-    static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, string status, bool isAdmin)
-    {
-        var claimsIdentity = new ClaimsIdentity();
-
-        if (userId != null)
-        {
-            claimsIdentity.AddClaim(new Claim(Constants.CLAIM_USER_ID, userId.Value.ToString()));
-        }
-
-        claimsIdentity.AddClaim(new Claim(Constants.CLAIM_USER_STATUS, status));
-        claimsIdentity.AddClaim(new Claim(Constants.CLAIM_IS_ADMIN, isAdmin.ToString()));
-
-        principal.AddIdentity(claimsIdentity);
-    }
+    static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, string status, bool isAdmin) =>
+        principal.AddIdentity(MediaIdentity.Create(userId, status, isAdmin));
 }

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Claims;
 using MawMedia.Authorization;
+using MawMedia.Authorization.Claims;
 using MawMedia.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -43,15 +44,12 @@ public class MediaStaticAssetAuthorizationHandlerTests
         Assert.True(context.HasSucceeded);
     }
 
-    // the claim MediaIdentityClaimsTransformation attaches.  spelled out because
-    // MawMedia.Authorization.Claims.Constants is internal; if it ever changes, the
-    // handler stops finding a user, AskedAbout stays null, and this fails loudly
-    const string CLAIM_USER_ID = "https://media.mikeandwan.us/claimTypes/userId";
-
+    // signed in, with the identity MediaIdentityClaimsTransformation attaches
     static ClaimsPrincipal Caller() =>
-        new(new ClaimsIdentity(
-            [new Claim(CLAIM_USER_ID, Guid.CreateVersion7().ToString())],
-            authenticationType: "test"));
+        new([
+            new ClaimsIdentity([new Claim("sub", "test")], authenticationType: "test"),
+            MediaIdentity.Create(Guid.CreateVersion7(), "active", false)
+        ]);
 
     // stands in for the repository and records the one call this handler makes.
     // anything else is a test bug, so it throws rather than answering
