@@ -78,6 +78,41 @@ public class CategoryDownloadTests
         Assert.Single(Directory.EnumerateFiles(DownloadDir(), $"{s.User}-{s.Category}-*.zip"));
     }
 
+    [Fact]
+    public async Task ACallerWhoBuildsTooManyZipsIsToldWhenToComeBack()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var limit = Factory.Services.GetRequiredService<IOptions<CategoryDownloadConfig>>().Value.MaxBuildsPerUserPerHour;
+        var s = await CreateSubject(limit + 1);
+
+        using var client = Client(s.ExternalId, ApiScopes.MediaRead);
+
+        // every download a distinct set of files, so every one is a build
+        for (var i = 0; i < limit; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Download(s), token)).StatusCode);
+
+            await Sql("DELETE FROM media.category_media WHERE category_id = @category AND media_id = @media",
+                new { category = s.Category, media = s.Media[i] });
+        }
+
+        var refused = await client.GetAsync(Download(s), token);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+
+        // but an archive already built is still served: put back the media the last
+        // build had, and that archive is what comes back
+        await Sql(
+            """
+            INSERT INTO media.category_media (category_id, media_id, slug, is_teaser, created, created_by, modified, modified_by)
+            VALUES (@category, @media, @slug, false, NOW(), @createdBy, NOW(), @createdBy)
+            """,
+            new { category = s.Category, media = s.Media[limit - 1], slug = $"m{limit - 1}", createdBy = Constants.USER_ADMIN });
+
+        Assert.Equal(new[] { $"m{limit - 1}.avif", $"m{limit}.avif" }.Order(StringComparer.Ordinal), await Entries(await client.GetAsync(Download(s), token), token));
+    }
+
     // a user, a role granted a private category, and `count` media in it, each
     // with a full rendition on disk
     async Task<Subject> CreateSubject(int count)

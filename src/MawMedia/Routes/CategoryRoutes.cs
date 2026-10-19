@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -448,10 +449,23 @@ public static class CategoryRoutes
         // see changes, the name changes with it and a fresh archive is built; the
         // superseded one is never served again and ages out through the cleaner.
         var filename = $"{userId}-{id}-{ContentKey(filesToInclude)}.zip";
-        var zipFile =
-            await zipWriter.GetZipFileIfExists(filename)
-            ??
-            await zipWriter.WriteZipFile(filename, filesToInclude, token);
+        var zipFile = await zipWriter.GetZipFileIfExists(filename);
+
+        if (zipFile == null)
+        {
+            var build = await zipWriter.WriteZipFile(userId.Value, filename, filesToInclude, token);
+
+            if (build.File == null)
+            {
+                response.Headers.RetryAfter = Math.Ceiling(build.RetryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+
+                return build.Refusal == ZipBuildRefusal.UserRateLimited
+                    ? TypedResults.StatusCode(StatusCodes.Status429TooManyRequests)
+                    : TypedResults.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+
+            zipFile = build.File;
+        }
 
         if (!zipFile.Exists)
         {
