@@ -52,7 +52,7 @@ public class ApiFactory
             // unauthenticated
             Set("PlaceCovers__RootDirectory", SharedCoverRoot.Value);
             Set("Upload__RootDirectory", CreateDir("upload"));
-            Set("CategoryDownload__RootDirectory", CreateDir("download"));
+            Set("CategoryDownload__RootDirectory", SharedDownloadRoot.Value);
             Set("CategoryDownload__CleanIntervalInMinutes", "60");
             Set("CategoryDownload__MinAgeBeforeDeleteInMinutes", "60");
             Set("LocationCorrection__UserId", Guid.Empty.ToString());
@@ -81,8 +81,19 @@ public class ApiFactory
     // and reads it back through the same one - failed intermittently because
     // another factory had overwritten the variable in between.
     static readonly Lazy<string> SharedAssetRoot = new(MaterializeAssets);
+
+    // where the test host serves /assets from, for a test that needs a file on disk
+    // the fixture renditions do not provide
+    public static string AssetRoot => SharedAssetRoot.Value;
     static readonly Lazy<string> SharedCoverRoot = new(() => SharedDir("place-covers"));
     static readonly Lazy<string> SharedFaceRoot = new(() => SharedDir("faces"));
+
+    // the download root joined them last, for the same reason: the category zip
+    // tests are the first to write an archive, and one built through a host whose
+    // variable another factory had just overwritten went to that factory's scratch
+    // directory - already deleted when its test finished.  archives are named for
+    // the user and category a test owns, so sharing cannot collide either.
+    static readonly Lazy<string> SharedDownloadRoot = new(() => SharedDir("download"));
 
     // a stub rather than a real avif - nothing in this system decodes a cover, it
     // is copied byte for byte.  the body is derived from the path so every

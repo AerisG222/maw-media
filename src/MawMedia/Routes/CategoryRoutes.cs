@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using MawMedia.Authorization.Claims;
 using MawMedia.Models;
 using MawMedia.Routes.Extensions;
@@ -428,13 +430,30 @@ public static class CategoryRoutes
             return TypedResults.NotFound();
         }
 
-        var filename = $"{userId}-{id}.zip";
+        // what this caller may download *now*, asked on every request.  this is the
+        // access check, and it has to come before any zip on disk is considered: a
+        // cached zip used to be served on its name alone, so a caller who lost
+        // access to the category - or to media in it - could keep downloading the
+        // archive built while they had it, for as long as the cleaner left it there
+        // (300 minutes in production).
+        var filesToInclude = await DownloadableFiles(repo, userId.Value, id, token);
+
+        if (filesToInclude.Length == 0)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // named for its content as well as its owner, so the cache can only ever
+        // hand back an archive of exactly the files above.  when what the caller may
+        // see changes, the name changes with it and a fresh archive is built; the
+        // superseded one is never served again and ages out through the cleaner.
+        var filename = $"{userId}-{id}-{ContentKey(filesToInclude)}.zip";
         var zipFile =
             await zipWriter.GetZipFileIfExists(filename)
             ??
-            await CreateCategoryDownloadZipFile(repo, zipWriter, userId.Value, id, filename, token);
+            await zipWriter.WriteZipFile(filename, filesToInclude, token);
 
-        if (zipFile == null || !zipFile.Exists)
+        if (!zipFile.Exists)
         {
             return TypedResults.NotFound();
         }
@@ -446,33 +465,27 @@ public static class CategoryRoutes
             );
     }
 
-    static async Task<FileInfo?> CreateCategoryDownloadZipFile(
+    static async Task<string[]> DownloadableFiles(
         ICategoryRepository repo,
-        IZipFileWriter zipWriter,
         Guid userId,
         Guid categoryId,
-        string filename,
         CancellationToken token
     )
     {
         var media = await repo.GetCategoryMedia(userId, string.Empty, categoryId, token);
 
-        if (!media.Any())
-        {
-            return null;
-        }
-
-        var filesToInclude = media
+        return media
             .SelectMany(m => m.Files)
             .Where(f => string.Equals(SCALE_FULL, f.Scale, StringComparison.OrdinalIgnoreCase))
             .Select(f => f.Path)
             .ToArray();
-
-        if (filesToInclude.Length == 0)
-        {
-            return null;
-        }
-
-        return await zipWriter.WriteZipFile(filename, filesToInclude, token);
     }
+
+    // a short, stable fingerprint of the set of files - order independent, so the
+    // same set always names the same archive
+    static string ContentKey(IEnumerable<string> paths) =>
+        Convert.ToHexStringLower(
+            SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', paths.Order(StringComparer.Ordinal))))
+        )[..16];
+
 }

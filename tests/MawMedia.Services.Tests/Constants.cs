@@ -22,6 +22,7 @@ public static class Constants
     public static readonly Guid SCALE_4K = Guid.Parse("01965306-d3b1-754a-abf1-be97f6b18a83");
     public static readonly Guid SCALE_5K = Guid.Parse("01965307-039f-732f-a768-c09584310119");
     public static readonly Guid SCALE_8K = Guid.Parse("01965307-20f9-7e01-955e-be53d178662d");
+    public static readonly Guid SCALE_FULL = Guid.Parse("01965307-20f9-7e01-955e-be53d1786789");
     public static readonly Guid SCALE_SRC = Guid.Parse("01965307-20f9-7e01-955e-be53d1786828");
     // ** end from db seed scripts **
 
