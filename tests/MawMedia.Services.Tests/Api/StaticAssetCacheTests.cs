@@ -85,4 +85,18 @@ public class StaticAssetCacheTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Null(response.Headers.CacheControl);
     }
+
+    [Fact]
+    public async Task MediaAssetRequiresTheMediaReadScope()
+    {
+        // a signed in caller who can see the file, but whose token was not granted
+        // media:read - the scope every route that lists this photo requires
+        using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.CommentsRead);
+
+        var response = await client.GetAsync(
+            new Uri(Constants.FILE_NATURE_1.Path, UriKind.Relative),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

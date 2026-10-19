@@ -107,6 +107,7 @@ public static class AuthExtensions
                 .AddPolicy(
                     AuthorizationPolicies.MediaStaticAsset, p => p
                         .RequireAuthenticatedUser()
+                        .RequireScope(oauth.Qualify(ApiScopes.MediaRead))
                         .AddRequirements(new MediaStaticAssetRequirement())
                 )
                 // face crops keep the scope the api route they replaced required.

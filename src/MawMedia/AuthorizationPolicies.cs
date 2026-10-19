@@ -16,11 +16,13 @@ public static class AuthorizationPolicies
 
     // guards the static asset branch. unlike the policies above it is never attached to an
     // endpoint - assets are served by middleware, so StaticFilesExtensions evaluates it
-    // directly. it carries no scope, so it is intentionally absent from ApiScopes.ByPolicy.
+    // directly, so it is intentionally absent from ApiScopes.ByPolicy.  it requires media:read
+    // - the scope every api route that lists media requires, so a client that cannot list a
+    // photo cannot fetch its file either - and then a per file check that the caller can see it.
     public const string MediaStaticAsset = "media:static-asset";
 
-    // guards the face crop branch of the static asset pipeline.  unlike
-    // MediaStaticAsset it does carry a scope - the whole face read side is gated
+    // guards the face crop branch of the static asset pipeline.  it carries
+    // face-recognition:read rather than media:read - the whole face read side is gated
     // behind face-recognition:read so it can be revoked per client without
     // touching media access - but it is still evaluated by hand rather than
     // attached to an endpoint, so it stays out of ApiScopes.ByPolicy, which only
