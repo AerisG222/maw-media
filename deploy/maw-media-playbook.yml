@@ -80,6 +80,10 @@
     dir_scripts: "{{ dir_approot }}/scripts"
     dir_podman_secrets: "{{ dir_approot }}/podman-secrets"
     podman_authfile: "{{dir_podman_secrets}}/auth.json"
+    # the reverse-geocode job's client secret and google api key, passed with
+    # --env-file rather than as arguments, which every user on the host can read
+    dir_revgeo_secrets: "{{ dir_approot }}/reverse-geocode-secrets"
+    file_revgeo_env: "{{ dir_revgeo_secrets }}/reverse-geocode.env"
     dir_kube: "{{ dir_approot }}/kube"
     file_kube: "{{ dir_kube }}/kube.yml"
 
@@ -180,10 +184,28 @@
         enabled: true
         state: restarted
 
+    # the job's secrets, readable by the service account alone.  written before
+    # the units that reference them, so a unit is never installed pointing at a
+    # file that is not there yet
+    - name: Create Reverse Geocode Secrets Directory
+      ansible.builtin.file:
+        path: "{{ dir_revgeo_secrets }}"
+        state: directory
+        mode: "0700"
+
+    - name: Write Reverse Geocode Secrets
+      ansible.builtin.template:
+        dest: "{{ file_revgeo_env }}"
+        src: reverse-geocode.env.j2
+        mode: "0600"
+
+    # u+rw like the other rendered files: these name paths and settings for the
+    # service account's jobs, and nothing else on the host has cause to read them
     - name: Copy DB Maintenance and Reverse Geocode systemd services/timers
       ansible.builtin.template:
         dest: "{{ dir_systemd }}/{{ item.dest }}"
         src: "{{ item.src }}"
+        mode: u+rw
       loop:
         - { "src": "pg-maintenance.service.j2",  "dest": "pg-maintenance.service", }
         - { "src": "pg-maintenance.timer.j2",    "dest": "pg-maintenance.timer" }
