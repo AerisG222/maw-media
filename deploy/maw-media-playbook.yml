@@ -256,11 +256,16 @@
     # the tasks are idempotent on their own, so a --tags db run does not depend on
     # a full run having happened first.
     # ---------------------------------------------------------------------------
+    # 0700: a dump is the whole database - every user, email and comment - and
+    # both of these are only ever read on the host, by this account.  unlike
+    # pg-backups, which the postgres and rclone containers write and read under
+    # their own mapped uids, nothing else needs in.
     - name: Ensure Database Deploy Directories Exist
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         recurse: false
+        mode: "0700"
       loop:
         - "{{ dir_pgpredeploy }}"
         - "{{ dir_dbdeploy }}"
@@ -273,10 +278,12 @@
     #
     # `set -o pipefail` matters: without it the exit status would be the
     # redirect's, and a failed dump would leave a truncated file and a green task.
+    # umask 077 so the file itself is 0600 too, rather than the default 0644.
     - name: Take Pre-Deploy Database Dump
       ansible.builtin.shell:
         cmd: >
           set -o pipefail &&
+          umask 077 &&
           podman exec {{ pod }}-{{ container_pg }}
           pg_dump -h localhost -U postgres -Fc {{ db_name }}
           > {{ dir_pgpredeploy }}/{{ db_name }}.predeploy.$(date +%Y%m%d%H%M%S).dump
