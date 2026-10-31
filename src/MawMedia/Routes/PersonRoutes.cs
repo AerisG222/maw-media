@@ -130,9 +130,15 @@ public static class PersonRoutes
         CancellationToken token,
         [FromQuery] int o = 0,
         [FromQuery] bool f = false,
-        [FromQuery] long? seed = null
+        [FromQuery] long? seed = null,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -145,7 +151,7 @@ public static class PersonRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetPersonMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, token);
+        var result = await repo.GetPersonMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, t, token);
 
         // 404 rather than an empty first page, and 404 rather than 403 for a
         // person the caller may not see - the same rule the face image download
@@ -157,7 +163,7 @@ public static class PersonRoutes
         // make an empty filter look like a broken link.  seed is not exempt - it
         // reorders rather than filters, so an empty first page still means there
         // is nothing to show.
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }
@@ -169,9 +175,15 @@ public static class PersonRoutes
         [FromRoute] Guid id,
         CancellationToken token,
         [FromQuery] int o = 0,
-        [FromQuery] bool f = false
+        [FromQuery] bool f = false,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -184,14 +196,14 @@ public static class PersonRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetPersonCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, token);
+        var result = await repo.GetPersonCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, t, token);
 
         // the media view's 404 rule, and for the same reason: an empty first page
         // with no filter means a person the caller may not see, and answering
         // anything else would let them probe for people the picker hid.  the
         // favourites exemption carries over too - "this person is in nothing you
         // have favourited" is a real answer about a person you can see.
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }

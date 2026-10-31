@@ -185,9 +185,15 @@ public static class PlaceRoutes
         CancellationToken token,
         [FromQuery] int o = 0,
         [FromQuery] bool f = false,
-        [FromQuery] long? seed = null
+        [FromQuery] long? seed = null,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -200,7 +206,7 @@ public static class PlaceRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetPlaceMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, token);
+        var result = await repo.GetPlaceMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, t, token);
 
         // 404 rather than an empty first page, and 404 rather than 403 for a place
         // the caller may see nothing at - the same rule the person media view
@@ -212,7 +218,7 @@ public static class PlaceRoutes
         // empty filter look like a broken link.  seed is not exempt - it reorders
         // rather than filters, so an empty first page still means there is nothing
         // to show.
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }
@@ -224,9 +230,15 @@ public static class PlaceRoutes
         [FromRoute] Guid id,
         CancellationToken token,
         [FromQuery] int o = 0,
-        [FromQuery] bool f = false
+        [FromQuery] bool f = false,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -239,11 +251,11 @@ public static class PlaceRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetPlaceCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, token);
+        var result = await repo.GetPlaceCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, t, token);
 
         // the media view's 404 rule, and for the same reason, including the
         // favourites exemption
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }

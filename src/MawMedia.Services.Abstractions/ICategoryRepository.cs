@@ -19,5 +19,5 @@ public interface ICategoryRepository
     // media.set_category_roles for what is refused, and why.
     Task<CategoryRolesLookup> GetCategoryRoles(Guid userId, Guid categoryId, CancellationToken token = default);
     Task<CategoryRolesResult> SetCategoryRoles(Guid userId, Guid categoryId, string[] roleNames, CancellationToken token = default);
-    Task<SearchResult<Category>> Search(Guid userId, string baseUrl, string searchTerm, int offset, int limit, CancellationToken token = default);
+    Task<SearchResult<Category>> Search(Guid userId, string baseUrl, string searchTerm, int offset, int limit, bool favoritesOnly = false, string? mediaType = null, CancellationToken token = default);
 }

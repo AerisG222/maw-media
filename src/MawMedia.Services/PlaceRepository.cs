@@ -169,6 +169,7 @@ public class PlaceRepository
         int limit,
         bool favoritesOnly = false,
         long? seed = null,
+        string? mediaType = null,
         CancellationToken token = default
     )
     {
@@ -178,7 +179,7 @@ public class PlaceRepository
         // count query.  the function pages over media, so the extra row is an
         // extra media item, not an extra file.
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_place_media(@userId, @placeId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed);",
+            "SELECT * FROM media.get_place_media(@userId, @placeId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed, @mediaType);",
             new
             {
                 userId,
@@ -187,7 +188,8 @@ public class PlaceRepository
                 limit = limit + 1,
                 excludeSrcFiles = true,
                 favoritesOnly,
-                seed
+                seed,
+                mediaType
             },
             token
         );
@@ -204,6 +206,7 @@ public class PlaceRepository
         int offset,
         int limit,
         bool favoritesOnly = false,
+        string? mediaType = null,
         CancellationToken token = default
     )
     {
@@ -212,7 +215,7 @@ public class PlaceRepository
         // the same extra-row trick the media view uses.  the function pages over
         // categories, so the extra row is an extra category, not an extra file.
         var results = await Query<CategoryAndTeaser>(
-            "SELECT * FROM media.get_place_categories(@userId, @placeId, @offset, @limit, @excludeSrcFiles, @favoritesOnly);",
+            "SELECT * FROM media.get_place_categories(@userId, @placeId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @mediaType);",
             new
             {
                 userId,
@@ -220,7 +223,8 @@ public class PlaceRepository
                 offset,
                 limit = limit + 1,
                 excludeSrcFiles = true,
-                favoritesOnly
+                favoritesOnly,
+                mediaType
             },
             token
         );

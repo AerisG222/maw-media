@@ -1,3 +1,4 @@
+-- 2026-10-31 - add _media_type
 -- the categories a user may see that hold media taken at a given place.
 --
 -- the sibling of media.get_place_media, and the exact analogue of
@@ -21,6 +22,11 @@
 -- want a stable order.
 --
 -- see docs/browse-by-location.md
+-- the signature before _media_type, spelled out.  adding a parameter makes CREATE
+-- OR REPLACE an overload rather than a replacement, and the bare name is ambiguous
+-- wherever a deploy has already stopped with both in place.
+DROP FUNCTION IF EXISTS media.get_place_categories(UUID, UUID, INTEGER, INTEGER, BOOLEAN, BOOLEAN);
+
 CREATE OR REPLACE FUNCTION media.get_place_categories
 (
     _user_id UUID,
@@ -28,7 +34,8 @@ CREATE OR REPLACE FUNCTION media.get_place_categories
     _offset INTEGER = 0,
     _limit INTEGER = 25,
     _exclude_src_files BOOLEAN = False,
-    _favorites_only BOOLEAN = False
+    _favorites_only BOOLEAN = False,
+    _media_type TEXT = NULL
 )
 RETURNS TABLE
 (
@@ -99,6 +106,20 @@ BEGIN
         WHERE
             ul.user_id = _user_id
             AND ul.place_id = ANY(_descendants)
+            -- one kind of media, or every kind.  here rather than a level up with the
+            -- favourites filter, because it should narrow the count as well: asked
+            -- for videos, a tile counts the videos.
+            AND (
+                _media_type IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.media mtm
+                    INNER JOIN media.type mtt
+                        ON mtt.id = mtm.type_id
+                    WHERE mtm.id = ul.media_id
+                        AND mtt.code = _media_type
+                )
+            )
         GROUP BY um.category_id
     ),
     page AS

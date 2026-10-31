@@ -281,9 +281,15 @@ public static class ClanRoutes
         CancellationToken token,
         [FromQuery] int o = 0,
         [FromQuery] bool f = false,
-        [FromQuery] long? seed = null
+        [FromQuery] long? seed = null,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -296,14 +302,14 @@ public static class ClanRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetClanMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, token);
+        var result = await repo.GetClanMedia(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, seed, t, token);
 
         // an empty first page is a 404 for the same reason the person drill-in
         // treats one that way, with the same two exemptions: a favourites filter
         // can legitimately come back empty, and a page past the end is a normal
         // answer.  an empty *clan* would also read as 404 here, which is why a
         // client that needs to tell them apart reads the clan itself.
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }
@@ -315,9 +321,15 @@ public static class ClanRoutes
         [FromRoute] Guid id,
         CancellationToken token,
         [FromQuery] int o = 0,
-        [FromQuery] bool f = false
+        [FromQuery] bool f = false,
+        [FromQuery] string? t = null
     )
     {
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         if (o < 0)
         {
             return TypedResults.BadRequest("Offset must be greater than or equal to 0.");
@@ -330,12 +342,12 @@ public static class ClanRoutes
             return TypedResults.NotFound();
         }
 
-        var result = await repo.GetClanCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, token);
+        var result = await repo.GetClanCategories(userId.Value, request.GetBaseUrl(), id, o, MEDIA_LIMIT, f, t, token);
 
         // the clan media view's 404 rule, including the caveat that an empty
         // clan reads as 404 here too - a client needing to tell them apart reads
         // the clan itself
-        return o == 0 && !f && !result.Results.Any()
+        return o == 0 && !f && t == null && !result.Results.Any()
             ? TypedResults.NotFound()
             : TypedResults.Ok(result);
     }

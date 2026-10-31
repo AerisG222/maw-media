@@ -204,7 +204,9 @@ public static class CategoryRoutes
         HttpRequest request,
         [FromQuery] string s,
         CancellationToken token,
-        [FromQuery] int o = 0
+        [FromQuery] int o = 0,
+        [FromQuery] bool f = false,
+        [FromQuery] string? t = null
     )
     {
         if (string.IsNullOrWhiteSpace(s))
@@ -212,10 +214,15 @@ public static class CategoryRoutes
             return TypedResults.BadRequest("Search term cannot be empty.");
         }
 
+        if (!MediaTypeFilter.IsValid(t))
+        {
+            return TypedResults.BadRequest(MediaTypeFilter.INVALID_MESSAGE);
+        }
+
         var userId = user.GetMediaUserId();
 
         return userId != null
-            ? TypedResults.Ok(await repo.Search(userId.Value, request.GetBaseUrl(), s, o, SEARCH_LIMIT, token))
+            ? TypedResults.Ok(await repo.Search(userId.Value, request.GetBaseUrl(), s, o, SEARCH_LIMIT, f, t, token))
             : TypedResults.Ok(new SearchResult<Category>([], false, 0));
     }
 

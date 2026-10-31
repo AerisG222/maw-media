@@ -277,7 +277,7 @@ public class CategoryRepositoryTests
     {
         var repo = GetRepo();
 
-        var result = await repo.Search(userId, BASE_URL, searchTerm, 0, 100, TestContext.Current.CancellationToken);
+        var result = await repo.Search(userId, BASE_URL, searchTerm, 0, 100, token: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(expectedIds.Count(), result.Results.Count());

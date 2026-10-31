@@ -187,6 +187,8 @@ public class CategoryRepository
         string searchTerm,
         int offset,
         int limit,
+        bool favoritesOnly = false,
+        string? mediaType = null,
         CancellationToken token = default
     )
     {
@@ -201,14 +203,16 @@ public class CategoryRepository
         }
 
         var results = await Query<CategoryAndTeaser>(
-            "SELECT * FROM media.search_categories(@userId, @searchTerm, @offset, @limit, @excludeSrcFiles);",
+            "SELECT * FROM media.search_categories(@userId, @searchTerm, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @mediaType);",
             new
             {
                 userId,
                 searchTerm,
                 offset,
                 limit = limit + 1,
-                excludeSrcFiles = true
+                excludeSrcFiles = true,
+                favoritesOnly,
+                mediaType
             },
             token
         );

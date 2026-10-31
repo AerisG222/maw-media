@@ -1,3 +1,4 @@
+-- 2026-10-31 - add _media_type
 -- 2026-08-27 - initial
 DROP FUNCTION IF EXISTS media.get_person_categories;
 
@@ -31,7 +32,8 @@ CREATE OR REPLACE FUNCTION media.get_person_categories
     _limit INTEGER = 25,
     _exclude_src_files BOOLEAN = False,
     _favorites_only BOOLEAN = False,
-    _clan_id UUID = NULL
+    _clan_id UUID = NULL,
+    _media_type TEXT = NULL
 )
 RETURNS TABLE
 (
@@ -111,6 +113,20 @@ BEGIN
             )
             AND p.name IS NOT NULL
             AND p.status_code IS NULL
+            -- one kind of media, or every kind.  here rather than a level up with the
+            -- favourites filter, because it should narrow the count as well: asked
+            -- for videos, a tile counts the videos.
+            AND (
+                _media_type IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.media mtm
+                    INNER JOIN media.type mtt
+                        ON mtt.id = mtm.type_id
+                    WHERE mtm.id = um.media_id
+                        AND mtt.code = _media_type
+                )
+            )
         GROUP BY um.category_id
     ),
     page AS

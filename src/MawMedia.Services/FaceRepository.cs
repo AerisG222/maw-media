@@ -194,8 +194,9 @@ public class FaceRepository
         int limit,
         bool favoritesOnly = false,
         long? seed = null,
+        string? mediaType = null,
         CancellationToken token = default
-    ) => await InternalGetPersonMedia(userId, baseUrl, personId, null, offset, limit, favoritesOnly, seed, token);
+    ) => await InternalGetPersonMedia(userId, baseUrl, personId, null, offset, limit, favoritesOnly, seed, mediaType, token);
 
     public async Task<SearchResult<Media>> GetClanMedia(
         Guid userId,
@@ -205,8 +206,9 @@ public class FaceRepository
         int limit,
         bool favoritesOnly = false,
         long? seed = null,
+        string? mediaType = null,
         CancellationToken token = default
-    ) => await InternalGetPersonMedia(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, seed, token);
+    ) => await InternalGetPersonMedia(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, seed, mediaType, token);
 
     async Task<SearchResult<Media>> InternalGetPersonMedia(
         Guid userId,
@@ -217,6 +219,7 @@ public class FaceRepository
         int limit,
         bool favoritesOnly,
         long? seed,
+        string? mediaType,
         CancellationToken token
     )
     {
@@ -234,7 +237,7 @@ public class FaceRepository
         // count query.  the function pages over media, so the extra row is an
         // extra media item, not an extra file.
         var results = await Query<MediaAndFile>(
-            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed, @clanId);",
+            "SELECT * FROM media.get_person_media(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @seed, @clanId, @mediaType);",
             new
             {
                 userId,
@@ -244,7 +247,8 @@ public class FaceRepository
                 excludeSrcFiles = true,
                 favoritesOnly,
                 seed,
-                clanId
+                clanId,
+                mediaType
             },
             token
         );
@@ -266,8 +270,9 @@ public class FaceRepository
         int offset,
         int limit,
         bool favoritesOnly = false,
+        string? mediaType = null,
         CancellationToken token = default
-    ) => await InternalGetPersonCategories(userId, baseUrl, personId, null, offset, limit, favoritesOnly, token);
+    ) => await InternalGetPersonCategories(userId, baseUrl, personId, null, offset, limit, favoritesOnly, mediaType, token);
 
     public async Task<SearchResult<Category>> GetClanCategories(
         Guid userId,
@@ -276,8 +281,9 @@ public class FaceRepository
         int offset,
         int limit,
         bool favoritesOnly = false,
+        string? mediaType = null,
         CancellationToken token = default
-    ) => await InternalGetPersonCategories(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, token);
+    ) => await InternalGetPersonCategories(userId, baseUrl, null, clanId, offset, limit, favoritesOnly, mediaType, token);
 
     async Task<SearchResult<Category>> InternalGetPersonCategories(
         Guid userId,
@@ -287,6 +293,7 @@ public class FaceRepository
         int offset,
         int limit,
         bool favoritesOnly,
+        string? mediaType,
         CancellationToken token
     )
     {
@@ -303,7 +310,7 @@ public class FaceRepository
         // the same extra-row trick the media view uses.  the function pages over
         // categories, so the extra row is an extra category, not an extra file.
         var results = await Query<CategoryAndTeaser>(
-            "SELECT * FROM media.get_person_categories(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @clanId);",
+            "SELECT * FROM media.get_person_categories(@userId, @personId, @offset, @limit, @excludeSrcFiles, @favoritesOnly, @clanId, @mediaType);",
             new
             {
                 userId,
@@ -312,7 +319,8 @@ public class FaceRepository
                 limit = limit + 1,
                 excludeSrcFiles = true,
                 favoritesOnly,
-                clanId
+                clanId,
+                mediaType
             },
             token
         );

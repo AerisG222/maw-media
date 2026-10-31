@@ -1,3 +1,4 @@
+-- 2026-10-31 - add _favorites_only and _media_type
 -- 2025-11-04 - add slug to return
 DROP FUNCTION IF EXISTS media.search_categories;
 
@@ -8,7 +9,9 @@ CREATE OR REPLACE FUNCTION media.search_categories
     _search_term TEXT,
     _offset INTEGER = 0,
     _limit INTEGER = 25,
-    _exclude_src_files BOOLEAN = False
+    _exclude_src_files BOOLEAN = False,
+    _favorites_only BOOLEAN = False,
+    _media_type TEXT = NULL
 )
 RETURNS TABLE
 (
@@ -42,6 +45,39 @@ BEGIN
             AND cs.search_vector @@ PLAINTO_TSQUERY(_search_term)
         WHERE
             uc.user_id = _user_id
+            -- here rather than on the rows that come back, so a page of 25 is still
+            -- 25 of what was asked for.
+            --
+            -- favourites means the category's own flag, unlike the person and place
+            -- listings, which also count one holding a favourite photo: search shows
+            -- the same tile as the categories page, where the flag is what favourite
+            -- means.
+            AND (
+                _favorites_only = FALSE
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.category_favorite xcf
+                    WHERE xcf.category_id = uc.category_id
+                        AND xcf.created_by = _user_id
+                )
+            )
+            -- over the caller's media rather than the category's, for the reason the
+            -- types CTE below gives: a video restricted away from them should not
+            -- make the category answer to "videos".
+            AND (
+                _media_type IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.user_media xfum
+                    INNER JOIN media.media xfm
+                        ON xfm.id = xfum.media_id
+                    INNER JOIN media.type xft
+                        ON xft.id = xfm.type_id
+                    WHERE xfum.category_id = uc.category_id
+                        AND xfum.user_id = _user_id
+                        AND xft.code = _media_type
+                )
+            )
         ORDER BY
             TS_RANK(cs.search_vector, PLAINTO_TSQUERY(_search_term)) DESC,
             uc.category_id

@@ -1,3 +1,4 @@
+-- 2026-10-31 - add _media_type
 -- the media a user may see that were taken at a given place.
 --
 -- the sibling of media.get_person_media, and deliberately the same shape: same
@@ -21,6 +22,11 @@
 -- media.get_places would not have shown them.
 --
 -- see docs/browse-by-location.md
+-- the signature before _media_type, spelled out.  adding a parameter makes CREATE
+-- OR REPLACE an overload rather than a replacement, and the bare name is ambiguous
+-- wherever a deploy has already stopped with both in place.
+DROP FUNCTION IF EXISTS media.get_place_media(UUID, UUID, INTEGER, INTEGER, BOOLEAN, BOOLEAN, BIGINT);
+
 CREATE OR REPLACE FUNCTION media.get_place_media
 (
     _user_id UUID,
@@ -29,7 +35,8 @@ CREATE OR REPLACE FUNCTION media.get_place_media
     _limit INTEGER = 25,
     _exclude_src_files BOOLEAN = False,
     _favorites_only BOOLEAN = False,
-    _seed BIGINT = NULL
+    _seed BIGINT = NULL,
+    _media_type TEXT = NULL
 )
 RETURNS TABLE
 (
@@ -93,6 +100,20 @@ BEGIN
         WHERE
             ul.user_id = _user_id
             AND ul.place_id = ANY(_descendants)
+            -- one kind of media, or every kind.  EXISTS for the reason the favourites
+            -- filter gives, and applied here rather than after paging, so a page
+            -- of 25 is still 25 of what was asked for.
+            AND (
+                _media_type IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.media mtm
+                    INNER JOIN media.type mtt
+                        ON mtt.id = mtm.type_id
+                    WHERE mtm.id = ul.media_id
+                        AND mtt.code = _media_type
+                )
+            )
             -- EXISTS rather than a join so the filter cannot change the row count:
             -- favorite is keyed on (media_id, created_by), so a join would be safe
             -- today, but the shape of this CTE should not depend on that.

@@ -57,7 +57,7 @@ public interface IPlaceRepository
     //
     // seed=<number> shuffles deterministically so paging stays coherent, exactly
     // as it does for a person's media.
-    Task<SearchResult<Media>> GetPlaceMedia(Guid userId, string baseUrl, Guid placeId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
+    Task<SearchResult<Media>> GetPlaceMedia(Guid userId, string baseUrl, Guid placeId, int offset, int limit, bool favoritesOnly = false, long? seed = null, string? mediaType = null, CancellationToken token = default);
 
     // the same media rolled up to the categories holding them, so a place screen
     // can toggle between "the photos" and "the trips".
@@ -69,7 +69,7 @@ public interface IPlaceRepository
     // the caller favourited outright *or* one holding a media they favourited.
     // both are the caller saying they care about the category, and the screen
     // drives media and categories from a single toggle.
-    Task<SearchResult<Category>> GetPlaceCategories(Guid userId, string baseUrl, Guid placeId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
+    Task<SearchResult<Category>> GetPlaceCategories(Guid userId, string baseUrl, Guid placeId, int offset, int limit, bool favoritesOnly = false, string? mediaType = null, CancellationToken token = default);
 
     // --- covers (admin) ---------------------------------------------------
     // choosing a cover publishes a copy of the photograph to a directory served

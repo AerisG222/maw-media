@@ -1,3 +1,4 @@
+-- 2026-10-31 - add _media_type
 -- 2026-08-22 - add _favorites_only and _seed
 -- 2026-08-22 - add _clan_id
 DROP FUNCTION IF EXISTS media.get_person_media;
@@ -32,7 +33,8 @@ CREATE OR REPLACE FUNCTION media.get_person_media
     _exclude_src_files BOOLEAN = False,
     _favorites_only BOOLEAN = False,
     _seed BIGINT = NULL,
-    _clan_id UUID = NULL
+    _clan_id UUID = NULL,
+    _media_type TEXT = NULL
 )
 RETURNS TABLE
 (
@@ -93,6 +95,20 @@ BEGIN
             )
             AND p.name IS NOT NULL
             AND p.status_code IS NULL
+            -- one kind of media, or every kind.  EXISTS for the reason the favourites
+            -- filter gives, and applied here rather than after paging, so a page
+            -- of 25 is still 25 of what was asked for.
+            AND (
+                _media_type IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM media.media mtm
+                    INNER JOIN media.type mtt
+                        ON mtt.id = mtm.type_id
+                    WHERE mtm.id = um.media_id
+                        AND mtt.code = _media_type
+                )
+            )
             -- EXISTS rather than a join so the filter cannot change the row
             -- count: favorite is keyed on (media_id, created_by), so a join
             -- would be safe today, but the shape of this CTE should not depend

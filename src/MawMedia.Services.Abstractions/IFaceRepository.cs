@@ -43,12 +43,12 @@ public interface IFaceRepository
     // than a bool because the result is paged: a fresh RANDOM() per request would
     // make page 2 repeat and skip rows from page 1, while the same seed always
     // produces the same order.
-    Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
+    Task<SearchResult<Media>> GetPersonMedia(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, long? seed = null, string? mediaType = null, CancellationToken token = default);
 
     // the clan equivalent: media containing *any* member, with the same paging,
     // favourites filter and seeded shuffle.  a photo holding several members
     // still counts once.
-    Task<SearchResult<Media>> GetClanMedia(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, long? seed = null, CancellationToken token = default);
+    Task<SearchResult<Media>> GetClanMedia(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, long? seed = null, string? mediaType = null, CancellationToken token = default);
 
     // the same two sets rolled up to the categories holding them, for the faces
     // screen's "categories" toggle.  paged like the media views and returning
@@ -61,8 +61,8 @@ public interface IFaceRepository
     // category the caller favourited outright *or* one holding a media they
     // favourited.  both are the caller saying they care about the category, and
     // the screen drives media and categories from a single toggle.
-    Task<SearchResult<Category>> GetPersonCategories(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
-    Task<SearchResult<Category>> GetClanCategories(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, CancellationToken token = default);
+    Task<SearchResult<Category>> GetPersonCategories(Guid userId, string baseUrl, Guid personId, int offset, int limit, bool favoritesOnly = false, string? mediaType = null, CancellationToken token = default);
+    Task<SearchResult<Category>> GetClanCategories(Guid userId, string baseUrl, Guid clanId, int offset, int limit, bool favoritesOnly = false, string? mediaType = null, CancellationToken token = default);
 
     // --- clans ------------------------------------------------------------
     // a clan is a caller's saved selection of people and is private to them, so
