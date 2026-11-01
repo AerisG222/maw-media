@@ -1,3 +1,4 @@
+-- 2026-11-01 - break rank ties in the final order, so the row a page drops is the extra one
 -- 2026-10-31 - add _favorites_only and _media_type
 -- 2025-11-04 - add slug to return
 DROP FUNCTION IF EXISTS media.search_categories;
@@ -152,7 +153,13 @@ BEGIN
     -- row - though every category here holds at least the media that put it here
     LEFT OUTER JOIN types t
         ON t.category_id = c.id
-    ORDER BY sr.search_rank DESC;
+    -- category id as well as rank, matching the order search_results paged by.  the
+    -- caller asks for one more than it keeps and takes the rest from the front, so
+    -- with tied ranks in any other order it can keep the extra row and drop a real
+    -- one - which the next page then repeats, leaving another category never shown.
+    ORDER BY
+        sr.search_rank DESC,
+        c.id;
 END;
 $$ LANGUAGE plpgsql;
 
