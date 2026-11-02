@@ -369,6 +369,38 @@ public class PlaceRoutesTests
     }
 
     [Fact]
+    public async Task AssetCookieLoadsACoverUnderTheSameRules()
+    {
+        using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);
+        using var writer = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.LocationWrite);
+        var token = TestContext.Current.CancellationToken;
+
+        var (_, _, city) = await Usa(admin, "ny", "new-york");
+
+        var set = await writer.PutAsJsonAsync(
+            CoverRoute(city.Id), new PlaceCoverRequest(Constants.MEDIA_TRAVEL_1.Id), JsonOptions, token);
+
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+
+        var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+        var cover = new Uri(updated!.CoverUrl!);
+
+        var allowed = await SendWithCookie(
+            HttpMethod.Get,
+            cover,
+            await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead));
+
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+
+        var wrongScope = await SendWithCookie(
+            HttpMethod.Get,
+            cover,
+            await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.StatsRead));
+
+        Assert.Equal(HttpStatusCode.Forbidden, wrongScope.StatusCode);
+    }
+
+    [Fact]
     public async Task ACoverIsPublishedAndServedToAnySignedInCaller()
     {
         using var admin = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);

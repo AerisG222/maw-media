@@ -39,6 +39,11 @@ public static class StaticFilesExtensions
         var faceDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<FaceImageConfig>>().Value.RootDirectory);
         var coverDir = RootDirectory(app.ApplicationServices.GetRequiredService<IOptions<PlaceCoverConfig>>().Value.RootDirectory);
 
+        app.UseWhen(
+            ctx => ctx.Request.Path.StartsWithSegments(Constants.AssetBaseUrl),
+            assets => assets.UseAssetSession()
+        );
+
         // place covers first, for the same ordering reason the face branch gives:
         // the media predicate below matches /assets, which /assets/covers also
         // satisfies, and a UseWhen branch is not terminal.

@@ -41,6 +41,7 @@ public static class AuthExtensions
                 opts.Audience = oauth.Audience;
                 opts.MapInboundClaims = false;
             })
+            .AddAssetSessionCookie()
             .Services
             .AddAuthorizationBuilder()
                 .AddPolicy(

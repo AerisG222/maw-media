@@ -40,4 +40,30 @@ public abstract class ApiTestBase
 
         return client;
     }
+
+    // the cookie a browser would hold after trading a token with this scope for it
+    protected async Task<string> AssetCookie(string sub, string scope)
+    {
+        using var client = Client(sub, scope);
+
+        var response = await client.PostAsync(
+            new Uri("/api/v1/auth/asset-session", UriKind.Relative),
+            null,
+            TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        return response.Headers.GetValues("Set-Cookie").Single().Split(';')[0];
+    }
+
+    // no token, so the cookie is the only credential on the request
+    protected async Task<HttpResponseMessage> SendWithCookie(HttpMethod method, Uri uri, string cookie)
+    {
+        using var anonymous = Factory.CreateClient();
+        using var request = new HttpRequestMessage(method, uri);
+
+        request.Headers.Add("Cookie", cookie);
+
+        return await anonymous.SendAsync(request, TestContext.Current.CancellationToken);
+    }
 }

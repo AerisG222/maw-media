@@ -198,6 +198,43 @@ public class FaceRoutesTests
     }
 
     [Fact]
+    public async Task AssetCookieLoadsAFaceUnderTheSameRules()
+    {
+        using var client = Publisher();
+        var token = TestContext.Current.CancellationToken;
+        var faceId = await PublishFace(client, token);
+
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            (await client.PutAsync(ImageRoute(faceId), Avif(), token)).StatusCode);
+
+        var route = new Uri(ImageAssetRoute(faceId), UriKind.Relative);
+
+        var allowed = await SendWithCookie(
+            HttpMethod.Get,
+            route,
+            await AssetCookie(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.FaceRecognitionRead));
+
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+
+        // the face scope, not media:read
+        var wrongScope = await SendWithCookie(
+            HttpMethod.Get,
+            route,
+            await AssetCookie(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead));
+
+        Assert.Equal(HttpStatusCode.Forbidden, wrongScope.StatusCode);
+
+        // a face on a photo this caller can not reach is still a 404
+        var hidden = await SendWithCookie(
+            HttpMethod.Get,
+            route,
+            await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.FaceRecognitionRead));
+
+        Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
+    }
+
+    [Fact]
     public async Task GetImageRequiresTheFaceRecognitionReadScope()
     {
         using var client = Client(Constants.EXTERNAL_ID_USERADMIN, ApiScopes.MediaRead);

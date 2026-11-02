@@ -18,6 +18,7 @@ public class TestAuthHandler
     public const string SCHEME = "Test";
     public const string HEADER_SUB = "X-Test-Sub";
     public const string HEADER_SCOPES = "X-Test-Scopes";
+    public const string HEADER_EXP = "X-Test-Exp";
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -41,6 +42,11 @@ public class TestAuthHandler
         if (Request.Headers.TryGetValue(HEADER_SCOPES, out var scopes) && !string.IsNullOrWhiteSpace(scopes))
         {
             claims.Add(new Claim("scope", scopes!));
+        }
+
+        if (Request.Headers.TryGetValue(HEADER_EXP, out var exp) && !string.IsNullOrWhiteSpace(exp))
+        {
+            claims.Add(new Claim("exp", exp!));
         }
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SCHEME));
