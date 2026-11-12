@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using MawMedia.Models;
 using MawMedia.Services.Abstractions;
@@ -22,9 +23,7 @@ public class UserInfoClient
 
     public async Task<UserInfo?> QueryUserInfo(CancellationToken token = default)
     {
-        var json = await _client.GetStringAsync("userinfo", token);
-
-        return JsonSerializer.Deserialize<UserInfo>(json, _jsonOpts);
+        return await _client.GetFromJsonAsync<UserInfo>("userinfo", _jsonOpts, token);
     }
 
     static JsonSerializerOptions BuildJsonOptions()
