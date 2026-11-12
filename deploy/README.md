@@ -91,10 +91,13 @@ ansible-playbook --syntax-check -i inventories/staging.yml -e mawenv=staging maw
 ansible-lint maw-media-playbook.yml
 ```
 
-The pins matter because the playbook depends on collections bundled with the
-ansible package - `containers.podman` for `podman_login` and `podman_play`, and
-`ansible.posix` for `authorized_key` - which move independently of this repo.
-Pinning is what keeps two control nodes deploying the same way.
+The pins matter because the playbook depends on two collections -
+`containers.podman` for `podman_login` and `podman_play`, and `ansible.posix` for
+`authorized_key` - which move independently of this repo. They are pinned in the
+same script, beside `ansible-core` rather than through the `ansible` package,
+because the package still requires a core that can not run on Python 3.15 hosts
+(see the script for detail). Pinning is what keeps two control nodes deploying
+the same way.
 
 ## Managed Node Setup
 
