@@ -268,8 +268,71 @@ public class CategoryRepositoryTests
         // "Private Person" is only in the nature category, so the friend finding
         // nothing is the access rule holding rather than the name being absent
         { Constants.USER_ADMIN,   "Private", [Constants.CATEGORY_NATURE.Id] },
-        { Constants.USER_JOHNDOE, "Private", [] }
+        { Constants.USER_JOHNDOE, "Private", [] },
+
+        // a word not yet finished still finds what the whole word would
+        { Constants.USER_ADMIN,   "Natu",    [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_ADMIN,   "natu priv", [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_JOHNDOE, "Trav",    [Constants.CATEGORY_TRAVEL.Id] },
+
+        // the year narrows a search - nature is 2022, travel 2023.  paired with
+        // a name, because other tests add categories of their own to some years.
+        { Constants.USER_ADMIN,   "Nature 2022", [Constants.CATEGORY_NATURE.Id] },
+        { Constants.USER_ADMIN,   "Nature 2023", [] },
+        { Constants.USER_JOHNDOE, "Travel 2023", [Constants.CATEGORY_TRAVEL.Id] },
+
+        // every word still has to match, the prefix only widens each one
+        { Constants.USER_ADMIN,   "Natu Trav", [] },
+
+        // nothing searchable typed: an empty answer rather than an error
+        { Constants.USER_ADMIN,   "the",     [] },
+        { Constants.USER_ADMIN,   "' & | !:* (",  [] },
+        { Constants.USER_ADMIN,   "   ",     [] }
     };
+
+    public static TheoryData<string, string?> BuildSearchQueryData => new()
+    {
+        { "alyss",           "'alyss' | 'alyss':*" },
+
+        // the english form of a whole word is kept, so stemming still applies
+        { "Birthdays",       "'birthday' | 'birthdays':*" },
+        { "alyss beach",     "( 'alyss' | 'alyss':* ) & ( 'beach' | 'beach':* )" },
+
+        // too short to go on: whole words only.  the nickname synonyms still
+        // apply, from maw_media_xsyn.rules
+        { "ed",              "'ed' & 'cowfoo' & 'cow' & 'foo'" },
+
+        // stop words are dropped rather than required
+        { "the beach",       "'beach' | 'beach':*" },
+
+        // a hyphenated word is matched by its parts, each by the same rules
+        { "x-ray",           "'x' & ( 'ray' | 'ray':* )" },
+
+        // what is typed never reaches the tsquery parser as syntax
+        { "o'brien",         "'o' & ( 'brien' | 'brien':* )" },
+        { "nat:* | !x & y",  "( 'nat' | 'nat':* ) & 'x' & 'y'" },
+        { "beach Beach",     "'beach' | 'beach':*" },
+
+        { "2019",            "'2019' | '2019':*" },
+        { "the",             null },
+        { "!&|",             null },
+        { "",                null }
+    };
+
+    // asserted on the query itself, through the service account, so the grant is
+    // covered as well as the shape
+    [Theory]
+    [MemberData(nameof(BuildSearchQueryData))]
+    public async Task BuildSearchQuery(string searchTerm, string? expected)
+    {
+        using var conn = _fixture.DataSource.CreateConnection();
+
+        var query = await conn.ExecuteScalarAsync<string?>(
+            "SELECT media.build_search_query(@searchTerm)::TEXT;",
+            new { searchTerm });
+
+        Assert.Equal(expected, query);
+    }
 
     [Theory]
     [MemberData(nameof(SearchCategoriesData))]
@@ -296,6 +359,9 @@ public class CategoryRepositoryTests
 
         // and the category name is still an A, so the two have not swapped
         Assert.True(await Matches("nature:A"));
+
+        // the year is in the vector, at the lowest weight
+        Assert.True(await Matches("2022:D"));
     }
 
     async Task<bool> Matches(string weightedQuery)

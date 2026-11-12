@@ -1,3 +1,4 @@
+-- 2026-11-12 - add the category year
 -- 2026-08-22 - add person names
 --
 -- dropped rather than left to CREATE ... IF NOT EXISTS, which would silently
@@ -39,6 +40,7 @@ category_search_data AS
     SELECT
         c.id AS category_id,
         c.name AS category_name,
+        c.year AS category_year,
         COALESCE(STRING_AGG (comm.body, ' '), '') AS comment_text,
         COALESCE(STRING_AGG(l.administrative_area_level_1, ' '), '') AS location_administrative_area_level_1,
         COALESCE(STRING_AGG(l.administrative_area_level_2, ' '), '') AS location_administrative_area_level_2,
@@ -74,7 +76,8 @@ category_search_data AS
         ON cpd.category_id = c.id
     GROUP BY
         c.id,
-        c.name
+        c.name,
+        c.year
 )
 SELECT
     category_id,
@@ -101,6 +104,11 @@ SELECT
         || SETWEIGHT(TO_TSVECTOR('english', location_sub_locality_level_1), 'C')
         || SETWEIGHT(TO_TSVECTOR('english', location_sub_locality_level_2), 'C')
         || SETWEIGHT(TO_TSVECTOR('english', location_sub_premise), 'C')
+        -- D, the lowest: a year narrows a search ('christmas 2019') far more
+        -- often than it is the thing searched for, and a category that only
+        -- mentions 2019 somewhere should not be outranked by every category from
+        -- that year.  simple rather than english, as a year has nothing to stem.
+        || SETWEIGHT(TO_TSVECTOR('simple', COALESCE(category_year::TEXT, '')), 'D')
         AS search_vector
 FROM category_search_data
 ORDER BY category_id;

@@ -256,6 +256,7 @@ function main() {
     queue "funcs/media.clear_media_roles.sql"
     queue "funcs/media.clear_place_cover.sql"
     queue "funcs/media.bulk_set_media_gps_override.sql"
+    queue "funcs/media.build_search_query.sql"
     queue "funcs/media.create_clan.sql"
     queue "funcs/media.create_external_identity.sql"
     queue "funcs/media.delete_clan.sql"

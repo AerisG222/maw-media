@@ -1,3 +1,4 @@
+-- 2026-11-12 - match partial words, through media.build_search_query
 -- 2026-11-01 - break rank ties in the final order, so the row a page drops is the extra one
 -- 2026-10-31 - add _favorites_only and _media_type
 -- 2025-11-04 - add slug to return
@@ -33,17 +34,24 @@ RETURNS TABLE
     media_types TEXT[]
 )
 AS $$
+DECLARE
+    _query TSQUERY := media.build_search_query(_search_term);
 BEGIN
+    -- nothing searchable was typed
+    IF _query IS NULL THEN
+        RETURN;
+    END IF;
+
     RETURN QUERY
     WITH search_results AS
     (
         SELECT DISTINCT
             uc.category_id,
-            TS_RANK(cs.search_vector, PLAINTO_TSQUERY(_search_term)) AS search_rank
+            TS_RANK(cs.search_vector, _query) AS search_rank
         FROM media.user_category uc
         INNER JOIN media.category_search cs
             ON uc.category_id = cs.category_id
-            AND cs.search_vector @@ PLAINTO_TSQUERY(_search_term)
+            AND cs.search_vector @@ _query
         WHERE
             uc.user_id = _user_id
             -- here rather than on the rows that come back, so a page of 25 is still
@@ -80,7 +88,7 @@ BEGIN
                 )
             )
         ORDER BY
-            TS_RANK(cs.search_vector, PLAINTO_TSQUERY(_search_term)) DESC,
+            TS_RANK(cs.search_vector, _query) DESC,
             uc.category_id
         LIMIT _limit
         OFFSET _offset
