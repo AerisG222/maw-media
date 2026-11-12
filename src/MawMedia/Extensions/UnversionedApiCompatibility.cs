@@ -9,7 +9,7 @@ namespace MawMedia.Extensions;
 //
 // this is a migration shim: once nothing calls the root paths, delete this file and its
 // UseUnversionedApiCompatibility() call in Program.cs.
-public static class UnversionedApiCompatibilityExtensions
+public static partial class UnversionedApiCompatibilityExtensions
 {
     // pinned to v1 deliberately: clients on the unversioned paths were written against the v1
     // contract, so they must keep landing on v1 even after the default version moves forward.
@@ -64,8 +64,8 @@ public static class UnversionedApiCompatibilityExtensions
 
             // Debug rather than Information: legacy traffic can be high volume. turn this
             // category up when deciding whether the shim can be removed.
-            log.LogDebug(
-                "rewriting unversioned request {LegacyMethod} {LegacyPath} to {Method} {VersionedPath}",
+            LogRewrite(
+                log,
                 ctx.Request.Method,
                 legacyPath,
                 replayAsPut ? HttpMethods.Put : ctx.Request.Method,
@@ -129,4 +129,8 @@ public static class UnversionedApiCompatibilityExtensions
 
         return false;
     }
+
+    // source generated so the paths are not boxed and formatted when Debug is off
+    [LoggerMessage(Level = LogLevel.Debug, Message = "rewriting unversioned request {LegacyMethod} {LegacyPath} to {Method} {VersionedPath}")]
+    static partial void LogRewrite(ILogger logger, string legacyMethod, PathString legacyPath, string method, PathString versionedPath);
 }

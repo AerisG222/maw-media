@@ -41,13 +41,13 @@ public class MediaIdentityClaimsTransformation
         }
         else if (userState is NonActivatedUser)
         {
-            _log.LogInformation("User with external id {EXTERNAL_ID} is not activated yet!", subClaim);
+            ClaimsTransformationLog.NotActivated(_log, subClaim);
 
             AddMediaIdentityClaims(principal, null, Constants.USER_STATUS_INACTIVE, false);
         }
         else if (userState is NonExistentUser)
         {
-            _log.LogInformation("User with external id {EXTERNAL_ID} has not been onboarded yet!", subClaim);
+            ClaimsTransformationLog.NotOnboarded(_log, subClaim);
 
             userState = await _repo.OnboardExternalIdentity(default);
 
@@ -66,4 +66,15 @@ public class MediaIdentityClaimsTransformation
 
     static void AddMediaIdentityClaims(ClaimsPrincipal principal, Guid? userId, string status, bool isAdmin) =>
         principal.AddIdentity(MediaIdentity.Create(userId, status, isAdmin));
+}
+
+// source generated: claims transformation runs on every authenticated request, so a
+// user waiting on activation logs once per api call and per image
+static partial class ClaimsTransformationLog
+{
+    [LoggerMessage(Level = LogLevel.Information, Message = "User with external id {EXTERNAL_ID} is not activated yet!")]
+    public static partial void NotActivated(ILogger logger, string external_id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "User with external id {EXTERNAL_ID} has not been onboarded yet!")]
+    public static partial void NotOnboarded(ILogger logger, string external_id);
 }

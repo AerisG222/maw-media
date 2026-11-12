@@ -170,7 +170,7 @@ public class MediaRepository
 
         if (file == null)
         {
-            _log.LogWarning("Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!", userId, assetId);
+            MediaRepositoryLog.MediaFileDenied(_log, userId, assetId);
         }
 
         return file;
@@ -182,7 +182,7 @@ public class MediaRepository
 
         if (file == null)
         {
-            _log.LogWarning("Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!", userId, path);
+            MediaRepositoryLog.MediaFileDenied(_log, userId, path);
         }
 
         return file;
@@ -442,4 +442,15 @@ public class MediaRepository
 
         return result;
     }
+}
+
+// source generated: these run for every asset a caller is refused, which a page of
+// thumbnails can turn into dozens a second
+static partial class MediaRepositoryLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!")]
+    public static partial void MediaFileDenied(ILogger logger, Guid user, Guid asset);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unable to get media file - user {USER} does not have access to asset {ASSET} - or asset does not exist!")]
+    public static partial void MediaFileDenied(ILogger logger, Guid user, string asset);
 }
