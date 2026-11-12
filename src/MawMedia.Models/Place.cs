@@ -28,7 +28,7 @@ namespace MawMedia.Models;
 // caller who cannot reach the category the photograph came from.  the control
 // lives in the choosing, not the serving - see media.set_place_cover.
 // see docs/browse-by-location.md
-public record Place(
+public sealed record Place(
     Guid Id,
     Guid? ParentId,
     string Kind,

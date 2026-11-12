@@ -17,7 +17,7 @@ public enum ZipBuildRefusal
     OutOfSpace
 }
 
-public record ZipBuildResult(FileInfo? File, ZipBuildRefusal Refusal, TimeSpan RetryAfter)
+public sealed record ZipBuildResult(FileInfo? File, ZipBuildRefusal Refusal, TimeSpan RetryAfter)
 {
     public static ZipBuildResult Built(FileInfo file) => new(file, ZipBuildRefusal.None, TimeSpan.Zero);
     public static ZipBuildResult Refused(ZipBuildRefusal refusal, TimeSpan retryAfter) => new(null, refusal, retryAfter);

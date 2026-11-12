@@ -8,7 +8,7 @@ namespace MawMedia.Models.FaceRecognition;
 // SourceRevision drives the staleness guard: a batch whose revision is not
 // newer than what is stored is skipped, which is what makes the publisher's
 // at-least-once delivery safe to retry.
-public record PersonSync(
+public sealed record PersonSync(
     Guid Id,
     string? Name,
     string? Slug,

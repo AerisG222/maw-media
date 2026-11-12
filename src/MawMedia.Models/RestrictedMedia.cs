@@ -7,7 +7,7 @@ namespace MawMedia.Models;
 // would then refuse is worse than one that does not.  IsVisibleToYou says which
 // these are - the photos an admin has restricted to roles they do not hold, which
 // drop out of every other listing they can make.  see docs/media-restrictions.md
-public record RestrictedMedia(
+public sealed record RestrictedMedia(
     Guid MediaId,
     string MediaSlug,
     string MediaType,

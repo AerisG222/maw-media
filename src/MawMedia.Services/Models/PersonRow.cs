@@ -4,7 +4,7 @@ namespace MawMedia.Services.Models;
 // .FaceRecognition.Person because the url on that model is composed from the
 // request's base url, which sql has no notion of - the repository maps between
 // the two.
-record PersonRow(
+sealed record PersonRow(
     Guid Id,
     string Name,
     string? Slug,

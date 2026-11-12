@@ -1,6 +1,6 @@
 namespace MawMedia.Services.Models;
 
-public record GpsRecord(
+public sealed record GpsRecord(
     Guid MediaId,
     decimal? RecordedLatitude,
     decimal? RecordedLongitude,

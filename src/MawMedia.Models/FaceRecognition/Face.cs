@@ -9,7 +9,7 @@ namespace MawMedia.Models.FaceRecognition;
 // PersonId is null both for a face nobody has been assigned to and for one whose
 // person the caller is not allowed to know about - the two are deliberately
 // indistinguishable.
-public record Face(
+public sealed record Face(
     Guid Id,
     Guid? PersonId,
     decimal BoxX,

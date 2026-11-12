@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services;
 
-public partial class UploadService
+public sealed partial class UploadService
     : IUploadService
 {
     const int MAX_FILENAME_LENGTH = 255;

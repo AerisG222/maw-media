@@ -1,6 +1,6 @@
 namespace MawMedia.Services.Models;
 
-public record CategoryStatRecord(
+public sealed record CategoryStatRecord(
     Guid? CategoryId,
     string CategoryName,
     string MediaType,

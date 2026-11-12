@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record Gps(
+public sealed record Gps(
     Guid MediaId,
     GpsCoordinate? Recorded,
     GpsCoordinate? Override

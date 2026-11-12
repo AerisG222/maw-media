@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class MediaRepository
+public sealed class MediaRepository
     : BaseRepository, IMediaRepository
 {
     readonly HybridCache _cache;

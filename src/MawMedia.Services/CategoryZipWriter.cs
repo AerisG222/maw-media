@@ -20,7 +20,7 @@ namespace MawMedia.Services;
 //
 // a build refused by any of them is reported with how long to wait, rather than
 // queued: the caller is a browser waiting on a response.
-public class CategoryZipFileWriter
+public sealed class CategoryZipFileWriter
     : IZipFileWriter
 {
     const int WAIT_TIMEOUT_MS = 5_000;

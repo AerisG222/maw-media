@@ -6,7 +6,7 @@ namespace MawMedia.Services.Models;
 // columns null for a clan that has no members the caller can see.  the repository
 // groups these back into Clan records, the same way AssembleMedia turns file rows
 // back into Media.
-record ClanRow(
+sealed record ClanRow(
     Guid ClanId,
     string ClanName,
     Instant Created,

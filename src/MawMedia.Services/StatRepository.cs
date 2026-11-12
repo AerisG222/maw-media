@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class StatRepository
+public sealed class StatRepository
     : BaseRepository, IStatRepository
 {
     public StatRepository(

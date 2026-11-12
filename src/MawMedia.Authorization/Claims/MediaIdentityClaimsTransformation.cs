@@ -6,7 +6,7 @@ using MawMedia.Services.Abstractions;
 
 namespace MawMedia.Authorization.Claims;
 
-public class MediaIdentityClaimsTransformation
+public sealed class MediaIdentityClaimsTransformation
     : IClaimsTransformation
 {
     readonly ILogger _log;

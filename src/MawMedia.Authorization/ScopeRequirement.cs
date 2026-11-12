@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace MawMedia.Authorization;
 
-public class ScopeRequirement
+public sealed class ScopeRequirement
     : IAuthorizationRequirement
 {
     public string RequiredScope { get; init; }

@@ -5,7 +5,7 @@ namespace MawMedia.Services.Models;
 // only a code.  the cover file is named for the place, so a caller that needs to
 // remove one already knows what to remove - there is no displaced name for the
 // database to hand back.
-class CoverChange
+sealed class CoverChange
 {
     public int Result { get; set; }
 }

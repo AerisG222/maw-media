@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public class SearchResult<T>
+public sealed class SearchResult<T>
 {
     public IEnumerable<T> Results { get; private init; }
     public bool HasMoreResults { get; private init; }

@@ -7,7 +7,7 @@ using NodaTime;
 
 namespace MawMedia.Services.Models;
 
-class LocalDateHandler
+sealed class LocalDateHandler
     : SqlMapper.TypeHandler<LocalDate>
 {
     public static readonly LocalDateHandler Default = new LocalDateHandler();

@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class CategoryRepository
+public sealed class CategoryRepository
     : BaseRepository, ICategoryRepository
 {
     const int SEARCH_LIMIT_MAX = 250;

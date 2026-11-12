@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services;
 
-public class CategoryDownloadCleaner
+public sealed class CategoryDownloadCleaner
     : BackgroundService
 {
     readonly ILogger _log;

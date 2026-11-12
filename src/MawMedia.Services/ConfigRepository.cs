@@ -5,7 +5,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class ConfigRepository
+public sealed class ConfigRepository
     : BaseRepository, IConfigRepository
 {
     public ConfigRepository(

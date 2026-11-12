@@ -6,7 +6,7 @@ using Constants = MawMedia.Services.Abstractions.Constants;
 
 namespace MawMedia.Authorization;
 
-public class MediaStaticAssetAuthorizationHandler
+public sealed class MediaStaticAssetAuthorizationHandler
     : AuthorizationHandler<MediaStaticAssetRequirement>
 {
     readonly IMediaRepository _repo;

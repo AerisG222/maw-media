@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record Media(
+public sealed record Media(
     Guid Id,
     string Slug,
     Guid CategoryId,

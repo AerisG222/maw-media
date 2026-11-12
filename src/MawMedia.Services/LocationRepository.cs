@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class LocationRepository
+public sealed class LocationRepository
     : BaseRepository, ILocationRepository
 {
     public LocationRepository(

@@ -2,7 +2,7 @@ using MawMedia.Services.Abstractions;
 
 namespace MawMedia.Services;
 
-public class AssetPathBuilder
+public sealed class AssetPathBuilder
     : IAssetPathBuilder
 {
     // media.file.path stores a *url* path - "/assets/2007/hk-macau/qvg-fill/x.avif"

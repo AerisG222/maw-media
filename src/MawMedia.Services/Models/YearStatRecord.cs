@@ -1,6 +1,6 @@
 namespace MawMedia.Services.Models;
 
-public record YearStatRecord(
+public sealed record YearStatRecord(
     short Year,
     long CategoryCount,
     string MediaType,

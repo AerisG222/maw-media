@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record GpsCoordinate(
+public sealed record GpsCoordinate(
     decimal Latitude,
     decimal Longitude
 );

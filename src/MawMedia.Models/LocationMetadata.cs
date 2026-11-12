@@ -2,7 +2,7 @@ using NodaTime;
 
 namespace MawMedia.Models;
 
-public record LocationMetadata(
+public sealed record LocationMetadata(
     Guid LocationId,
     Instant LookupDate,
     string? FormattedAddress,

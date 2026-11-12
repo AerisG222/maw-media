@@ -7,7 +7,7 @@ namespace MawMedia.Services.Models;
 // it exists anyway so the database's shape and the api's shape can move
 // independently, which is the point at which the teaser image lands: a column
 // added here does not oblige every consumer of Place to change with it.
-class PlaceRow
+sealed class PlaceRow
 {
     public Guid Id { get; set; }
     public Guid? ParentId { get; set; }

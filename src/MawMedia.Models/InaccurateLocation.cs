@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record InaccurateLocation(
+public sealed record InaccurateLocation(
     Guid MediaId,
     decimal ExifLatitude,
     decimal ExifLongitude,

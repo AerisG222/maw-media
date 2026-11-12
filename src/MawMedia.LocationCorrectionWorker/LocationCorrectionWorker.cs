@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace MawMedia.LocationCorrectionWorker;
 
-internal class LocationCorrectionWorker
+internal sealed class LocationCorrectionWorker
     : BackgroundService
 {
     readonly ILogger _log;

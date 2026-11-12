@@ -1,6 +1,6 @@
 namespace MawMedia.ViewModels;
 
-public record BulkMediaRolesRequest(
+public sealed record BulkMediaRolesRequest(
     Guid[] MediaIds,
     string[] Roles
 );

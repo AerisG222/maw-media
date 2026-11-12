@@ -4,6 +4,6 @@ namespace MawMedia.ViewModels;
 //
 // ParentId is nullable, and null is meaningful rather than missing: it moves the
 // place to the root of the tree.  only a country may go there.
-public record PlaceParentRequest(
+public sealed record PlaceParentRequest(
     Guid? ParentId
 );

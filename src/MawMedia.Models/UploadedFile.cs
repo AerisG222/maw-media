@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record UploadedFile(
+public sealed record UploadedFile(
     string Name,
     long Size
 );

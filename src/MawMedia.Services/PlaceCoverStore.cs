@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services;
 
-public class PlaceCoverStore
+public sealed class PlaceCoverStore
     : IPlaceCoverStore
 {
     public const string EXTENSION = Constants.PlaceCoverExtension;

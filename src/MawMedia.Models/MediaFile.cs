@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record MediaFile(
+public sealed record MediaFile(
     Guid Id,
     string Scale,
     string Type,

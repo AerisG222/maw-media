@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace MawMedia.Authorization;
 
-public class ScopeAuthorizationHandler
+public sealed class ScopeAuthorizationHandler
     : AuthorizationHandler<ScopeRequirement>
 {
     protected override Task HandleRequirementAsync(

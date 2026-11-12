@@ -7,7 +7,7 @@ using NodaTime.Serialization.SystemTextJson;
 
 namespace MawMedia.Services;
 
-public class UserInfoClient
+public sealed class UserInfoClient
     : IUserInfoClient
 {
     static readonly JsonSerializerOptions _jsonOpts = BuildJsonOptions();

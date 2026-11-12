@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class BaseRepository
+public abstract class BaseRepository
 {
     readonly NpgsqlConnection _conn;
     protected readonly ILogger _log;

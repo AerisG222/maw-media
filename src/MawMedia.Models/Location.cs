@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record Location(
+public sealed record Location(
     Guid Id,
     decimal Latitude,
     decimal Longitude

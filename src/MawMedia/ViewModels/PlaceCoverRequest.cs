@@ -5,6 +5,6 @@ namespace MawMedia.ViewModels;
 // a body rather than a route segment because the operation is a publication, not
 // a navigation - PUT /places/{id}/cover names the thing being replaced, and the
 // body says what to replace it with.
-public record PlaceCoverRequest(
+public sealed record PlaceCoverRequest(
     Guid MediaId
 );

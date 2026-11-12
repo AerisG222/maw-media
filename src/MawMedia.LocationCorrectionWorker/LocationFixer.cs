@@ -4,7 +4,7 @@ using MawMedia.Services.Abstractions;
 
 namespace MawMedia.LocationCorrectionWorker;
 
-internal class LocationFixer
+internal sealed class LocationFixer
     : ILocationFixer
 {
     readonly LocationCorrectionConfig _config;

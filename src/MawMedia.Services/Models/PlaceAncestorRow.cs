@@ -4,7 +4,7 @@ namespace MawMedia.Services.Models;
 // postgres does not substitute them into the column references in its own body -
 // see the comment there.  that prefix is a database concern, so it is unwound here
 // rather than leaking into MawMedia.Models.PlaceAncestor.
-class PlaceAncestorRow
+sealed class PlaceAncestorRow
 {
     public Guid AncestorId { get; set; }
     public Guid? AncestorParentId { get; set; }

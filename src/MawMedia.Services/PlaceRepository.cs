@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class PlaceRepository
+public sealed class PlaceRepository
     : BaseRepository, IPlaceRepository
 {
     // a page bigger than this is almost certainly a client bug rather than a

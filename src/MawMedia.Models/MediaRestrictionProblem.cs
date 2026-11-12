@@ -8,7 +8,7 @@ namespace MawMedia.Models;
 // media.set_media_roles for the full list.  MediaId is null for problems that
 // belong to the request rather than to a photo - an unknown role name, say - and
 // Detail carries what the problem is about: the role, the category or the place.
-public record MediaRestrictionProblem(
+public sealed record MediaRestrictionProblem(
     Guid? MediaId,
     string Reason,
     string? Detail

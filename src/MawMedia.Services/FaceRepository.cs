@@ -13,7 +13,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class FaceRepository
+public sealed class FaceRepository
     : BaseRepository, IFaceRepository
 {
     // the payload is consumed by the media.sync_* functions via

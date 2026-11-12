@@ -1,6 +1,6 @@
 namespace MawMedia.Services;
 
-public class PlaceCoverConfig
+public sealed class PlaceCoverConfig
 {
     // the directory published covers are copied into.  it must not be, or contain,
     // the asset root: this branch skips the per file access check, so an

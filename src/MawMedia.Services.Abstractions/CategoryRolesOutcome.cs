@@ -17,13 +17,13 @@ public enum CategoryRolesOutcome
     Invalid
 }
 
-public record CategoryRolesResult(
+public sealed record CategoryRolesResult(
     CategoryRolesOutcome Outcome,
     IReadOnlyList<CategoryRolesProblem> Problems
 );
 
 // the roles a category is granted to; only meaningful when Outcome is Ok
-public record CategoryRolesLookup(
+public sealed record CategoryRolesLookup(
     CategoryRolesOutcome Outcome,
     IReadOnlyList<string> Roles
 );

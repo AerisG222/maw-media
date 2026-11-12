@@ -11,7 +11,7 @@ namespace MawMedia.Models.FaceRecognition;
 // the box is normalised 0..1 against the source image so a crop survives any
 // scale.  a detector may report slightly outside that range for a face clipped
 // by the frame edge.
-public record FaceSync(
+public sealed record FaceSync(
     Guid Id,
     string FilePath,
     Guid? PersonId,

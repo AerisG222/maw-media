@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace MawMedia.Services;
 
-public class FaceImageStore
+public sealed class FaceImageStore
     : IFaceImageStore
 {
     // avif matches what MawMediaPublisher already produces for video posters, so

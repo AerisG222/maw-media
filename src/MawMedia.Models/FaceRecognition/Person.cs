@@ -10,7 +10,7 @@ namespace MawMedia.Models.FaceRecognition;
 // PreferredFaceUrl is absolute so every client does not have to know how to
 // assemble it, matching how media file urls are returned.  it is null when the
 // person has no preferred face published yet.
-public record Person(
+public sealed record Person(
     Guid Id,
     string Name,
     string? Slug,

@@ -9,7 +9,7 @@ namespace MawMedia.Models;
 //
 // Depth is 1-based from the country, so a client can render the chain without
 // re-deriving the order it was already given in.
-public record PlaceAncestor(
+public sealed record PlaceAncestor(
     Guid Id,
     Guid? ParentId,
     string Kind,

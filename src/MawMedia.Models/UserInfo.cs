@@ -3,7 +3,7 @@ using NodaTime;
 
 namespace MawMedia.Models;
 
-public class UserInfo
+public sealed class UserInfo
 {
     [JsonPropertyName("email")]
     public string? Email { get; set; }

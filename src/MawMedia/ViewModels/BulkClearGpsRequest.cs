@@ -1,5 +1,5 @@
 namespace MawMedia.ViewModels;
 
-public record BulkClearGpsRequest(
+public sealed record BulkClearGpsRequest(
     Guid[] MediaIds
 );

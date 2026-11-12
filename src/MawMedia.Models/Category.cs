@@ -2,7 +2,7 @@ using NodaTime;
 
 namespace MawMedia.Models;
 
-public record Category(
+public sealed record Category(
     Guid Id,
     short Year,
     string Slug,

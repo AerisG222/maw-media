@@ -11,7 +11,7 @@ namespace MawMedia.Models.FaceRecognition;
 // the person list uses.  a member the caller can no longer see is simply absent,
 // which means Members can be shorter than what was originally saved, and can be
 // empty.
-public record Clan(
+public sealed record Clan(
     Guid Id,
     string Name,
     Instant Created,

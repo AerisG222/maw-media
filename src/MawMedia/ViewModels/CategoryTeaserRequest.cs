@@ -1,5 +1,5 @@
 namespace MawMedia.ViewModels;
 
-public record CategoryTeaserRequest(
+public sealed record CategoryTeaserRequest(
     Guid MediaId
 );

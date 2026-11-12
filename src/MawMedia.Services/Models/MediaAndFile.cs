@@ -1,6 +1,6 @@
 namespace MawMedia.Services.Models;
 
-class MediaAndFile
+sealed class MediaAndFile
 {
     public Guid MediaId { get; set; }
     public required string MediaSlug { get; set; }

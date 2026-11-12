@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record PointOfInterest (
+public sealed record PointOfInterest (
     string Type,
     string Name
 );

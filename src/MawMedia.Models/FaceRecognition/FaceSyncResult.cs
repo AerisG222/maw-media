@@ -13,7 +13,7 @@ namespace MawMedia.Models.FaceRecognition;
 //
 // Detail carries the offending path for unresolved_path and the code for a
 // status, and is null otherwise.
-public record FaceSyncResult(
+public sealed record FaceSyncResult(
     string Entity,
     Guid? EntityId,
     string Outcome,

@@ -1,5 +1,5 @@
 namespace MawMedia.ViewModels;
 
-public record AddCommentRequest(
+public sealed record AddCommentRequest(
     string Body
 );

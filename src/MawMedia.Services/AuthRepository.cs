@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace MawMedia.Services;
 
-public class AuthRepository
+public sealed class AuthRepository
     : BaseRepository, IAuthRepository
 {
     readonly HybridCache _cache;

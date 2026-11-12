@@ -22,14 +22,14 @@ public enum MediaRestrictionOutcome
     Invalid
 }
 
-public record MediaRestrictionResult(
+public sealed record MediaRestrictionResult(
     MediaRestrictionOutcome Outcome,
     IReadOnlyList<MediaRestrictionProblem> Problems
 );
 
 // the roles a media is restricted to.  Roles is empty when it has no restriction
 // and follows its category; it is only meaningful when Outcome is Ok.
-public record MediaRolesResult(
+public sealed record MediaRolesResult(
     MediaRestrictionOutcome Outcome,
     IReadOnlyList<string> Roles
 );

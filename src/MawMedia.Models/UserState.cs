@@ -4,14 +4,14 @@ namespace MawMedia.Models;
 
 public interface IUserState;
 
-public record NonExistentUser : IUserState;
+public sealed record NonExistentUser : IUserState;
 
-public record NonActivatedUser(
+public sealed record NonActivatedUser(
     string ExternalId,
     Instant ExternalProfileLastUpdated
 ) : IUserState;
 
-public record ActivatedUser(
+public sealed record ActivatedUser(
     string ExternalId,
     Instant ExternalProfileLastUpdated,
     Guid UserId,

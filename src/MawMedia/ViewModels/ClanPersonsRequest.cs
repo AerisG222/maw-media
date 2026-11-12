@@ -1,5 +1,5 @@
 namespace MawMedia.ViewModels;
 
-public record ClanPersonsRequest(
+public sealed record ClanPersonsRequest(
     Guid[] PersonIds
 );

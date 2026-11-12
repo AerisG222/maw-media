@@ -2,7 +2,7 @@ using NodaTime;
 
 namespace MawMedia.Models;
 
-public record Comment(
+public sealed record Comment(
     Guid CommentId,
     Instant Created,
     string CreatedBy,

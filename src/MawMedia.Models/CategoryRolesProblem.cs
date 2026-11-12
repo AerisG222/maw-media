@@ -6,7 +6,7 @@ namespace MawMedia.Models;
 // Reason is a stable, lowercase code; see media.set_category_roles for the list.
 // MediaId is set only for restriction_depends - the restricted media whose
 // restriction names a role being removed - and Detail carries the role.
-public record CategoryRolesProblem(
+public sealed record CategoryRolesProblem(
     Guid? MediaId,
     string Reason,
     string? Detail

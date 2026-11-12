@@ -6,7 +6,7 @@ namespace MawMedia.Services.Models;
 // but its published cover file is not, and the database cannot reach the
 // filesystem.  a cover left behind would still be served to anyone holding the
 // dead place's id.
-class MergeResult
+sealed class MergeResult
 {
     public int Result { get; set; }
     public bool HadCover { get; set; }

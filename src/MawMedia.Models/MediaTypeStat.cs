@@ -1,6 +1,6 @@
 namespace MawMedia.Models;
 
-public record MediaTypeStat(
+public sealed record MediaTypeStat(
     string MediaType,
     long MediaCount,
     decimal FileSize,
