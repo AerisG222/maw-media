@@ -122,7 +122,18 @@ public sealed class CategoryZipWriterLimitTests
 
         var held = Task.Run(() => writer.WriteZipFile(Guid.CreateVersion7(), "held.zip", ["/assets/2001/fifo/full/held.avif"], token), token);
 
-        await Task.Delay(500, token);
+        // the partial is only created once the build holds its slot, so its
+        // appearance - not a guess at how long that takes - says the slot is taken
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(token))
+        {
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+
+            while (!Directory.EnumerateFiles(DownloadDir, "*.partial").Any())
+            {
+                Assert.False(held.IsCompleted, "the held build finished before it took its slot");
+                await Task.Delay(10, timeout.Token);
+            }
+        }
 
         var refused = await writer.WriteZipFile(Guid.CreateVersion7(), "b.zip", Assets(1, 10), token);
 
