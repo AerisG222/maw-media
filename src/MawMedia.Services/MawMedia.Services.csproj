@@ -4,7 +4,6 @@
         <PackageReference Include="Dapper" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
         <PackageReference Include="Microsoft.Extensions.Hosting" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
         <PackageReference Include="Npgsql" />
     </ItemGroup>
