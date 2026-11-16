@@ -51,7 +51,7 @@ public class ApiFactory
             // to start when the two overlap, because that branch is served
             // unauthenticated
             Set("PlaceCovers__RootDirectory", SharedCoverRoot.Value);
-            Set("Upload__RootDirectory", CreateDir("upload"));
+            Set("Upload__RootDirectory", SharedUploadRoot.Value);
             Set("CategoryDownload__RootDirectory", SharedDownloadRoot.Value);
             Set("CategoryDownload__CleanIntervalInMinutes", "60");
             Set("CategoryDownload__MinAgeBeforeDeleteInMinutes", "60");
@@ -94,6 +94,13 @@ public class ApiFactory
     // directory - already deleted when its test finished.  archives are named for
     // the user and category a test owns, so sharing cannot collide either.
     static readonly Lazy<string> SharedDownloadRoot = new(() => SharedDir("download"));
+
+    // and uploads after that.  UploadingANameAlreadyTakenIsAConflict stores a file
+    // and then sends the same name again; when its host had read another factory's
+    // variable, that factory could finish and delete its scratch directory in
+    // between, taking the first upload with it, and the duplicate was accepted.
+    // the test names its file with a fresh guid, so sharing cannot collide.
+    static readonly Lazy<string> SharedUploadRoot = new(() => SharedDir("upload"));
 
     // a stub rather than a real avif - nothing in this system decodes a cover, it
     // is copied byte for byte.  the body is derived from the path so every

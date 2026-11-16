@@ -382,22 +382,31 @@ public class PlaceRoutesTests
 
         Assert.Equal(HttpStatusCode.OK, set.StatusCode);
 
-        var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
-        var cover = new Uri(updated!.CoverUrl!);
+        // the seeded city is shared by every cover test in this class, so the cover
+        // has to come off again whatever happens here
+        try
+        {
+            var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+            var cover = new Uri(updated!.CoverUrl!);
 
-        var allowed = await SendWithCookie(
-            HttpMethod.Get,
-            cover,
-            await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead));
+            var allowed = await SendWithCookie(
+                HttpMethod.Get,
+                cover,
+                await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.MediaRead));
 
-        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
 
-        var wrongScope = await SendWithCookie(
-            HttpMethod.Get,
-            cover,
-            await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.StatsRead));
+            var wrongScope = await SendWithCookie(
+                HttpMethod.Get,
+                cover,
+                await AssetCookie(Constants.EXTERNAL_ID_JOHNDOE, ApiScopes.StatsRead));
 
-        Assert.Equal(HttpStatusCode.Forbidden, wrongScope.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, wrongScope.StatusCode);
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
     }
 
     [Fact]
@@ -416,37 +425,42 @@ public class PlaceRoutesTests
 
         Assert.Equal(HttpStatusCode.OK, set.StatusCode);
 
-        var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
+        try
+        {
+            var updated = await set.Content.ReadFromJsonAsync<Place>(JsonOptions, token);
 
-        Assert.NotNull(updated!.CoverUrl);
-        Assert.Contains("/assets/covers/", updated.CoverUrl);
+            Assert.NotNull(updated!.CoverUrl);
+            Assert.Contains("/assets/covers/", updated.CoverUrl);
 
-        // the file is named for the place, so the url is derivable from the row -
-        // no second id, and no lookup to answer "where is this image"
-        Assert.Contains($"{city.Id}.avif", updated.CoverUrl);
+            // the file is named for the place, so the url is derivable from the row -
+            // no second id, and no lookup to answer "where is this image"
+            Assert.Contains($"{city.Id}.avif", updated.CoverUrl);
 
-        var image = await admin.GetAsync(new Uri(updated.CoverUrl), token);
+            var image = await admin.GetAsync(new Uri(updated.CoverUrl), token);
 
-        Assert.Equal(HttpStatusCode.OK, image.StatusCode);
-        Assert.Equal("image/avif", image.Content.Headers.ContentType?.MediaType);
-        Assert.True((await image.Content.ReadAsByteArrayAsync(token)).Length > 0);
+            Assert.Equal(HttpStatusCode.OK, image.StatusCode);
+            Assert.Equal("image/avif", image.Content.Headers.ContentType?.MediaType);
+            Assert.True((await image.Content.ReadAsByteArrayAsync(token)).Length > 0);
 
-        // immutable, which is what makes replacing a cover safe to cache forever,
-        // and private so a shared cache cannot hand it to a signed out visitor
-        var cacheControl = image.Headers.CacheControl?.ToString() ?? "";
+            // immutable, which is what makes replacing a cover safe to cache forever,
+            // and private so a shared cache cannot hand it to a signed out visitor
+            var cacheControl = image.Headers.CacheControl?.ToString() ?? "";
 
-        Assert.Contains("immutable", cacheControl);
-        Assert.Contains("private", cacheControl);
+            Assert.Contains("immutable", cacheControl);
+            Assert.Contains("private", cacheControl);
 
-        // signing out closes it: a cover is not public, it merely skips the per
-        // file check that the rest of /assets applies
-        using var anonymous = Factory.CreateClient();
+            // signing out closes it: a cover is not public, it merely skips the per
+            // file check that the rest of /assets applies
+            using var anonymous = Factory.CreateClient();
 
-        var refused = await anonymous.GetAsync(new Uri(updated.CoverUrl), token);
+            var refused = await anonymous.GetAsync(new Uri(updated.CoverUrl), token);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
-
-        await writer.DeleteAsync(CoverRoute(city.Id), token);
+            Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
+        }
+        finally
+        {
+            await writer.DeleteAsync(CoverRoute(city.Id), token);
+        }
     }
 
     [Fact]
