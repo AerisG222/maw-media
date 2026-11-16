@@ -5,6 +5,15 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+        <!--
+           compile async methods for the runtime's own async support rather than to
+           compiler generated state machines: fewer allocations and cleaner stack
+           traces.  net11.0 does not turn it on by itself yet; the runtime needs no
+           switch.  a method the feature cannot handle fails the build with a hint to
+           opt it out with [RuntimeAsyncMethodGeneration(false)].
+        -->
+        <Features>$(Features);runtime-async=on</Features>
     </PropertyGroup>
 
 </Project>
